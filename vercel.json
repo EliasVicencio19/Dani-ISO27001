@@ -1,12 +1,12 @@
 {
-  "buildCommand": "cd Producto/frontend && npm install && npm run build",
-  "outputDirectory": "Producto/frontend/build",
-  "installCommand": "cd Producto/frontend && npm install",
+  "buildCommand": "cd Producto/dani-project-front && npm install && npm run build",
+  "outputDirectory": "Producto/dani-project-front/build",
+  "installCommand": "cd Producto/dani-project-front && npm install",
   "framework": "create-react-app",
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/Producto/frontend/build/$1"
+      "dest": "/Producto/dani-project-front/build/$1"
     }
   ]
 }
