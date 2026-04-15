@@ -5,8 +5,24 @@
   "framework": "create-react-app",
   "routes": [
     {
+      "src": "/static/(.*)",
+      "dest": "/Producto/dani-project-front/build/static/$1"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/Producto/dani-project-front/build/manifest.json"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/Producto/dani-project-front/build/favicon.ico"
+    },
+    {
+      "src": "/asset-manifest.json",
+      "dest": "/Producto/dani-project-front/build/asset-manifest.json"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/Producto/dani-project-front/build/$1"
+      "dest": "/Producto/dani-project-front/build/index.html"
     }
   ]
 }
