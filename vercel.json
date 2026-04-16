@@ -23,6 +23,11 @@
     {
       "src": "/(.*)",
       "dest": "/Producto/dani-project-front/build/index.html"
-    }
+    },
+    {
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
   ]
 }
