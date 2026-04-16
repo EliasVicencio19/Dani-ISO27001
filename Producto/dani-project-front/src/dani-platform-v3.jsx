@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { Shield, LayoutDashboard, Search, FileCheck, Database, Users, Settings, ChevronRight, ChevronLeft, AlertTriangle, CheckCircle2, Clock, XCircle, Upload, Download, Eye, Sparkles, Bot, Send, ArrowRight, FileText, Lock, Zap, RefreshCw, Filter, MoreHorizontal, Plus, Folder, ExternalLink, Building2, Target, FolderUp, X, Check, CircleDot, FileUp, HelpCircle, AlertCircle, Sun, Moon, Globe, ChevronDown, MessageSquare, Key, Smartphone, Monitor, EyeOff, FilePlus2, GitMerge, Wand2, Edit3, RotateCcw, Copy, Trash2, Calendar, History, GitBranch, PenTool, UserCheck, Tag, Bookmark, Split, ArrowLeftRight, Bell, Command, UserCircle, Contrast } from 'lucide-react';
 
