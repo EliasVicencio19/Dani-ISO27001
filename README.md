@@ -343,12 +343,11 @@ El proyecto sigue metodología **Scrum** con sprints de 2 semanas.
 
 ## 👥 Equipo y Roles
 
-| Rol                     | Especialización                | Responsabilidades                         |
-| ----------------------- | ------------------------------- | ----------------------------------------- |
-| Backend Senior (DEV-1)  | Node.js, PostgreSQL, LLM APIs   | Arquitectura, Auth, Core APIs, Agentes IA |
-| Backend Junior (DEV-2)  | Node.js, MongoDB, Integraciones | Conectores, Evidencias, Reportes          |
-| Frontend Senior (DEV-3) | React, TypeScript, UI/UX        | Arquitectura FE, Componentes Core, Editor |
-| Frontend Junior (DEV-4) | React, CSS, Accesibilidad       | Pantallas, Formularios, i18n, a11y        |
+| Rol                                     | Especialización                 | Responsabilidades                         |
+| --------------------------------------- | ------------------------------- | ----------------------------------------- |
+| Backend Junior (Elías Vicencio)         | Node.js, PostgreSQL, LLM APIs   | Arquitectura, Auth, Core APIs, Agentes IA |
+| Lider de proyecto (Jordy Mondaca)       | Node.js, MongoDB, Integraciones | Conectores, Evidencias, Reportes          |
+| Frontend Junior (Génesis Valdebeito)    | React, CSS, Accesibilidad       | Pantallas, Formularios, i18n, a11y        |
 
 ---
 
