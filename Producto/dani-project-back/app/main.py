@@ -5,7 +5,7 @@ import redis.asyncio as redis
 from contextlib import asynccontextmanager
 
 from app.config import settings
-from app.routers import auth, risk, evidence, documents
+from app.routes import auth, risk
 from app.utils.redis_client import RedisClient
 from app.utils.pubsub import PubSubManager
 
