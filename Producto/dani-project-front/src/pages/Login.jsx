@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Shield, Mail, Lock, LogIn } from 'lucide-react';
 
 const Login = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
@@ -12,7 +13,6 @@ const Login = ({ onLoginSuccess }) => {
     setIsLoading(true);
 
     try {
-      // Aquí llama al backend de FastAPI de Elías
       const response = await fetch('http://localhost:8000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -23,45 +23,103 @@ const Login = ({ onLoginSuccess }) => {
         const data = await response.json();
         onLoginSuccess(data.token); 
       } else {
-        setError('Correo o contraseña incorrectos.');
+        setError('Credenciales inválidas. Verifica tu correo y contraseña.');
       }
     } catch (err) {
-      setError('No se pudo conectar al servidor. ¿Está encendido el backend?');
+      setError('Error de conexión. El servidor de la plataforma está inaccesible.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
-            DANI Platform
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', color: '#e2e8f0', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      
+      {/* Tarjeta de Login */}
+      <div style={{ backgroundColor: '#1e293b', padding: '40px', borderRadius: '24px', border: '1px solid #334155', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+        
+        {/* Cabecera y Logo */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '40px' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.4)' }}>
+            <Shield size={36} color="white" />
+          </div>
+          <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#f8fafc', letterSpacing: '-0.5px' }}>
+            Dani <span style={{ fontWeight: 'normal', color: '#10b981' }}>ISO 27001</span>
           </h2>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Panel de control ISO 27001
+          <p style={{ color: '#94a3b8', fontSize: '14px', marginTop: '8px' }}>
+            Acceso seguro al portal de gestión
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Correo</label>
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 border rounded" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Contraseña</label>
-              <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 border rounded" />
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          {/* Input Correo */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#cbd5e1', marginBottom: '8px' }}>
+              Correo Electrónico
+            </label>
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', top: '50%', left: '16px', transform: 'translateY(-50%)', color: '#64748b' }}>
+                <Mail size={18} />
+              </div>
+              <input 
+                type="email" 
+                required 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="ciso@empresa.com"
+                style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '14px 16px 14px 44px', color: 'white', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
+                onFocus={(e) => e.target.style.borderColor = '#10b981'}
+                onBlur={(e) => e.target.style.borderColor = '#334155'}
+              />
             </div>
           </div>
 
-          {error && <div className="text-red-500 text-sm text-center font-bold bg-red-100 p-2 rounded">{error}</div>}
+          {/* Input Contraseña */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#cbd5e1', marginBottom: '8px' }}>
+              Contraseña
+            </label>
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', top: '50%', left: '16px', transform: 'translateY(-50%)', color: '#64748b' }}>
+                <Lock size={18} />
+              </div>
+              <input 
+                type="password" 
+                required 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                placeholder="••••••••"
+                style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '14px 16px 14px 44px', color: 'white', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
+                onFocus={(e) => e.target.style.borderColor = '#10b981'}
+                onBlur={(e) => e.target.style.borderColor = '#334155'}
+              />
+            </div>
+          </div>
 
-          <button type="submit" disabled={isLoading} className="w-full py-2 px-4 bg-blue-600 text-white rounded font-bold hover:bg-blue-700">
-            {isLoading ? 'Conectando...' : 'Ingresar'}
+          {/* Mensaje de Error */}
+          {error && (
+            <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', padding: '12px', borderRadius: '10px', fontSize: '13px', textAlign: 'center', fontWeight: 500 }}>
+              {error}
+            </div>
+          )}
+
+          {/* Botón Ingresar */}
+          <button 
+            type="submit" 
+            disabled={isLoading} 
+            style={{ marginTop: '10px', width: '100%', padding: '14px', borderRadius: '12px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', fontSize: '15px', fontWeight: 600, cursor: isLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'opacity 0.2s', opacity: isLoading ? 0.7 : 1 }}
+          >
+            {isLoading ? 'Verificando...' : (
+              <>
+                Ingresar al Dashboard
+                <LogIn size={18} />
+              </>
+            )}
           </button>
         </form>
+
       </div>
     </div>
   );
