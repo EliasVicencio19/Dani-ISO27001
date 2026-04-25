@@ -12,11 +12,11 @@ from app.utils.pubsub import PubSubManager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    app.state.redis = await RedisClient.create(settings.REDIS_URL)
-    app.state.pubsub = PubSubManager(app.state.redis)
+    # app.state.redis = await RedisClient.create(settings.REDIS_URL)
+    # app.state.pubsub = PubSubManager(app.state.redis)
     yield
     # Shutdown
-    await app.state.redis.close()
+    # await app.state.redis.close()
 
 app = FastAPI(
     title="DANI27001 Backend API",
@@ -40,8 +40,8 @@ security = HTTPBearer()
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(risk.router, prefix="/api/risks", tags=["Risk Management"])
-app.include_router(evidence.router, prefix="/api/evidence", tags=["Evidence"])
-app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
+# app.include_router(evidence.router, prefix="/api/evidence", tags=["Evidence"])
+# app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
 
 @app.get("/")
 async def root():
