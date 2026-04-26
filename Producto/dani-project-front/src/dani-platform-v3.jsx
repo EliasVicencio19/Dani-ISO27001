@@ -791,6 +791,7 @@ export default function DaniPlatform() {
             <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: '600px', height: '600px', background: `radial-gradient(circle, rgba(16, 185, 129, ${darkMode ? '0.08' : '0.12'}) 0%, transparent 70%)`, borderRadius: '50%', filter: 'blur(60px)' }} />
             <div style={{ position: 'absolute', bottom: '-10%', left: '20%', width: '400px', height: '400px', background: `radial-gradient(circle, rgba(59, 130, 246, ${darkMode ? '0.06' : '0.1'}) 0%, transparent 70%)`, borderRadius: '50%', filter: 'blur(40px)' }} />
           </div>
+          
         )}
 
         {/* Sidebar */}
@@ -925,6 +926,7 @@ export default function DaniPlatform() {
           @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
           @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         `}</style>
+      </div>
       </div>
     </ThemeContext.Provider>
   );
