@@ -6,8 +6,8 @@ from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.routes import auth, risk
-from app.utils.redis_client import RedisClient
-from app.utils.pubsub import PubSubManager
+# from app.utils.redis_client import RedisClient
+# from app.utils.pubsub import PubSubManager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,8 +28,8 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
