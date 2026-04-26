@@ -871,6 +871,7 @@ export default function DaniPlatform() {
             <button onClick={() => setSettingsOpen(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, cursor: 'pointer' }}>
               <Settings size={20} />
             </button>
+          </header>
 
           {/* Screen Content */}
           <div style={{ flex: 1, padding: '32px 40px', overflow: 'auto' }}>
