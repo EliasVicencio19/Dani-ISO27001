@@ -1,7 +1,8 @@
 /* eslint-disable */
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { Shield, LayoutDashboard, Search, FileCheck, Database, Users, Settings, ChevronRight, ChevronLeft, AlertTriangle, CheckCircle2, Clock, XCircle, Upload, Download, Eye, Sparkles, Bot, Send, ArrowRight, FileText, Lock, Zap, RefreshCw, Filter, MoreHorizontal, Plus, Folder, ExternalLink, Building2, Target, FolderUp, X, Check, CircleDot, FileUp, HelpCircle, AlertCircle, Sun, Moon, Globe, ChevronDown, MessageSquare, Key, Smartphone, Monitor, EyeOff, FilePlus2, GitMerge, Wand2, Edit3, RotateCcw, Copy, Trash2, Calendar, History, GitBranch, PenTool, UserCheck, Tag, Bookmark, Split, ArrowLeftRight, Bell, Command, UserCircle, Contrast } from 'lucide-react';
+import { Shield, LayoutDashboard, Search, FileCheck, Database, Users, Settings, ChevronRight, ChevronLeft, AlertTriangle, CheckCircle2, Clock, XCircle, Upload, Download, Eye, Sparkles, Bot, Send, ArrowRight, FileText, Lock, Zap, RefreshCw, Filter, MoreHorizontal, Plus, Folder, ExternalLink, Building2, Target, FolderUp, X, Check, CircleDot, FileUp, HelpCircle, AlertCircle, Sun, Moon, Globe, ChevronDown, MessageSquare, Key, Smartphone, Monitor, EyeOff, FilePlus2, GitMerge, Wand2, Edit3, RotateCcw, Copy, Trash2, Calendar, History, GitBranch, PenTool, UserCheck, Tag, Bookmark, Split, ArrowLeftRight, Bell, Command, UserCircle, Contrast, LogOut } from 'lucide-react';
 import Sidebar from './components/Sidebar';
+import { useAuth } from './contexts/AuthContext';
 
 
 const ThemeContext = createContext();
@@ -718,6 +719,7 @@ function InteractiveSOA({ darkMode, theme: t, language }) {
 // MAIN APP COMPONENT
 // ============================================
 export default function DaniPlatform() {
+  const { logout } = useAuth();
   const [activeScreen, setActiveScreen] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -860,11 +862,15 @@ export default function DaniPlatform() {
               <NotificationCenter isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} darkMode={darkMode} theme={t} language={language} />
             </div>
 
+            {/* Logout */}
+            <button onClick={logout} title="Cerrar sesión" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: '#ef4444', cursor: 'pointer' }}>
+              <LogOut size={20} />
+            </button>
+
             {/* Settings */}
             <button onClick={() => setSettingsOpen(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, cursor: 'pointer' }}>
               <Settings size={20} />
             </button>
-          </header>
 
           {/* Screen Content */}
           <div style={{ flex: 1, padding: '32px 40px', overflow: 'auto' }}>

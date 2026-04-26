@@ -1,23 +1,26 @@
-import React, { useState } from 'react';
+// src/App.js
+import React from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
-import DaniPlatform from './dani-platform-v3'; 
+import DaniPlatform from './dani-platform-v3';
+import './App.css';
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [token, setToken] = useState(null);
+function AppContent() {
+  const { isAuthenticated } = useAuth();
 
-  const handleLoginSuccess = (userToken) => {
-    setToken(userToken);
-    setIsAuthenticated(true);
-  };
-
-  // Si no está autenticado, muestra el componente Login
   if (!isAuthenticated) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
+    return <Login />;
   }
 
-  // Si se loguea bien, muestra tu diseño principal
-  return <DaniPlatform token={token} />;
+  return <DaniPlatform />;
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
 }
 
 export default App;
