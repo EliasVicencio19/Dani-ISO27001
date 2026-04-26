@@ -1,9 +1,10 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from pydantic import BaseModel
 
-from app.database import get_db
+from app.dependencies.database import get_db
 from app.repositories.risk_repository import RiskRepository
 from app.models.risk import RiskLevel, RiskStatus, RiskCategory
 from app.dependencies.auth import get_current_user

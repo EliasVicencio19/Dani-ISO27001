@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, Boolean, DateTime, Enum, JSON
 from sqlalchemy.orm import relationship
 import enum
-from app.database import Base
+from app.dependencies.database import Base
 
 class UserRole(str, enum.Enum):
     ADMIN = "admin"

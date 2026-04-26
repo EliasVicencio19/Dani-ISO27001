@@ -1,7 +1,7 @@
-from sqlalchemy import Column, String, Text, Integer, Float, Enum, ForeignKey, JSON
+from sqlalchemy import Column, String, Text, Integer, Float, Enum, ForeignKey, JSON, DateTime
 from sqlalchemy.orm import relationship
 import enum
-from app.database import Base
+from app.dependencies.database import Base
 
 class RiskLevel(str, enum.Enum):
     CRITICAL = "critical"

@@ -5,7 +5,7 @@ from pathlib import Path
 # Agregar backend al path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from app.database import engine, Base
+from app.dependencies.database import engine, Base
 from app.models.user import User
 from app.models.risk import Risk
 from app.models.evidence import Evidence
@@ -47,6 +47,10 @@ async def create_test_user():
         else:
             print("ℹ Usuario de prueba ya existe")
 
+async def main():
+    print("Saltando la creación de tablas (ya existen)...")
+    print("Creando usuario administrador...")
+    await create_test_user()
+
 if __name__ == "__main__":
-    asyncio.run(init_database())
-    asyncio.run(create_test_user())
+    asyncio.run(main())

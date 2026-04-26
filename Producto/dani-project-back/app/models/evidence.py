@@ -1,7 +1,7 @@
-from sqlalchemy import Column, String, Text, ForeignKey, JSON
+from sqlalchemy import Column, String, Text, ForeignKey, JSON, Enum, Integer, Boolean, DateTime
 from sqlalchemy.orm import relationship
 import enum
-from app.database import Base
+from app.dependencies.database import Base
 
 class EvidenceType(str, enum.Enum):
     DOCUMENT = "document"
@@ -17,11 +17,14 @@ class Evidence(Base):
     title = Column(String(500), nullable=False)
     description = Column(Text, nullable=True)
     evidence_type = Column(Enum(EvidenceType), default=EvidenceType.DOCUMENT)
-    file_url = Column(String(1000), nullable=False)  # URL en Cloud Storage
+    file_url = Column(String(1000), nullable=False)
     file_name = Column(String(255), nullable=False)
-    file_size = Column(Integer, nullable=False)  # en bytes
+    file_size = Column(Integer, nullable=False)
     mime_type = Column(String(100), nullable=False)
-    metadata = Column(JSON, default={})  # Metadatos adicionales
+    
+    # 🔴 SOLUCIÓN: Cambiamos "metadata" por "evidence_metadata" para evitar conflictos
+    evidence_metadata = Column(JSON, default={})  
+    
     is_verified = Column(Boolean, default=False)
     verified_by = Column(String(100), nullable=True)
     verified_at = Column(DateTime, nullable=True)
