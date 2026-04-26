@@ -172,7 +172,7 @@ const Login = ({ onLoginSuccess }) => {
           >
             {isLoading ? 'Procesando...' : (
               <>
-                {isRegistering ? 'Registrar Cuenta' : 'Ingresar al Dashboard'}
+                {isRegistering ? 'Registrar Cuenta' : 'Iniciar sesión'}
                 {isRegistering ? <UserPlus size={18} /> : <LogIn size={18} />}
               </>
             )}
