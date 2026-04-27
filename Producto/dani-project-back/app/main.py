@@ -5,7 +5,7 @@ import redis.asyncio as redis
 from contextlib import asynccontextmanager
 
 from app.config import settings
-from app.routes import auth, risk
+from app.routes import auth, risk, dashboard
 # from app.utils.redis_client import RedisClient
 # from app.utils.pubsub import PubSubManager
 
@@ -40,6 +40,7 @@ security = HTTPBearer()
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(risk.router, prefix="/api/risks", tags=["Risk Management"])
+app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 # app.include_router(evidence.router, prefix="/api/evidence", tags=["Evidence"])
 # app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
 
