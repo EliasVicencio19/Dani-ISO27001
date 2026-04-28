@@ -26,6 +26,9 @@ class RiskCategory(str, enum.Enum):
 class Risk(Base):
     __tablename__ = "risks"
     
+    # 🔥 AGREGAR ESTA LÍNEA - PRIMARY KEY OBLIGATORIA
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, index=True)
+    
     title = Column(String(500), nullable=False)
     description = Column(Text, nullable=False)
     category = Column(Enum(RiskCategory), default=RiskCategory.SECURITY)

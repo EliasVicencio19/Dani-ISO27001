@@ -8,6 +8,12 @@ from app.config import settings
 from app.routes import auth, risk, dashboard
 # from app.utils.redis_client import RedisClient
 # from app.utils.pubsub import PubSubManager
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6380/0")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
