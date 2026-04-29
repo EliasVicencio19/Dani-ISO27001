@@ -59,7 +59,7 @@ const Login = () => {
     }
 
     try {
-      const result = await login(cleanEmail, cleanPassword, isRegistering, cleanName);
+      await login(cleanEmail, cleanPassword, isRegistering, cleanName);
       
       if (isRegistering) {
         // Mostrar mensaje de éxito
