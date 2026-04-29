@@ -1,6 +1,6 @@
 // src/pages/Login.jsx
 import React, { useState } from 'react';
-import { Shield, Mail, Lock, LogIn, UserPlus, User } from 'lucide-react';
+import { Shield, Mail, Lock, LogIn, UserPlus, User, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
@@ -38,12 +38,12 @@ const Login = () => {
     const cleanPassword = password.trim();
 
     if (!cleanEmail || !cleanPassword || (isRegistering && !cleanName)) {
-      setLocalError('Los campos no pueden estar vacíos ni contener solo espacios.');
+      setLocalError('Los campos no pueden estar vacíos.');
       return;
     }
 
     if (!isValidEmail(cleanEmail)) {
-      setLocalError('Por favor, ingresa un correo electrónico válido (ej: usuario@empresa.com).');
+      setLocalError('Por favor, ingresa un correo electrónico válido.');
       return;
     }
 
@@ -53,20 +53,34 @@ const Login = () => {
         return;
       }
       if (getPasswordStrength(cleanPassword) < 5) {
-        setLocalError('La contraseña no cumple con los requisitos mínimos de seguridad.');
+        setLocalError('La contraseña debe tener al menos 8 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos.');
         return;
       }
     }
 
     try {
-      await login(cleanEmail, cleanPassword, isRegistering, cleanName);
+      const result = await login(cleanEmail, cleanPassword, isRegistering, cleanName);
       
       if (isRegistering) {
-        setSuccess('Cuenta creada exitosamente. Ahora puedes iniciar sesión.');
-        setIsRegistering(false);
+        // Mostrar mensaje de éxito
+        setSuccess('✅ ¡Cuenta creada exitosamente! Redirigiendo al login...');
+        
+        // Limpiar formulario
+        setName('');
+        setEmail('');
         setPassword('');
         setConfirmPassword('');
+        
+        // Cambiar a modo login después de 3 segundos
+        setTimeout(() => {
+          setIsRegistering(false);
+          setSuccess('');
+          // Enfocar el campo de email
+          const emailInput = document.getElementById('login-email');
+          if (emailInput) emailInput.focus();
+        }, 3000);
       }
+      // Si es login exitoso, la redirección es automática por ProtectedRoute
     } catch (err) {
       setLocalError(err.message || 'Error de conexión. Intenta de nuevo.');
     }
@@ -78,6 +92,7 @@ const Login = () => {
     setLocalError('');
     setPassword('');
     setConfirmPassword('');
+    setName('');
   };
 
   const displayError = localError || error;
@@ -132,6 +147,7 @@ const Login = () => {
                 <Mail size={18} />
               </div>
               <input 
+                id="login-email"
                 type="text" 
                 required 
                 value={email} 
@@ -204,8 +220,23 @@ const Login = () => {
               {displayError}
             </div>
           )}
+          
           {success && (
-            <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '12px', borderRadius: '10px', fontSize: '13px', textAlign: 'center', fontWeight: 500 }}>
+            <div style={{ 
+              backgroundColor: 'rgba(16, 185, 129, 0.15)', 
+              border: '1px solid rgba(16, 185, 129, 0.3)', 
+              color: '#10b981', 
+              padding: '14px', 
+              borderRadius: '10px', 
+              fontSize: '14px', 
+              textAlign: 'center', 
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px'
+            }}>
+              <CheckCircle2 size={18} />
               {success}
             </div>
           )}

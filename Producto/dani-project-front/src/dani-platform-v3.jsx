@@ -102,7 +102,7 @@ const useTranslation = () => {
 function CommandPalette({ isOpen, onClose, onNavigate, darkMode, theme: t, language }) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
-  
+
   const labels = {
     en: { placeholder: 'Search commands, controls, evidence...', noResults: 'No results found', navigation: 'Navigation', actions: 'Quick Actions', controls: 'Controls' },
     es: { placeholder: 'Buscar comandos, controles, evidencias...', noResults: 'Sin resultados', navigation: 'Navegación', actions: 'Acciones Rápidas', controls: 'Controles' },
@@ -127,11 +127,11 @@ function CommandPalette({ isOpen, onClose, onNavigate, darkMode, theme: t, langu
     { id: 'a5.24', type: 'control', name: { en: 'A.5.24 - Incident Management', es: 'A.5.24 - Gestión de Incidentes', pt: 'A.5.24 - Gestão de Incidentes' }, icon: AlertCircle },
   ];
 
-  const filteredCommands = query 
-    ? commands.filter(cmd => 
-        (cmd.name[language] || cmd.name.en).toLowerCase().includes(query.toLowerCase()) ||
-        cmd.id.toLowerCase().includes(query.toLowerCase())
-      )
+  const filteredCommands = query
+    ? commands.filter(cmd =>
+      (cmd.name[language] || cmd.name.en).toLowerCase().includes(query.toLowerCase()) ||
+      cmd.id.toLowerCase().includes(query.toLowerCase())
+    )
     : commands;
 
   const groupedCommands = {
@@ -166,6 +166,16 @@ function CommandPalette({ isOpen, onClose, onNavigate, darkMode, theme: t, langu
   useEffect(() => { setSelectedIndex(0); }, [query]);
 
   if (!isOpen) return null;
+
+  // Dentro de DaniPlatform, después de los useState, agrega:
+  useEffect(() => {
+    // Restaurar sesión si existe en localStorage
+    const storedUser = localStorage.getItem('user');
+    if (storedUser && !user) {
+      const userData = JSON.parse(storedUser);
+      // No necesitamos setUser porque AuthContext ya lo maneja
+    }
+  }, [user]);
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '15vh', zIndex: 1000 }} onClick={onClose}>
@@ -340,7 +350,7 @@ function SidebarProgressRings({ darkMode, theme: t, language, collapsed }) {
   return (
     <div style={{ padding: '16px', borderTop: `1px solid ${t.border}`, marginTop: 'auto' }}>
       <div style={{ fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>{l.gapProgress}</div>
-      
+
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
         <div style={{ width: '64px', height: '64px', position: 'relative' }}>
           <svg width="64" height="64" viewBox="0 0 64 64">
@@ -504,7 +514,7 @@ function EmployeePortal({ darkMode, theme: t, language, onClose }) {
 // ============================================
 function CAPATracker({ darkMode, theme: t, language }) {
   const [expandedCapa, setExpandedCapa] = useState(null);
-  
+
   const labels = {
     en: { title: 'CAPA Tracker', subtitle: 'Non-conformities & Corrective Actions (Clause 10)', addNonConformity: 'Add NC', open: 'Open', inProgress: 'In Progress', resolved: 'Resolved', closed: 'Closed', rootCause: 'Root Cause', correctiveAction: 'Corrective Action', assignee: 'Assignee', source: 'Source', viewDetails: 'View Details', overdue: 'Overdue', daysLeft: 'days left', high: 'High', medium: 'Medium', low: 'Low', internalAudit: 'Internal Audit', preAudit: 'Pre-Audit' },
     es: { title: 'Rastreador CAPA', subtitle: 'No Conformidades y Acciones Correctivas (Cláusula 10)', addNonConformity: 'Agregar NC', open: 'Abierto', inProgress: 'En Progreso', resolved: 'Resuelto', closed: 'Cerrado', rootCause: 'Causa Raíz', correctiveAction: 'Acción Correctiva', assignee: 'Responsable', source: 'Fuente', viewDetails: 'Ver Detalles', overdue: 'Vencido', daysLeft: 'días restantes', high: 'Alto', medium: 'Medio', low: 'Bajo', internalAudit: 'Auditoría Interna', preAudit: 'Pre-Auditoría' },
@@ -784,37 +794,37 @@ export default function DaniPlatform() {
   return (
     <ThemeContext.Provider value={{ darkMode, highContrast, theme: t, language }}>
       <div style={{ minHeight: '100vh', background: t.bg, fontFamily: "'DM Sans', -apple-system, sans-serif", color: t.text, display: 'flex', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
-        
+
         {/* Ambient Background */}
         {!highContrast && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 0 }}>
             <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: '600px', height: '600px', background: `radial-gradient(circle, rgba(16, 185, 129, ${darkMode ? '0.08' : '0.12'}) 0%, transparent 70%)`, borderRadius: '50%', filter: 'blur(60px)' }} />
             <div style={{ position: 'absolute', bottom: '-10%', left: '20%', width: '400px', height: '400px', background: `radial-gradient(circle, rgba(59, 130, 246, ${darkMode ? '0.06' : '0.1'}) 0%, transparent 70%)`, borderRadius: '50%', filter: 'blur(40px)' }} />
           </div>
-          
+
         )}
 
         {/* Sidebar */}
-        <Sidebar 
-            sidebarCollapsed={sidebarCollapsed}
-            setSidebarCollapsed={setSidebarCollapsed}
-            activeScreen={activeScreen}
-            setActiveScreen={setActiveScreen}
-            t={t}
-            navItems={navItems}
-            navLabels={navLabels}
-            setShowEmployeePortal={setShowEmployeePortal}
-            setCommandPaletteOpen={setCommandPaletteOpen}
-            darkMode={darkMode}
-            language={language}
-            SidebarProgressRings={SidebarProgressRings}
-          />
+        <Sidebar
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+          activeScreen={activeScreen}
+          setActiveScreen={setActiveScreen}
+          t={t}
+          navItems={navItems}
+          navLabels={navLabels}
+          setShowEmployeePortal={setShowEmployeePortal}
+          setCommandPaletteOpen={setCommandPaletteOpen}
+          darkMode={darkMode}
+          language={language}
+          SidebarProgressRings={SidebarProgressRings}
+        />
 
         {/* Main Content */}
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Header */}
           <header style={{ padding: '16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', borderBottom: `1px solid ${t.border}` }}>
-            
+
             {/* Language Dropdown */}
             <div style={{ position: 'relative' }}>
               <button onClick={() => setLangDropdownOpen(!langDropdownOpen)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, cursor: 'pointer', fontSize: '13px' }}>
@@ -922,7 +932,7 @@ export default function DaniPlatform() {
         {/* Settings Modal */}
         {settingsOpen && <SettingsModal darkMode={darkMode} setDarkMode={setDarkMode} language={language} setLanguage={setLanguage} languages={languages} theme={t} onClose={() => setSettingsOpen(false)} />}
 
-       <style>{`
+        <style>{`
           @keyframes fadeIn { 
             from { opacity: 0; transform: translateY(10px); } 
             to { opacity: 1; transform: translateY(0); } 
@@ -949,7 +959,7 @@ function DashboardScreen({ onNavigate }) {
   const tr = useTranslation();
   const [healthScore] = useState(78);
   const [expandedCapa, setExpandedCapa] = useState(null);
-  
+
   // CAPA Tracker labels
   const capaLabels = {
     en: { title: 'CAPA Tracker', subtitle: 'Non-conformities & Corrective Actions (Clause 10)', addNonConformity: 'Add NC', open: 'Open', inProgress: 'In Progress', resolved: 'Resolved', closed: 'Closed', rootCause: 'Root Cause', correctiveAction: 'Corrective Action', assignee: 'Assignee', source: 'Source', viewDetails: 'View Details', overdue: 'Overdue', daysLeft: 'days left', high: 'High', medium: 'Medium', low: 'Low', internalAudit: 'Internal Audit', preAudit: 'Pre-Audit' },
@@ -966,7 +976,7 @@ function DashboardScreen({ onNavigate }) {
 
   const getStatusColor = (status) => ({ open: '#ef4444', inProgress: '#f59e0b', resolved: '#10b981', closed: '#6b7280' }[status] || '#6b7280');
   const getPriorityColor = (priority) => ({ high: '#ef4444', medium: '#f59e0b', low: '#10b981' }[priority] || '#6b7280');
-  
+
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
@@ -1177,22 +1187,30 @@ function GapAnalysisScreen() {
 
   // Assessment phases
   const phases = [
-    { id: 'context', name: 'Context & Leadership', clause: 'Clauses 4 & 5', icon: Building2, color: '#3b82f6', questions: [
-      { id: 'q1', title: 'Organization Context', question: 'Have you determined external and internal issues relevant to your ISMS?', options: ['Yes', 'No'], evidenceType: 'PESTLE Analysis', critical: true },
-      { id: 'q2', title: 'Interested Parties', question: 'Have you identified stakeholders relevant to information security?', options: ['Yes', 'No'], evidenceType: 'Stakeholder List', critical: true },
-      { id: 'q3', title: 'ISMS Scope', question: 'Is the ISMS scope clearly defined and documented?', options: ['Yes', 'No'], evidenceType: 'Scope Statement', critical: true },
-    ]},
-    { id: 'planning', name: 'Planning & Risk', clause: 'Clause 6', icon: Target, color: '#10b981', questions: [
-      { id: 'q5', title: 'Risk Methodology', question: 'Do you have a documented risk assessment process?', options: ['Yes', 'No'], evidenceType: 'Risk Methodology', critical: true },
-      { id: 'q6', title: 'Risk Treatment', question: 'Have you formulated a risk treatment plan?', options: ['Yes', 'Partially', 'No'], evidenceType: 'Risk Register', critical: true },
-    ]},
-    { id: 'support', name: 'Support & Ops', clause: 'Clauses 7 & 8', icon: Users, color: '#f59e0b', questions: [
-      { id: 'q8', title: 'Training & Awareness', question: 'Have employees received security awareness training?', options: ['Yes', 'Partially', 'No'], evidenceType: 'Training Logs', critical: false },
-    ]},
-    { id: 'annex', name: 'Annex A Controls', clause: 'Annex A', icon: Lock, color: '#a855f7', questions: [
-      { id: 'q10', title: 'Access Control', subtitle: 'A.8', question: 'Is there a formal user registration process?', options: ['Yes', 'No'], evidenceType: 'Access Policy', critical: true },
-      { id: 'q11', title: 'Backups', subtitle: 'A.8', question: 'Are backups taken and tested regularly?', options: ['Yes', 'Partially', 'No'], evidenceType: 'Backup Logs', critical: true },
-    ]}
+    {
+      id: 'context', name: 'Context & Leadership', clause: 'Clauses 4 & 5', icon: Building2, color: '#3b82f6', questions: [
+        { id: 'q1', title: 'Organization Context', question: 'Have you determined external and internal issues relevant to your ISMS?', options: ['Yes', 'No'], evidenceType: 'PESTLE Analysis', critical: true },
+        { id: 'q2', title: 'Interested Parties', question: 'Have you identified stakeholders relevant to information security?', options: ['Yes', 'No'], evidenceType: 'Stakeholder List', critical: true },
+        { id: 'q3', title: 'ISMS Scope', question: 'Is the ISMS scope clearly defined and documented?', options: ['Yes', 'No'], evidenceType: 'Scope Statement', critical: true },
+      ]
+    },
+    {
+      id: 'planning', name: 'Planning & Risk', clause: 'Clause 6', icon: Target, color: '#10b981', questions: [
+        { id: 'q5', title: 'Risk Methodology', question: 'Do you have a documented risk assessment process?', options: ['Yes', 'No'], evidenceType: 'Risk Methodology', critical: true },
+        { id: 'q6', title: 'Risk Treatment', question: 'Have you formulated a risk treatment plan?', options: ['Yes', 'Partially', 'No'], evidenceType: 'Risk Register', critical: true },
+      ]
+    },
+    {
+      id: 'support', name: 'Support & Ops', clause: 'Clauses 7 & 8', icon: Users, color: '#f59e0b', questions: [
+        { id: 'q8', title: 'Training & Awareness', question: 'Have employees received security awareness training?', options: ['Yes', 'Partially', 'No'], evidenceType: 'Training Logs', critical: false },
+      ]
+    },
+    {
+      id: 'annex', name: 'Annex A Controls', clause: 'Annex A', icon: Lock, color: '#a855f7', questions: [
+        { id: 'q10', title: 'Access Control', subtitle: 'A.8', question: 'Is there a formal user registration process?', options: ['Yes', 'No'], evidenceType: 'Access Policy', critical: true },
+        { id: 'q11', title: 'Backups', subtitle: 'A.8', question: 'Are backups taken and tested regularly?', options: ['Yes', 'Partially', 'No'], evidenceType: 'Backup Logs', critical: true },
+      ]
+    }
   ];
 
   const currentPhaseData = phases[currentPhase];
@@ -1409,7 +1427,7 @@ function DocGeneratorScreen() {
   const [chatHistory, setChatHistory] = useState([]);
   const [chapterDocuments, setChapterDocuments] = useState({});
   const [dragOver, setDragOver] = useState(false);
-  
+
   // New states for enhanced features
   const [viewMode, setViewMode] = useState('split'); // 'split', 'preview', 'edit'
   const [showControlPanel, setShowControlPanel] = useState(false);
@@ -1710,50 +1728,64 @@ function DocGeneratorScreen() {
   ];
 
   const chapters = [
-    { id: 'ch4', number: '4', title: { en: 'Context of the Organization', es: 'Contexto de la Organización', pt: 'Contexto da Organização' }, 
+    {
+      id: 'ch4', number: '4', title: { en: 'Context of the Organization', es: 'Contexto de la Organización', pt: 'Contexto da Organização' },
       sections: [
         { id: '4.1', title: { en: 'Understanding the organization', es: 'Comprensión de la organización', pt: 'Entendendo a organização' } },
         { id: '4.2', title: { en: 'Needs and expectations of interested parties', es: 'Necesidades de las partes interesadas', pt: 'Necessidades das partes interessadas' } },
         { id: '4.3', title: { en: 'Scope of the ISMS', es: 'Alcance del SGSI', pt: 'Escopo do SGSI' } },
         { id: '4.4', title: { en: 'Information security management system', es: 'Sistema de gestión de seguridad', pt: 'Sistema de gestão de segurança' } }
-      ], color: '#3b82f6', icon: Building2 },
-    { id: 'ch5', number: '5', title: { en: 'Leadership', es: 'Liderazgo', pt: 'Liderança' },
+      ], color: '#3b82f6', icon: Building2
+    },
+    {
+      id: 'ch5', number: '5', title: { en: 'Leadership', es: 'Liderazgo', pt: 'Liderança' },
       sections: [
         { id: '5.1', title: { en: 'Leadership and commitment', es: 'Liderazgo y compromiso', pt: 'Liderança e compromisso' } },
         { id: '5.2', title: { en: 'Policy', es: 'Política', pt: 'Política' } },
         { id: '5.3', title: { en: 'Organizational roles and responsibilities', es: 'Roles y responsabilidades', pt: 'Papéis e responsabilidades' } }
-      ], color: '#10b981', icon: Users },
-    { id: 'ch6', number: '6', title: { en: 'Planning', es: 'Planificación', pt: 'Planejamento' },
+      ], color: '#10b981', icon: Users
+    },
+    {
+      id: 'ch6', number: '6', title: { en: 'Planning', es: 'Planificación', pt: 'Planejamento' },
       sections: [
         { id: '6.1', title: { en: 'Actions to address risks and opportunities', es: 'Acciones para abordar riesgos', pt: 'Ações para riscos e oportunidades' } },
         { id: '6.2', title: { en: 'Information security objectives', es: 'Objetivos de seguridad', pt: 'Objetivos de segurança' } },
         { id: '6.3', title: { en: 'Planning of changes', es: 'Planificación de cambios', pt: 'Planejamento de mudanças' } }
-      ], color: '#f59e0b', icon: Target },
-    { id: 'ch7', number: '7', title: { en: 'Support', es: 'Apoyo', pt: 'Apoio' },
+      ], color: '#f59e0b', icon: Target
+    },
+    {
+      id: 'ch7', number: '7', title: { en: 'Support', es: 'Apoyo', pt: 'Apoio' },
       sections: [
         { id: '7.1', title: { en: 'Resources', es: 'Recursos', pt: 'Recursos' } },
         { id: '7.2', title: { en: 'Competence', es: 'Competencia', pt: 'Competência' } },
         { id: '7.3', title: { en: 'Awareness', es: 'Concienciación', pt: 'Conscientização' } },
         { id: '7.4', title: { en: 'Communication', es: 'Comunicación', pt: 'Comunicação' } },
         { id: '7.5', title: { en: 'Documented information', es: 'Información documentada', pt: 'Informação documentada' } }
-      ], color: '#8b5cf6', icon: HelpCircle },
-    { id: 'ch8', number: '8', title: { en: 'Operation', es: 'Operación', pt: 'Operação' },
+      ], color: '#8b5cf6', icon: HelpCircle
+    },
+    {
+      id: 'ch8', number: '8', title: { en: 'Operation', es: 'Operación', pt: 'Operação' },
       sections: [
         { id: '8.1', title: { en: 'Operational planning and control', es: 'Planificación y control operacional', pt: 'Planejamento e controle operacional' } },
         { id: '8.2', title: { en: 'Information security risk assessment', es: 'Evaluación de riesgos', pt: 'Avaliação de riscos' } },
         { id: '8.3', title: { en: 'Information security risk treatment', es: 'Tratamiento de riesgos', pt: 'Tratamento de riscos' } }
-      ], color: '#ef4444', icon: Zap },
-    { id: 'ch9', number: '9', title: { en: 'Performance Evaluation', es: 'Evaluación del Desempeño', pt: 'Avaliação de Desempenho' },
+      ], color: '#ef4444', icon: Zap
+    },
+    {
+      id: 'ch9', number: '9', title: { en: 'Performance Evaluation', es: 'Evaluación del Desempeño', pt: 'Avaliação de Desempenho' },
       sections: [
         { id: '9.1', title: { en: 'Monitoring, measurement, analysis and evaluation', es: 'Monitoreo y medición', pt: 'Monitoramento e medição' } },
         { id: '9.2', title: { en: 'Internal audit', es: 'Auditoría interna', pt: 'Auditoria interna' } },
         { id: '9.3', title: { en: 'Management review', es: 'Revisión por la dirección', pt: 'Revisão pela direção' } }
-      ], color: '#06b6d4', icon: Search },
-    { id: 'ch10', number: '10', title: { en: 'Improvement', es: 'Mejora', pt: 'Melhoria' },
+      ], color: '#06b6d4', icon: Search
+    },
+    {
+      id: 'ch10', number: '10', title: { en: 'Improvement', es: 'Mejora', pt: 'Melhoria' },
       sections: [
         { id: '10.1', title: { en: 'Continual improvement', es: 'Mejora continua', pt: 'Melhoria contínua' } },
         { id: '10.2', title: { en: 'Nonconformity and corrective action', es: 'No conformidad y acción correctiva', pt: 'Não conformidade e ação corretiva' } }
-      ], color: '#ec4899', icon: RefreshCw }
+      ], color: '#ec4899', icon: RefreshCw
+    }
   ];
 
   const existingDocuments = [
@@ -1771,13 +1803,13 @@ function DocGeneratorScreen() {
   // Workflow status helpers
   const workflowSteps = ['draft', 'review', 'approved', 'published'];
   const getStatusIndex = (chapterId) => workflowSteps.indexOf(documentStatus[chapterId] || 'draft');
-  
+
   const advanceWorkflow = (chapterId) => {
     const currentIndex = getStatusIndex(chapterId);
     if (currentIndex < workflowSteps.length - 1) {
       const newStatus = workflowSteps[currentIndex + 1];
       setDocumentStatus(prev => ({ ...prev, [chapterId]: newStatus }));
-      
+
       // Save version when status changes
       if (generatedContent[chapterId]) {
         const now = new Date();
@@ -1819,7 +1851,7 @@ function DocGeneratorScreen() {
       setTimeout(() => {
         setChapterDocuments(prev => ({
           ...prev,
-          [chapterId]: prev[chapterId].map(f => 
+          [chapterId]: prev[chapterId].map(f =>
             f.id === file.id ? { ...f, status: 'analyzed' } : f
           )
         }));
@@ -1854,10 +1886,10 @@ function DocGeneratorScreen() {
   const generateContent = (chapter) => {
     setIsGenerating(true);
     setSelectedChapter(chapter);
-    
+
     const uploadedDocs = chapterDocuments[chapter.id] || [];
     const hasReferenceDocs = uploadedDocs.length > 0;
-    
+
     setTimeout(() => {
       const sampleContent = {
         en: `# ${chapter.number}. ${getChapterTitle(chapter)}
@@ -1979,7 +2011,7 @@ As considerações principais incluem:
   // Render markdown content
   const renderContent = (content, isEditable = false) => {
     if (!content) return null;
-    
+
     return content.split('\n').map((line, idx) => {
       if (line.startsWith('# ')) return <h1 key={idx} style={{ fontSize: '22px', fontWeight: 700, marginBottom: '16px', marginTop: idx > 0 ? '24px' : 0, color: selectedChapter?.color || t.text }}>{line.substring(2)}</h1>;
       if (line.startsWith('## ')) return <h2 key={idx} style={{ fontSize: '17px', fontWeight: 600, marginBottom: '12px', marginTop: '20px', color: t.text }}>{line.substring(3)}</h2>;
@@ -2019,7 +2051,7 @@ As considerações principais incluem:
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '24px' }}>
-        
+
         {/* Chapter List */}
         <div style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '20px', padding: '20px', border: `1px solid ${t.border}`, height: 'fit-content' }}>
           <h3 style={{ fontSize: '13px', color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>{l.chapters}</h3>
@@ -2031,7 +2063,7 @@ As considerações principais incluem:
               const status = documentStatus[chapter.id] || 'draft';
               const uploadedCount = chapterDocuments[chapter.id]?.length || 0;
               const tagCount = selectedTags[chapter.id]?.length || 0;
-              
+
               return (
                 <button
                   key={chapter.id}
@@ -2067,9 +2099,9 @@ As considerações principais incluem:
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       {isGenerated && (
-                        <span style={{ 
-                          fontSize: '10px', 
-                          padding: '2px 6px', 
+                        <span style={{
+                          fontSize: '10px',
+                          padding: '2px 6px',
                           borderRadius: '4px',
                           background: status === 'published' ? '#10b98120' : status === 'approved' ? '#3b82f620' : status === 'review' ? '#f59e0b20' : '#6b728020',
                           color: status === 'published' ? '#10b981' : status === 'approved' ? '#3b82f6' : status === 'review' ? '#f59e0b' : t.textDim
@@ -2092,7 +2124,7 @@ As considerações principais incluem:
 
         {/* Main Content Area */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          
+
           {selectedChapter ? (
             <>
               {/* Approval Workflow Stepper */}
@@ -2117,16 +2149,16 @@ As considerações principais incluem:
                         return (
                           <div key={step} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             {idx > 0 && (
-                              <div style={{ 
-                                width: '40px', 
-                                height: '2px', 
+                              <div style={{
+                                width: '40px',
+                                height: '2px',
                                 background: isCompleted || isActive ? stepColors[step] : t.border,
                                 marginRight: '8px'
                               }} />
                             )}
-                            <div style={{ 
-                              display: 'flex', 
-                              flexDirection: 'column', 
+                            <div style={{
+                              display: 'flex',
+                              flexDirection: 'column',
                               alignItems: 'center',
                               gap: '4px'
                             }}>
@@ -2141,14 +2173,14 @@ As considerações principais incluem:
                                 justifyContent: 'center',
                                 color: isCompleted || isActive ? 'white' : t.textDim
                               }}>
-                                {isCompleted ? <Check size={14} /> : 
-                                 step === 'draft' ? <Edit3 size={12} /> :
-                                 step === 'review' ? <Eye size={12} /> :
-                                 step === 'approved' ? <UserCheck size={12} /> :
-                                 <CheckCircle2 size={12} />}
+                                {isCompleted ? <Check size={14} /> :
+                                  step === 'draft' ? <Edit3 size={12} /> :
+                                    step === 'review' ? <Eye size={12} /> :
+                                      step === 'approved' ? <UserCheck size={12} /> :
+                                        <CheckCircle2 size={12} />}
                               </div>
-                              <span style={{ 
-                                fontSize: '10px', 
+                              <span style={{
+                                fontSize: '10px',
                                 fontWeight: isActive ? 600 : 500,
                                 color: isCompleted || isActive ? stepColors[step] : t.textDim
                               }}>
@@ -2178,8 +2210,8 @@ As considerações principais incluem:
                           }}
                         >
                           {getStatusIndex(selectedChapter.id) === 0 ? <><Send size={12} /> {l.submitForReview}</> :
-                           getStatusIndex(selectedChapter.id) === 1 ? <><UserCheck size={12} /> {l.approve}</> :
-                           <><CheckCircle2 size={12} /> {l.publish}</>}
+                            getStatusIndex(selectedChapter.id) === 1 ? <><UserCheck size={12} /> {l.approve}</> :
+                              <><CheckCircle2 size={12} /> {l.publish}</>}
                         </button>
                       )}
                     </div>
@@ -2189,7 +2221,7 @@ As considerações principais incluem:
 
               {/* Document Editor Area */}
               <div style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '20px', border: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', minHeight: '600px', overflow: 'hidden' }}>
-                
+
                 {/* Chapter Header with View Controls */}
                 <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -2213,7 +2245,7 @@ As considerações principais incluem:
                       </div>
                     </div>
                   </div>
-                  
+
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {/* View Mode Toggle */}
                     {generatedContent[selectedChapter.id] && (
@@ -2247,7 +2279,7 @@ As considerações principais incluem:
                             </button>
                           ))}
                         </div>
-                        
+
                         {/* Control Tagging Toggle */}
                         <button
                           onClick={() => setShowControlPanel(!showControlPanel)}
@@ -2268,7 +2300,7 @@ As considerações principais incluem:
                           <Tag size={14} />
                           {l.controlTagging}
                         </button>
-                        
+
                         {/* Version History Toggle */}
                         <button
                           onClick={() => setShowVersionHistory(!showVersionHistory)}
@@ -2291,7 +2323,7 @@ As considerações principais incluem:
                         </button>
                       </>
                     )}
-                    
+
                     {/* Generate Button */}
                     <button
                       onClick={() => generateContent(selectedChapter)}
@@ -2327,7 +2359,7 @@ As considerações principais incluem:
                     <>
                       {/* Split View / Edit / Preview Content */}
                       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                        
+
                         {/* Left Panel - AI Draft (Split view only) */}
                         {viewMode === 'split' && (
                           <div style={{ flex: 1, borderRight: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -2340,7 +2372,7 @@ As considerações principais incluem:
                             </div>
                           </div>
                         )}
-                        
+
                         {/* Right Panel - User Document (Split view) or Main Content */}
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                           {viewMode === 'split' && (
@@ -2349,7 +2381,7 @@ As considerações principais incluem:
                               <span style={{ fontSize: '12px', fontWeight: 600, color: '#10b981' }}>{l.yourDocument}</span>
                             </div>
                           )}
-                          
+
                           {viewMode === 'preview' ? (
                             <div style={{ flex: 1, padding: '24px', overflowY: 'auto', fontSize: '14px', lineHeight: '1.8' }}>
                               {renderContent(editedContent || generatedContent[selectedChapter.id])}
@@ -2374,7 +2406,7 @@ As considerações principais incluem:
                           )}
                         </div>
                       </div>
-                      
+
                       {/* Control Tagging Panel */}
                       {showControlPanel && (
                         <div style={{ width: '280px', borderLeft: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -2385,7 +2417,7 @@ As considerações principais incluem:
                             </div>
                             <p style={{ fontSize: '11px', color: t.textDim }}>{l.tagSection}</p>
                           </div>
-                          
+
                           {/* Tagged Controls */}
                           {(selectedTags[selectedChapter.id]?.length > 0) && (
                             <div style={{ padding: '12px 16px', borderBottom: `1px solid ${t.border}` }}>
@@ -2421,7 +2453,7 @@ As considerações principais incluem:
                               </div>
                             </div>
                           )}
-                          
+
                           {/* Available Controls */}
                           <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -2469,7 +2501,7 @@ As considerações principais incluem:
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Version History Panel */}
                       {showVersionHistory && (
                         <div style={{ width: '300px', borderLeft: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -2480,7 +2512,7 @@ As considerações principais incluem:
                             </div>
                             <p style={{ fontSize: '11px', color: t.textDim, marginTop: '4px' }}>ISO 27001 - 7.5.3</p>
                           </div>
-                          
+
                           <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
                             {(versionHistory[selectedChapter.id]?.length > 0) ? (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -2499,7 +2531,7 @@ As considerações principais incluem:
                                   </div>
                                   <p style={{ fontSize: '11px', color: t.textDim }}>{new Date().toLocaleDateString()}</p>
                                 </div>
-                                
+
                                 {/* Previous versions */}
                                 {[...versionHistory[selectedChapter.id]].reverse().map((version, idx) => (
                                   <div
@@ -2596,8 +2628,8 @@ As considerações principais incluem:
                       </h3>
                       <p style={{ fontSize: '14px', color: t.textDim, textAlign: 'center', maxWidth: '400px', marginBottom: '24px' }}>
                         {language === 'es' ? 'La IA generará un borrador en el panel izquierdo que podrás editar en el derecho.' :
-                         language === 'pt' ? 'A IA gerará um rascunho no painel esquerdo que você poderá editar no direito.' :
-                         'AI will generate a draft in the left panel that you can edit on the right.'}
+                          language === 'pt' ? 'A IA gerará um rascunho no painel esquerdo que você poderá editar no direito.' :
+                            'AI will generate a draft in the left panel that you can edit on the right.'}
                       </p>
                       <button
                         onClick={() => generateContent(selectedChapter)}
@@ -2621,7 +2653,7 @@ As considerações principais incluem:
                     </div>
                   )}
                 </div>
-                
+
                 {/* Footer Actions */}
                 {generatedContent[selectedChapter.id] && (
                   <div style={{ padding: '12px 20px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -2664,8 +2696,8 @@ As considerações principais incluem:
                 <h3 style={{ fontSize: '18px', fontWeight: 600, color: t.text, marginBottom: '8px' }}>{l.selectChapter}</h3>
                 <p style={{ fontSize: '14px', color: t.textDim }}>
                   {language === 'es' ? 'Elige un capítulo del panel izquierdo para comenzar' :
-                   language === 'pt' ? 'Escolha um capítulo do painel esquerdo para começar' :
-                   'Choose a chapter from the left panel to begin'}
+                    language === 'pt' ? 'Escolha um capítulo do painel esquerdo para começar' :
+                      'Choose a chapter from the left panel to begin'}
                 </p>
               </div>
             </div>
@@ -2691,7 +2723,7 @@ As considerações principais incluem:
                 <X size={16} />
               </button>
             </div>
-            
+
             <div style={{ padding: '20px 24px' }}>
               <h4 style={{ fontSize: '12px', color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>{l.availableDocs}</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
@@ -2902,11 +2934,11 @@ function RiskMapScreen() {
 
   // Enhanced risks with mitigation controls
   const risks = [
-    { 
-      id: 1, 
-      name: 'Unauthorized Access', 
-      prob: 4, 
-      impact: 5, 
+    {
+      id: 1,
+      name: 'Unauthorized Access',
+      prob: 4,
+      impact: 5,
       category: 'Access',
       description: 'Risk of unauthorized users gaining access to critical systems',
       assets: ['Production Database', 'Admin Portal', 'API Gateway'],
@@ -2916,11 +2948,11 @@ function RiskMapScreen() {
         { id: 'c3', name: 'Network Segmentation', reduction: 4, cost: 30000, time: 4, applied: false }
       ]
     },
-    { 
-      id: 2, 
-      name: 'Data Breach', 
-      prob: 3, 
-      impact: 5, 
+    {
+      id: 2,
+      name: 'Data Breach',
+      prob: 3,
+      impact: 5,
       category: 'Data',
       description: 'Risk of sensitive data being exposed or stolen',
       assets: ['Customer Database', 'PII Storage', 'Backup Systems'],
@@ -2930,11 +2962,11 @@ function RiskMapScreen() {
         { id: 'c6', name: 'Data Classification', reduction: 3, cost: 20000, time: 4, applied: false }
       ]
     },
-    { 
-      id: 3, 
-      name: 'System Downtime', 
-      prob: 3, 
-      impact: 4, 
+    {
+      id: 3,
+      name: 'System Downtime',
+      prob: 3,
+      impact: 4,
       category: 'Infrastructure',
       description: 'Risk of critical systems becoming unavailable',
       assets: ['Web Servers', 'Load Balancers', 'CDN'],
@@ -2944,11 +2976,11 @@ function RiskMapScreen() {
         { id: 'c9', name: 'Automated Failover', reduction: 4, cost: 40000, time: 5, applied: false }
       ]
     },
-    { 
-      id: 4, 
-      name: 'Phishing Attack', 
-      prob: 4, 
-      impact: 3, 
+    {
+      id: 4,
+      name: 'Phishing Attack',
+      prob: 4,
+      impact: 3,
       category: 'Human',
       description: 'Risk of employees falling victim to phishing campaigns',
       assets: ['Email System', 'User Workstations', 'VPN Access'],
@@ -2958,11 +2990,11 @@ function RiskMapScreen() {
         { id: 'c12', name: 'Phishing Simulation', reduction: 3, cost: 8000, time: 1, applied: false }
       ]
     },
-    { 
-      id: 5, 
-      name: 'Third-Party Breach', 
-      prob: 3, 
-      impact: 4, 
+    {
+      id: 5,
+      name: 'Third-Party Breach',
+      prob: 3,
+      impact: 4,
       category: 'Vendor',
       description: 'Risk from compromised vendor or supplier systems',
       assets: ['API Integrations', 'Vendor Portal', 'Supply Chain Systems'],
@@ -2972,11 +3004,11 @@ function RiskMapScreen() {
         { id: 'c15', name: 'Third-Party Monitoring', reduction: 3, cost: 30000, time: 3, applied: false }
       ]
     },
-    { 
-      id: 6, 
-      name: 'Ransomware', 
-      prob: 2, 
-      impact: 5, 
+    {
+      id: 6,
+      name: 'Ransomware',
+      prob: 2,
+      impact: 5,
       category: 'Malware',
       description: 'Risk of ransomware encrypting critical data',
       assets: ['File Servers', 'Workstations', 'Backup Systems'],
@@ -2990,10 +3022,10 @@ function RiskMapScreen() {
 
   // Auto-discovered assets from various sources
   const assetSources = [
-    { 
-      id: 'aws', 
-      name: 'AWS', 
-      icon: '☁️', 
+    {
+      id: 'aws',
+      name: 'AWS',
+      icon: '☁️',
       color: '#FF9900',
       lastSync: '5 min ago',
       assets: [
@@ -3003,10 +3035,10 @@ function RiskMapScreen() {
         { name: 's3-customer-data', type: 'Storage', criticality: 'Critical' }
       ]
     },
-    { 
-      id: 'azure', 
-      name: 'Azure AD', 
-      icon: '🔷', 
+    {
+      id: 'azure',
+      name: 'Azure AD',
+      icon: '🔷',
       color: '#0078D4',
       lastSync: '3 min ago',
       assets: [
@@ -3014,10 +3046,10 @@ function RiskMapScreen() {
         { name: 'user-directory', type: 'Database', criticality: 'High' }
       ]
     },
-    { 
-      id: 'jira', 
-      name: 'Jira', 
-      icon: '📋', 
+    {
+      id: 'jira',
+      name: 'Jira',
+      icon: '📋',
       color: '#0052CC',
       lastSync: '10 min ago',
       assets: [
@@ -3025,10 +3057,10 @@ function RiskMapScreen() {
         { name: 'issue-tracker', type: 'Application', criticality: 'Low' }
       ]
     },
-    { 
-      id: 'network', 
-      name: 'Network Scan', 
-      icon: '🌐', 
+    {
+      id: 'network',
+      name: 'Network Scan',
+      icon: '🌐',
       color: '#10b981',
       lastSync: '1 hour ago',
       assets: [
@@ -3042,11 +3074,11 @@ function RiskMapScreen() {
 
   const [appliedControls, setAppliedControls] = useState([]);
 
-  const getRiskColor = (prob, impact) => { 
-    const score = prob * impact; 
-    if (score >= 15) return '#ef4444'; 
-    if (score >= 8) return '#f59e0b'; 
-    return '#10b981'; 
+  const getRiskColor = (prob, impact) => {
+    const score = prob * impact;
+    if (score >= 15) return '#ef4444';
+    if (score >= 8) return '#f59e0b';
+    return '#10b981';
   };
 
   const getRiskLevel = (score) => {
@@ -3083,8 +3115,8 @@ function RiskMapScreen() {
   };
 
   const toggleControl = (controlId) => {
-    setAppliedControls(prev => 
-      prev.includes(controlId) 
+    setAppliedControls(prev =>
+      prev.includes(controlId)
         ? prev.filter(id => id !== controlId)
         : [...prev, controlId]
     );
@@ -3094,7 +3126,7 @@ function RiskMapScreen() {
     setAppliedControls([]);
   };
 
-  const filteredAssets = activeAssetSource === 'all' 
+  const filteredAssets = activeAssetSource === 'all'
     ? assetSources.flatMap(s => s.assets.map(a => ({ ...a, source: s.name, icon: s.icon })))
     : assetSources.find(s => s.id === activeAssetSource)?.assets.map(a => ({ ...a, source: assetSources.find(s => s.id === activeAssetSource).name, icon: assetSources.find(s => s.id === activeAssetSource).icon })) || [];
 
@@ -3116,7 +3148,7 @@ function RiskMapScreen() {
 
       {/* Asset Auto-Discovery Dashboard */}
       <div style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '20px', border: `1px solid ${t.border}`, marginBottom: '24px', overflow: 'hidden' }}>
-        <div 
+        <div
           style={{ padding: '16px 20px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
           onClick={() => setShowAssetDiscovery(!showAssetDiscovery)}
         >
@@ -3215,7 +3247,7 @@ function RiskMapScreen() {
                 </div>
               ))}
             </div>
-            
+
             {filteredAssets.length > 8 && (
               <button style={{
                 marginTop: '12px',
@@ -3237,7 +3269,7 @@ function RiskMapScreen() {
 
       {/* Main Content */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '24px' }}>
-        
+
         {/* Risk Heatmap */}
         <div style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '20px', padding: '28px', border: `1px solid ${t.border}` }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px' }}>
@@ -3248,40 +3280,40 @@ function RiskMapScreen() {
                   [1, 2, 3, 4, 5].map((impact) => {
                     const cellRisks = risks.filter(r => r.prob === prob && r.impact === impact);
                     const score = prob * impact;
-                    let bgColor = 'rgba(16, 185, 129, 0.15)'; 
-                    if (score >= 15) bgColor = 'rgba(239, 68, 68, 0.25)'; 
+                    let bgColor = 'rgba(16, 185, 129, 0.15)';
+                    if (score >= 15) bgColor = 'rgba(239, 68, 68, 0.25)';
                     else if (score >= 8) bgColor = 'rgba(245, 158, 11, 0.2)';
                     return (
-                      <div key={`${prob}-${impact}`} style={{ 
-                        aspectRatio: '1', 
-                        background: bgColor, 
-                        borderRadius: '8px', 
-                        display: 'flex', 
-                        flexWrap: 'wrap', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        gap: '4px', 
-                        padding: '8px', 
-                        minHeight: '70px' 
+                      <div key={`${prob}-${impact}`} style={{
+                        aspectRatio: '1',
+                        background: bgColor,
+                        borderRadius: '8px',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        padding: '8px',
+                        minHeight: '70px'
                       }}>
                         {cellRisks.map((risk) => {
                           const isSelected = selectedRisk?.id === risk.id;
                           return (
-                            <div 
-                              key={risk.id} 
+                            <div
+                              key={risk.id}
                               onClick={() => { setSelectedRisk(risk); setAppliedControls([]); }}
-                              style={{ 
-                                width: '32px', 
-                                height: '32px', 
-                                borderRadius: '8px', 
-                                background: getRiskColor(risk.prob, risk.impact), 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'center', 
-                                fontSize: '11px', 
-                                fontWeight: 700, 
-                                color: 'white', 
-                                cursor: 'pointer', 
+                              style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '8px',
+                                background: getRiskColor(risk.prob, risk.impact),
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                color: 'white',
+                                cursor: 'pointer',
                                 boxShadow: isSelected ? `0 0 0 3px ${getRiskColor(risk.prob, risk.impact)}60, 0 4px 12px rgba(0,0,0,0.3)` : '0 2px 8px rgba(0,0,0,0.3)',
                                 transform: isSelected ? 'scale(1.1)' : 'scale(1)',
                                 transition: 'all 0.2s ease'
@@ -3299,7 +3331,7 @@ function RiskMapScreen() {
               <div style={{ textAlign: 'center', fontSize: '11px', color: t.textDim, letterSpacing: '1px', textTransform: 'uppercase', marginTop: '16px' }}>{l.impact}</div>
             </div>
           </div>
-          
+
           {/* Legend */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', marginTop: '20px', paddingTop: '16px', borderTop: `1px solid ${t.border}` }}>
             {[
@@ -3323,25 +3355,25 @@ function RiskMapScreen() {
               {/* Risk Header */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ 
-                    width: '48px', 
-                    height: '48px', 
-                    borderRadius: '12px', 
-                    background: getRiskColor(selectedRisk.prob, selectedRisk.impact), 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center' 
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '12px',
+                    background: getRiskColor(selectedRisk.prob, selectedRisk.impact),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}>
                     <AlertTriangle size={24} color="white" />
                   </div>
                   <div>
                     <h3 style={{ fontSize: '16px', fontWeight: 600, color: t.text }}>{selectedRisk.name}</h3>
-                    <span style={{ 
-                      display: 'inline-block', 
-                      padding: '3px 8px', 
-                      background: t.inputBg, 
-                      borderRadius: '4px', 
-                      fontSize: '11px', 
+                    <span style={{
+                      display: 'inline-block',
+                      padding: '3px 8px',
+                      background: t.inputBg,
+                      borderRadius: '4px',
+                      fontSize: '11px',
                       color: t.textDim,
                       marginTop: '4px'
                     }}>
@@ -3352,9 +3384,9 @@ function RiskMapScreen() {
               </div>
 
               {/* Risk Score Comparison */}
-              <div style={{ 
-                padding: '16px', 
-                background: darkMode ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.08)', 
+              <div style={{
+                padding: '16px',
+                background: darkMode ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.08)',
                 borderRadius: '12px',
                 border: '1px solid rgba(139, 92, 246, 0.2)',
                 marginBottom: '20px'
@@ -3363,27 +3395,27 @@ function RiskMapScreen() {
                   <Sparkles size={14} color="#8b5cf6" />
                   <span style={{ fontSize: '11px', fontWeight: 600, color: '#8b5cf6', textTransform: 'uppercase' }}>{l.simulationMode}</span>
                 </div>
-                
+
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   {/* Before */}
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '11px', color: t.textDim, marginBottom: '6px' }}>{l.beforeMitigation}</div>
-                    <div style={{ 
-                      fontSize: '32px', 
-                      fontWeight: 700, 
+                    <div style={{
+                      fontSize: '32px',
+                      fontWeight: 700,
                       color: getRiskColor(selectedRisk.prob, selectedRisk.impact)
                     }}>
                       {selectedRisk.prob * selectedRisk.impact}
                     </div>
-                    <div style={{ 
-                      fontSize: '10px', 
+                    <div style={{
+                      fontSize: '10px',
                       fontWeight: 600,
                       color: getRiskLevel(selectedRisk.prob * selectedRisk.impact).color
                     }}>
                       {getRiskLevel(selectedRisk.prob * selectedRisk.impact).text}
                     </div>
                   </div>
-                  
+
                   {/* Arrow */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                     <ArrowRight size={24} color={appliedControls.length > 0 ? '#10b981' : t.textDim} />
@@ -3393,22 +3425,22 @@ function RiskMapScreen() {
                       </span>
                     )}
                   </div>
-                  
+
                   {/* After */}
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '11px', color: t.textDim, marginBottom: '6px' }}>{l.afterMitigation}</div>
-                    <div style={{ 
-                      fontSize: '32px', 
-                      fontWeight: 700, 
-                      color: appliedControls.length > 0 
-                        ? getRiskLevel(calculateMitigatedScore(selectedRisk)).color 
+                    <div style={{
+                      fontSize: '32px',
+                      fontWeight: 700,
+                      color: appliedControls.length > 0
+                        ? getRiskLevel(calculateMitigatedScore(selectedRisk)).color
                         : t.textDim
                     }}>
                       {appliedControls.length > 0 ? calculateMitigatedScore(selectedRisk) : '—'}
                     </div>
                     {appliedControls.length > 0 && (
-                      <div style={{ 
-                        fontSize: '10px', 
+                      <div style={{
+                        fontSize: '10px',
                         fontWeight: 600,
                         color: getRiskLevel(calculateMitigatedScore(selectedRisk)).color
                       }}>
@@ -3424,7 +3456,7 @@ function RiskMapScreen() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                   <span style={{ fontSize: '12px', fontWeight: 600, color: t.textMuted, textTransform: 'uppercase' }}>{l.mitigationControls}</span>
                   {appliedControls.length > 0 && (
-                    <button 
+                    <button
                       onClick={resetSimulation}
                       style={{
                         padding: '4px 10px',
@@ -3440,7 +3472,7 @@ function RiskMapScreen() {
                     </button>
                   )}
                 </div>
-                
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {selectedRisk.controls.map((control) => {
                     const isApplied = appliedControls.includes(control.id);
@@ -3475,9 +3507,9 @@ function RiskMapScreen() {
                               {control.name}
                             </span>
                           </div>
-                          <span style={{ 
-                            padding: '2px 8px', 
-                            background: '#10b98120', 
+                          <span style={{
+                            padding: '2px 8px',
+                            background: '#10b98120',
                             borderRadius: '4px',
                             fontSize: '11px',
                             fontWeight: 600,
@@ -3486,7 +3518,7 @@ function RiskMapScreen() {
                             -{control.reduction}
                           </span>
                         </div>
-                        
+
                         <div style={{ display: 'flex', gap: '16px', paddingLeft: '30px' }}>
                           <span style={{ fontSize: '11px', color: t.textDim }}>
                             ${control.cost.toLocaleString()}
@@ -3503,9 +3535,9 @@ function RiskMapScreen() {
 
               {/* Cost/Time Summary */}
               {appliedControls.length > 0 && (
-                <div style={{ 
-                  padding: '16px', 
-                  background: t.inputBg, 
+                <div style={{
+                  padding: '16px',
+                  background: t.inputBg,
                   borderRadius: '12px',
                   marginBottom: '16px'
                 }}>
@@ -3853,11 +3885,11 @@ function EvidenceCenterScreen() {
 
   // Sample evidence data with freshness info
   const evidences = [
-    { 
-      id: 1, 
-      name: 'AWS S3 Encryption Config', 
-      control: 'A.8.24', 
-      type: 'automatic', 
+    {
+      id: 1,
+      name: 'AWS S3 Encryption Config',
+      control: 'A.8.24',
+      type: 'automatic',
       source: 'AWS',
       sourceIcon: '☁️',
       lastUpdated: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
@@ -3879,11 +3911,11 @@ function EvidenceCenterScreen() {
         }
       }
     },
-    { 
-      id: 2, 
-      name: 'Azure AD MFA Status Report', 
-      control: 'A.5.17', 
-      type: 'automatic', 
+    {
+      id: 2,
+      name: 'Azure AD MFA Status Report',
+      control: 'A.5.17',
+      type: 'automatic',
       source: 'Azure',
       sourceIcon: '🔷',
       lastUpdated: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
@@ -3905,22 +3937,22 @@ function EvidenceCenterScreen() {
         }
       }
     },
-    { 
-      id: 3, 
-      name: 'Backup Verification Log', 
-      control: 'A.8.13', 
-      type: 'manual', 
+    {
+      id: 3,
+      name: 'Backup Verification Log',
+      control: 'A.8.13',
+      type: 'manual',
       source: 'Manual',
       sourceIcon: '📄',
       lastUpdated: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000), // 45 days ago
       validityDays: 30,
       status: 'expired'
     },
-    { 
-      id: 4, 
-      name: 'Jira Security Training Tickets', 
-      control: 'A.6.3', 
-      type: 'automatic', 
+    {
+      id: 4,
+      name: 'Jira Security Training Tickets',
+      control: 'A.6.3',
+      type: 'automatic',
       source: 'Jira',
       sourceIcon: '📋',
       lastUpdated: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
@@ -3943,11 +3975,11 @@ function EvidenceCenterScreen() {
         }
       }
     },
-    { 
-      id: 5, 
-      name: 'Okta Access Review Export', 
-      control: 'A.5.18', 
-      type: 'automatic', 
+    {
+      id: 5,
+      name: 'Okta Access Review Export',
+      control: 'A.5.18',
+      type: 'automatic',
       source: 'Okta',
       sourceIcon: '🔐',
       lastUpdated: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000), // 25 days ago
@@ -3965,22 +3997,22 @@ function EvidenceCenterScreen() {
         }
       }
     },
-    { 
-      id: 6, 
-      name: 'Penetration Test Report Q4', 
-      control: 'A.8.8', 
-      type: 'manual', 
+    {
+      id: 6,
+      name: 'Penetration Test Report Q4',
+      control: 'A.8.8',
+      type: 'manual',
       source: 'Manual',
       sourceIcon: '📄',
       lastUpdated: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
       validityDays: 365,
       status: 'fresh'
     },
-    { 
-      id: 7, 
-      name: 'GitHub Branch Protection Rules', 
-      control: 'A.8.9', 
-      type: 'automatic', 
+    {
+      id: 7,
+      name: 'GitHub Branch Protection Rules',
+      control: 'A.8.9',
+      type: 'automatic',
       source: 'GitHub',
       sourceIcon: '🐙',
       lastUpdated: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), // 60 days ago
@@ -4034,7 +4066,7 @@ function EvidenceCenterScreen() {
   };
 
   const getDaysAgo = (date) => Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
-  
+
   const getFreshnessStatus = (evidence) => {
     const daysAgo = getDaysAgo(evidence.lastUpdated);
     const daysRemaining = evidence.validityDays - daysAgo;
@@ -4101,7 +4133,7 @@ function EvidenceCenterScreen() {
           }
         }
 
-        setUploadedFiles(prev => prev.map(f => 
+        setUploadedFiles(prev => prev.map(f =>
           f.id === fileData.id ? { ...f, status: 'analyzed', suggestion } : f
         ));
 
@@ -4141,14 +4173,14 @@ function EvidenceCenterScreen() {
           <p style={{ color: t.textDim, fontSize: '15px' }}>{l.subtitle}</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button 
+          <button
             onClick={() => setShowRequestModal(true)}
             style={{ padding: '10px 20px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, cursor: 'pointer', fontSize: '14px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             <Send size={16} />
             {l.requestEvidence}
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('upload')}
             style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}
           >
@@ -4208,13 +4240,13 @@ function EvidenceCenterScreen() {
               <Icon size={16} />
               {tab.label}
               {tab.id === 'requests' && evidenceRequests.filter(r => r.status === 'pending' || r.status === 'overdue').length > 0 && (
-                <span style={{ 
-                  background: '#ef4444', 
-                  color: 'white', 
-                  fontSize: '10px', 
-                  fontWeight: 700, 
-                  padding: '2px 6px', 
-                  borderRadius: '10px' 
+                <span style={{
+                  background: '#ef4444',
+                  color: 'white',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: '10px'
                 }}>
                   {evidenceRequests.filter(r => r.status === 'pending' || r.status === 'overdue').length}
                 </span>
@@ -4295,9 +4327,9 @@ function EvidenceCenterScreen() {
                   const daysRemaining = evidence.validityDays - daysAgo;
 
                   return (
-                    <tr 
-                      key={evidence.id} 
-                      style={{ 
+                    <tr
+                      key={evidence.id}
+                      style={{
                         borderBottom: `1px solid ${t.border}`,
                         background: freshnessStatus === 'expired' ? (darkMode ? 'rgba(239, 68, 68, 0.05)' : 'rgba(239, 68, 68, 0.03)') : 'transparent',
                         cursor: 'pointer',
@@ -4325,7 +4357,7 @@ function EvidenceCenterScreen() {
                           </div>
                         </div>
                       </td>
-                      
+
                       {/* Evidence Name */}
                       <td style={{ padding: '16px 20px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -4349,7 +4381,7 @@ function EvidenceCenterScreen() {
                           </div>
                         </div>
                       </td>
-                      
+
                       {/* Control */}
                       <td style={{ padding: '16px 20px' }}>
                         <span style={{
@@ -4363,17 +4395,17 @@ function EvidenceCenterScreen() {
                           {evidence.control}
                         </span>
                       </td>
-                      
+
                       {/* Source */}
                       <td style={{ padding: '16px 20px' }}>
                         <span style={{ fontSize: '13px', color: t.text }}>{evidence.source}</span>
                       </td>
-                      
+
                       {/* Last Updated */}
                       <td style={{ padding: '16px 20px' }}>
                         <span style={{ fontSize: '13px', color: t.textMuted }}>{daysAgo} {l.daysAgo}</span>
                       </td>
-                      
+
                       {/* Actions */}
                       <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
@@ -4395,7 +4427,7 @@ function EvidenceCenterScreen() {
                               {l.updateNow}
                             </button>
                           )}
-                          <button 
+                          <button
                             onClick={(e) => { e.stopPropagation(); setSelectedEvidence(evidence); }}
                             style={{
                               padding: '6px 12px',
@@ -4585,16 +4617,16 @@ function EvidenceCenterScreen() {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <div style={{ 
-                                  width: '40px', 
-                                  height: '4px', 
-                                  background: t.border, 
-                                  borderRadius: '2px', 
-                                  overflow: 'hidden' 
+                                <div style={{
+                                  width: '40px',
+                                  height: '4px',
+                                  background: t.border,
+                                  borderRadius: '2px',
+                                  overflow: 'hidden'
                                 }}>
-                                  <div style={{ 
-                                    width: `${fileData.suggestion.confidence}%`, 
-                                    height: '100%', 
+                                  <div style={{
+                                    width: `${fileData.suggestion.confidence}%`,
+                                    height: '100%',
                                     background: '#8b5cf6',
                                     borderRadius: '2px'
                                   }} />
@@ -4661,9 +4693,9 @@ function EvidenceCenterScreen() {
             <div>
               <h3 style={{ fontSize: '16px', fontWeight: 600, color: t.text, marginBottom: '4px' }}>{l.evidenceRequests}</h3>
               <p style={{ fontSize: '13px', color: t.textDim }}>
-                {language === 'es' ? 'Asigna tareas de carga a responsables de área' : 
-                 language === 'pt' ? 'Atribua tarefas de upload a responsáveis de área' :
-                 'Assign upload tasks to area managers'}
+                {language === 'es' ? 'Asigna tareas de carga a responsables de área' :
+                  language === 'pt' ? 'Atribua tarefas de upload a responsáveis de área' :
+                    'Assign upload tasks to area managers'}
               </p>
             </div>
             <button
@@ -4725,9 +4757,9 @@ function EvidenceCenterScreen() {
                       </div>
                     </td>
                     <td style={{ padding: '16px 20px' }}>
-                      <span style={{ 
-                        fontSize: '13px', 
-                        color: request.status === 'overdue' ? '#ef4444' : t.textMuted 
+                      <span style={{
+                        fontSize: '13px',
+                        color: request.status === 'overdue' ? '#ef4444' : t.textMuted
                       }}>
                         {request.dueDate}
                       </span>
@@ -4825,36 +4857,36 @@ function EvidenceCenterScreen() {
       {activeTab === 'connectors' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
           {connectors.map((connector) => (
-            <div key={connector.id} style={{ 
-              background: t.cardBg, 
-              backdropFilter: 'blur(10px)', 
-              borderRadius: '16px', 
-              padding: '20px', 
-              border: connector.status === 'error' ? '1px solid rgba(239, 68, 68, 0.3)' : `1px solid ${t.border}` 
+            <div key={connector.id} style={{
+              background: t.cardBg,
+              backdropFilter: 'blur(10px)',
+              borderRadius: '16px',
+              padding: '20px',
+              border: connector.status === 'error' ? '1px solid rgba(239, 68, 68, 0.3)' : `1px solid ${t.border}`
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-                <div style={{ 
-                  width: '48px', 
-                  height: '48px', 
-                  borderRadius: '12px', 
-                  background: t.inputBg, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  fontSize: '24px' 
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '12px',
+                  background: t.inputBg,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '24px'
                 }}>
                   {connector.icon}
                 </div>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '5px', 
-                  padding: '4px 10px', 
-                  borderRadius: '20px', 
-                  fontSize: '11px', 
-                  fontWeight: 600, 
-                  background: connector.status === 'connected' ? 'rgba(16, 185, 129, 0.15)' : connector.status === 'error' ? 'rgba(239, 68, 68, 0.15)' : t.inputBg, 
-                  color: connector.status === 'connected' ? '#10b981' : connector.status === 'error' ? '#ef4444' : t.textDim 
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '4px 10px',
+                  borderRadius: '20px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  background: connector.status === 'connected' ? 'rgba(16, 185, 129, 0.15)' : connector.status === 'error' ? 'rgba(239, 68, 68, 0.15)' : t.inputBg,
+                  color: connector.status === 'connected' ? '#10b981' : connector.status === 'error' ? '#ef4444' : t.textDim
                 }}>
                   {connector.status === 'connected' && <CheckCircle2 size={12} />}
                   {connector.status === 'error' && <XCircle size={12} />}
@@ -4866,44 +4898,44 @@ function EvidenceCenterScreen() {
                 {l.lastSync}: {connector.lastSync}
               </div>
               {connector.status === 'connected' && (
-                <div style={{ 
-                  padding: '10px 14px', 
-                  background: 'rgba(16, 185, 129, 0.1)', 
-                  borderRadius: '8px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between' 
+                <div style={{
+                  padding: '10px 14px',
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
                 }}>
                   <span style={{ fontSize: '13px', color: t.text }}>{connector.evidences} {l.evidences}</span>
                   <Eye size={14} color="#10b981" />
                 </div>
               )}
               {connector.status === 'error' && (
-                <button style={{ 
-                  width: '100%', 
-                  padding: '10px', 
-                  background: 'rgba(239, 68, 68, 0.15)', 
-                  border: '1px solid rgba(239, 68, 68, 0.3)', 
-                  borderRadius: '8px', 
-                  color: '#ef4444', 
-                  cursor: 'pointer', 
-                  fontSize: '13px', 
-                  fontWeight: 600 
+                <button style={{
+                  width: '100%',
+                  padding: '10px',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '8px',
+                  color: '#ef4444',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 600
                 }}>
                   {l.reconnect}
                 </button>
               )}
               {connector.status === 'pending' && (
-                <button style={{ 
-                  width: '100%', 
-                  padding: '10px', 
-                  background: t.inputBg, 
-                  border: `1px solid ${t.border}`, 
-                  borderRadius: '8px', 
-                  color: t.text, 
-                  cursor: 'pointer', 
-                  fontSize: '13px', 
-                  fontWeight: 500 
+                <button style={{
+                  width: '100%',
+                  padding: '10px',
+                  background: t.inputBg,
+                  border: `1px solid ${t.border}`,
+                  borderRadius: '8px',
+                  color: t.text,
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 500
                 }}>
                   {l.configure}
                 </button>
@@ -4915,25 +4947,25 @@ function EvidenceCenterScreen() {
 
       {/* Evidence Detail Modal with API Deep-Linking */}
       {selectedEvidence && (
-        <div style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          background: 'rgba(0,0,0,0.6)', 
-          backdropFilter: 'blur(8px)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          zIndex: 200 
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 200
         }}>
-          <div style={{ 
-            width: '700px', 
-            maxHeight: '85vh', 
-            background: darkMode ? '#1e293b' : '#ffffff', 
-            borderRadius: '20px', 
-            border: `1px solid ${t.border}`, 
+          <div style={{
+            width: '700px',
+            maxHeight: '85vh',
+            background: darkMode ? '#1e293b' : '#ffffff',
+            borderRadius: '20px',
+            border: `1px solid ${t.border}`,
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column'
@@ -4979,19 +5011,19 @@ function EvidenceCenterScreen() {
                   </div>
                 </div>
               </div>
-              <button 
-                onClick={() => setSelectedEvidence(null)} 
-                style={{ 
-                  width: '36px', 
-                  height: '36px', 
-                  borderRadius: '8px', 
-                  background: t.inputBg, 
-                  border: 'none', 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  color: t.textDim 
+              <button
+                onClick={() => setSelectedEvidence(null)}
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  background: t.inputBg,
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: t.textDim
                 }}
               >
                 <X size={18} />
@@ -5003,9 +5035,9 @@ function EvidenceCenterScreen() {
               {/* Source Info */}
               <div style={{ marginBottom: '24px' }}>
                 <h4 style={{ fontSize: '12px', color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>{l.sourceDetails}</h4>
-                <div style={{ 
-                  padding: '16px', 
-                  background: t.inputBg, 
+                <div style={{
+                  padding: '16px',
+                  background: t.inputBg,
                   borderRadius: '12px',
                   display: 'grid',
                   gridTemplateColumns: 'repeat(2, 1fr)',
@@ -5061,11 +5093,11 @@ function EvidenceCenterScreen() {
                       {l.copyJson}
                     </button>
                   </div>
-                  
+
                   {/* Endpoint Info */}
-                  <div style={{ 
-                    padding: '12px 16px', 
-                    background: darkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)', 
+                  <div style={{
+                    padding: '12px 16px',
+                    background: darkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
                     borderRadius: '8px',
                     marginBottom: '12px',
                     display: 'flex',
@@ -5082,9 +5114,9 @@ function EvidenceCenterScreen() {
                   </div>
 
                   {/* Timestamp */}
-                  <div style={{ 
-                    padding: '10px 16px', 
-                    background: t.inputBg, 
+                  <div style={{
+                    padding: '10px 16px',
+                    background: t.inputBg,
                     borderRadius: '8px',
                     marginBottom: '12px',
                     display: 'flex',
@@ -5098,16 +5130,16 @@ function EvidenceCenterScreen() {
                   </div>
 
                   {/* JSON Response */}
-                  <div style={{ 
-                    background: darkMode ? '#0f172a' : '#1e293b', 
+                  <div style={{
+                    background: darkMode ? '#0f172a' : '#1e293b',
                     borderRadius: '12px',
                     padding: '16px',
                     overflow: 'auto',
                     maxHeight: '300px'
                   }}>
-                    <pre style={{ 
-                      margin: 0, 
-                      fontSize: '12px', 
+                    <pre style={{
+                      margin: 0,
+                      fontSize: '12px',
                       fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
                       color: '#e2e8f0',
                       whiteSpace: 'pre-wrap',
@@ -5122,7 +5154,7 @@ function EvidenceCenterScreen() {
 
             {/* Footer */}
             <div style={{ padding: '16px 24px', borderTop: `1px solid ${t.border}`, display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button 
+              <button
                 onClick={() => setSelectedEvidence(null)}
                 style={{ padding: '10px 20px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}
               >
@@ -5145,49 +5177,49 @@ function EvidenceCenterScreen() {
 
       {/* Request Evidence Modal */}
       {showRequestModal && (
-        <div style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          background: 'rgba(0,0,0,0.6)', 
-          backdropFilter: 'blur(8px)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          zIndex: 200 
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 200
         }}>
-          <div style={{ 
-            width: '500px', 
-            background: darkMode ? '#1e293b' : '#ffffff', 
-            borderRadius: '20px', 
-            border: `1px solid ${t.border}`, 
+          <div style={{
+            width: '500px',
+            background: darkMode ? '#1e293b' : '#ffffff',
+            borderRadius: '20px',
+            border: `1px solid ${t.border}`,
             overflow: 'hidden'
           }}>
             <div style={{ padding: '20px 24px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ 
-                  width: '40px', 
-                  height: '40px', 
-                  borderRadius: '10px', 
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center' 
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}>
                   <Send size={20} color="white" />
                 </div>
                 <div>
                   <h2 style={{ fontSize: '16px', fontWeight: 600, color: t.text }}>{l.requestEvidence}</h2>
                   <p style={{ fontSize: '12px', color: t.textDim }}>
-                    {language === 'es' ? 'Crear solicitud con enlace mágico' : 
-                     language === 'pt' ? 'Criar solicitação com link mágico' :
-                     'Create request with magic link'}
+                    {language === 'es' ? 'Crear solicitud con enlace mágico' :
+                      language === 'pt' ? 'Criar solicitação com link mágico' :
+                        'Create request with magic link'}
                   </p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setShowRequestModal(false)}
                 style={{ width: '32px', height: '32px', borderRadius: '8px', background: t.inputBg, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textDim }}
               >
@@ -5270,9 +5302,9 @@ function EvidenceCenterScreen() {
                 </div>
               </div>
 
-              <div style={{ 
-                padding: '14px 16px', 
-                background: darkMode ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.08)', 
+              <div style={{
+                padding: '14px 16px',
+                background: darkMode ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.08)',
                 borderRadius: '10px',
                 border: '1px solid rgba(139, 92, 246, 0.2)'
               }}>
@@ -5282,27 +5314,27 @@ function EvidenceCenterScreen() {
                 </div>
                 <p style={{ fontSize: '12px', color: t.textDim }}>
                   {language === 'es' ? 'Se generará un enlace único que el destinatario puede usar para subir la evidencia sin necesidad de cuenta.' :
-                   language === 'pt' ? 'Será gerado um link único que o destinatário pode usar para enviar a evidência sem precisar de conta.' :
-                   'A unique link will be generated that the recipient can use to upload evidence without needing an account.'}
+                    language === 'pt' ? 'Será gerado um link único que o destinatário pode usar para enviar a evidência sem precisar de conta.' :
+                      'A unique link will be generated that the recipient can use to upload evidence without needing an account.'}
                 </p>
               </div>
             </div>
 
             <div style={{ padding: '16px 24px', borderTop: `1px solid ${t.border}`, display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button 
+              <button
                 onClick={() => setShowRequestModal(false)}
                 style={{ padding: '10px 20px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}
               >
                 {language === 'es' ? 'Cancelar' : language === 'pt' ? 'Cancelar' : 'Cancel'}
               </button>
-              <button style={{ 
-                padding: '10px 24px', 
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)', 
-                border: 'none', 
-                borderRadius: '10px', 
-                color: 'white', 
-                cursor: 'pointer', 
-                fontSize: '13px', 
+              <button style={{
+                padding: '10px 24px',
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                border: 'none',
+                borderRadius: '10px',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '13px',
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
@@ -5367,43 +5399,43 @@ function DocumentsScreen() {
 
   const faqData = {
     en: [
-      { 
-        id: 1, 
+      {
+        id: 1,
         question: "What are the minimum password requirements?",
         answer: "According to the Information Security Policy (v2.1), passwords must be at least 12 characters long, contain uppercase and lowercase letters, numbers, and special characters. Passwords must be changed every 90 days and cannot repeat the last 12 passwords used.",
         source: "Information Security Policy",
         section: "Section 4.2.1"
       },
-      { 
-        id: 2, 
+      {
+        id: 2,
         question: "How do I request access to a new system?",
         answer: "Access requests must be submitted through the IT Service Portal. Your manager must approve the request, followed by the system owner. For privileged access, additional approval from the Security team is required. Standard processing time is 3-5 business days.",
         source: "Access Control Policy",
         section: "Section 3.1"
       },
-      { 
-        id: 3, 
+      {
+        id: 3,
         question: "What should I do if I suspect a security incident?",
         answer: "Immediately report the incident to the Security Operations Center (SOC) via email at security@company.com or by calling the 24/7 hotline. Do not attempt to investigate on your own. Preserve any evidence and document what you observed, including timestamps.",
         source: "Incident Response Procedure",
         section: "Section 2.1"
       },
-      { 
-        id: 4, 
+      {
+        id: 4,
         question: "Who is responsible for document approvals?",
         answer: "Document approvals follow a tiered structure: Draft → Review by Department Head → Legal/Compliance Review (if applicable) → Final Approval by CISO or designated authority. All policies require annual review and re-approval.",
         source: "Document Control Policy",
         section: "Section 5.3"
       },
-      { 
-        id: 5, 
+      {
+        id: 5,
         question: "What is the data classification scheme?",
         answer: "Data is classified into four levels: Public (no restrictions), Internal (business use only), Confidential (need-to-know basis), and Restricted (highest sensitivity, requires encryption at rest and in transit). Classification labels must be applied to all documents.",
         source: "Information Security Policy",
         section: "Section 6.1"
       },
-      { 
-        id: 6, 
+      {
+        id: 6,
         question: "How often are backups performed?",
         answer: "Critical systems are backed up daily with 30-day retention. Full backups occur weekly, with incremental backups daily. Backup restoration tests are performed quarterly. Off-site copies are maintained in a geographically separate location.",
         source: "Business Continuity Plan",
@@ -5411,43 +5443,43 @@ function DocumentsScreen() {
       }
     ],
     es: [
-      { 
-        id: 1, 
+      {
+        id: 1,
         question: "¿Cuáles son los requisitos mínimos de contraseña?",
         answer: "Según la Política de Seguridad de la Información (v2.1), las contraseñas deben tener al menos 12 caracteres, contener letras mayúsculas y minúsculas, números y caracteres especiales. Las contraseñas deben cambiarse cada 90 días y no pueden repetir las últimas 12 contraseñas utilizadas.",
         source: "Política de Seguridad de la Información",
         section: "Sección 4.2.1"
       },
-      { 
-        id: 2, 
+      {
+        id: 2,
         question: "¿Cómo solicito acceso a un nuevo sistema?",
         answer: "Las solicitudes de acceso deben enviarse a través del Portal de Servicios de TI. Su gerente debe aprobar la solicitud, seguido por el propietario del sistema. Para acceso privilegiado, se requiere aprobación adicional del equipo de Seguridad. El tiempo de procesamiento estándar es de 3-5 días hábiles.",
         source: "Política de Control de Acceso",
         section: "Sección 3.1"
       },
-      { 
-        id: 3, 
+      {
+        id: 3,
         question: "¿Qué debo hacer si sospecho un incidente de seguridad?",
         answer: "Informe inmediatamente el incidente al Centro de Operaciones de Seguridad (SOC) por correo electrónico a security@company.com o llamando a la línea directa 24/7. No intente investigar por su cuenta. Preserve cualquier evidencia y documente lo que observó, incluyendo marcas de tiempo.",
         source: "Procedimiento de Respuesta a Incidentes",
         section: "Sección 2.1"
       },
-      { 
-        id: 4, 
+      {
+        id: 4,
         question: "¿Quién es responsable de las aprobaciones de documentos?",
         answer: "Las aprobaciones de documentos siguen una estructura escalonada: Borrador → Revisión por Jefe de Departamento → Revisión Legal/Cumplimiento (si aplica) → Aprobación Final por CISO o autoridad designada. Todas las políticas requieren revisión y re-aprobación anual.",
         source: "Política de Control de Documentos",
         section: "Sección 5.3"
       },
-      { 
-        id: 5, 
+      {
+        id: 5,
         question: "¿Cuál es el esquema de clasificación de datos?",
         answer: "Los datos se clasifican en cuatro niveles: Público (sin restricciones), Interno (solo uso comercial), Confidencial (base de necesidad de conocer) y Restringido (máxima sensibilidad, requiere cifrado en reposo y en tránsito). Las etiquetas de clasificación deben aplicarse a todos los documentos.",
         source: "Política de Seguridad de la Información",
         section: "Sección 6.1"
       },
-      { 
-        id: 6, 
+      {
+        id: 6,
         question: "¿Con qué frecuencia se realizan las copias de seguridad?",
         answer: "Los sistemas críticos se respaldan diariamente con retención de 30 días. Las copias de seguridad completas ocurren semanalmente, con copias incrementales diarias. Las pruebas de restauración se realizan trimestralmente. Las copias externas se mantienen en una ubicación geográficamente separada.",
         source: "Plan de Continuidad del Negocio",
@@ -5455,43 +5487,43 @@ function DocumentsScreen() {
       }
     ],
     pt: [
-      { 
-        id: 1, 
+      {
+        id: 1,
         question: "Quais são os requisitos mínimos de senha?",
         answer: "De acordo com a Política de Segurança da Informação (v2.1), as senhas devem ter pelo menos 12 caracteres, conter letras maiúsculas e minúsculas, números e caracteres especiais. As senhas devem ser alteradas a cada 90 dias e não podem repetir as últimas 12 senhas utilizadas.",
         source: "Política de Segurança da Informação",
         section: "Seção 4.2.1"
       },
-      { 
-        id: 2, 
+      {
+        id: 2,
         question: "Como solicito acesso a um novo sistema?",
         answer: "As solicitações de acesso devem ser enviadas através do Portal de Serviços de TI. Seu gerente deve aprovar a solicitação, seguido pelo proprietário do sistema. Para acesso privilegiado, é necessária aprovação adicional da equipe de Segurança. O tempo de processamento padrão é de 3-5 dias úteis.",
         source: "Política de Controle de Acesso",
         section: "Seção 3.1"
       },
-      { 
-        id: 3, 
+      {
+        id: 3,
         question: "O que devo fazer se suspeitar de um incidente de segurança?",
         answer: "Relate imediatamente o incidente ao Centro de Operações de Segurança (SOC) por e-mail para security@company.com ou ligando para a linha direta 24/7. Não tente investigar por conta própria. Preserve qualquer evidência e documente o que observou, incluindo timestamps.",
         source: "Procedimento de Resposta a Incidentes",
         section: "Seção 2.1"
       },
-      { 
-        id: 4, 
+      {
+        id: 4,
         question: "Quem é responsável pelas aprovações de documentos?",
         answer: "As aprovações de documentos seguem uma estrutura em camadas: Rascunho → Revisão pelo Chefe de Departamento → Revisão Jurídica/Conformidade (se aplicável) → Aprovação Final pelo CISO ou autoridade designada. Todas as políticas requerem revisão e re-aprovação anual.",
         source: "Política de Controle de Documentos",
         section: "Seção 5.3"
       },
-      { 
-        id: 5, 
+      {
+        id: 5,
         question: "Qual é o esquema de classificação de dados?",
         answer: "Os dados são classificados em quatro níveis: Público (sem restrições), Interno (apenas uso comercial), Confidencial (base de necessidade de conhecer) e Restrito (máxima sensibilidade, requer criptografia em repouso e em trânsito). Rótulos de classificação devem ser aplicados a todos os documentos.",
         source: "Política de Segurança da Informação",
         section: "Seção 6.1"
       },
-      { 
-        id: 6, 
+      {
+        id: 6,
         question: "Com que frequência os backups são realizados?",
         answer: "Sistemas críticos são copiados diariamente com retenção de 30 dias. Backups completos ocorrem semanalmente, com backups incrementais diários. Testes de restauração são realizados trimestralmente. Cópias externas são mantidas em local geograficamente separado.",
         source: "Plano de Continuidade de Negócios",
@@ -5512,7 +5544,7 @@ function DocumentsScreen() {
 
   const handleSendMessage = (message) => {
     if (!message.trim()) return;
-    
+
     const userMessage = { role: 'user', content: message };
     setChatMessages(prev => [...prev, userMessage]);
     setChatQuery('');
@@ -5522,11 +5554,11 @@ function DocumentsScreen() {
     setTimeout(() => {
       const aiResponse = {
         role: 'assistant',
-        content: language === 'es' 
+        content: language === 'es'
           ? `Basándome en tu Política de Seguridad de la Información (v2.1), encontré información relevante sobre tu consulta. El documento especifica los requisitos y procedimientos relacionados con "${message.substring(0, 50)}..."`
           : language === 'pt'
-          ? `Com base na sua Política de Segurança da Informação (v2.1), encontrei informações relevantes sobre sua consulta. O documento especifica os requisitos e procedimentos relacionados a "${message.substring(0, 50)}..."`
-          : `Based on your Information Security Policy (v2.1), I found relevant information about your query. The document specifies the requirements and procedures related to "${message.substring(0, 50)}..."`,
+            ? `Com base na sua Política de Segurança da Informação (v2.1), encontrei informações relevantes sobre sua consulta. O documento especifica os requisitos e procedimentos relacionados a "${message.substring(0, 50)}..."`
+            : `Based on your Information Security Policy (v2.1), I found relevant information about your query. The document specifies the requirements and procedures related to "${message.substring(0, 50)}..."`,
         sources: ['Information Security Policy', 'Access Control Policy']
       };
       setChatMessages(prev => [...prev, aiResponse]);
@@ -5565,7 +5597,7 @@ function DocumentsScreen() {
 
         {/* Document Chat & FAQ Panel */}
         <div style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '20px', border: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', height: '580px', overflow: 'hidden' }}>
-          
+
           {/* Tab Header */}
           <div style={{ display: 'flex', borderBottom: `1px solid ${t.border}` }}>
             <button
@@ -5640,7 +5672,7 @@ function DocumentsScreen() {
                     <p style={{ fontSize: '11px', color: t.textDim, marginBottom: '16px', lineHeight: '1.5' }}>
                       {language === 'es' ? 'Usa lenguaje natural para buscar' : language === 'pt' ? 'Use linguagem natural para pesquisar' : 'Use natural language to search'}
                     </p>
-                    
+
                     {/* Suggested Questions */}
                     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       {questions.slice(0, 3).map((question, idx) => (
@@ -5678,8 +5710,8 @@ function DocumentsScreen() {
                           maxWidth: '85%',
                           padding: '10px 14px',
                           borderRadius: msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
-                          background: msg.role === 'user' 
-                            ? 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)' 
+                          background: msg.role === 'user'
+                            ? 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)'
                             : t.inputBg,
                           color: msg.role === 'user' ? 'white' : t.text,
                           fontSize: '12px',
@@ -5729,18 +5761,18 @@ function DocumentsScreen() {
                     placeholder={labels.placeholder}
                     style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontSize: '13px' }}
                   />
-                  <button 
+                  <button
                     onClick={() => handleSendMessage(chatQuery)}
                     disabled={!chatQuery.trim()}
-                    style={{ 
-                      width: '32px', 
-                      height: '32px', 
-                      borderRadius: '8px', 
-                      background: chatQuery.trim() ? 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)' : t.hoverBg, 
-                      border: 'none', 
-                      cursor: chatQuery.trim() ? 'pointer' : 'not-allowed', 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: chatQuery.trim() ? 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)' : t.hoverBg,
+                      border: 'none',
+                      cursor: chatQuery.trim() ? 'pointer' : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
                       justifyContent: 'center',
                       transition: 'all 0.2s ease'
                     }}
@@ -5803,42 +5835,42 @@ function DocumentsScreen() {
                         flexShrink: 0,
                         transition: 'all 0.2s ease'
                       }}>
-                        <ChevronDown 
-                          size={14} 
+                        <ChevronDown
+                          size={14}
                           color={expandedFaq === faq.id ? '#10b981' : t.textDim}
-                          style={{ 
+                          style={{
                             transform: expandedFaq === faq.id ? 'rotate(180deg)' : 'rotate(0)',
                             transition: 'transform 0.2s ease'
                           }}
                         />
                       </div>
-                      <span style={{ 
-                        flex: 1, 
-                        fontSize: '13px', 
-                        fontWeight: 500, 
+                      <span style={{
+                        flex: 1,
+                        fontSize: '13px',
+                        fontWeight: 500,
                         color: expandedFaq === faq.id ? '#10b981' : t.text,
                         lineHeight: '1.4'
                       }}>
                         {faq.question}
                       </span>
                     </button>
-                    
+
                     {expandedFaq === faq.id && (
-                      <div style={{ 
+                      <div style={{
                         padding: '0 16px 16px 52px',
                         animation: 'fadeIn 0.2s ease'
                       }}>
-                        <p style={{ 
-                          fontSize: '12px', 
-                          color: t.textMuted, 
+                        <p style={{
+                          fontSize: '12px',
+                          color: t.textMuted,
                           lineHeight: '1.6',
                           marginBottom: '12px'
                         }}>
                           {faq.answer}
                         </p>
-                        <div style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
                           gap: '8px',
                           flexWrap: 'wrap'
                         }}>
@@ -6183,7 +6215,7 @@ function AuditRoomScreen() {
   const handleExport = () => {
     setIsExporting(true);
     setExportProgress(0);
-    
+
     const interval = setInterval(() => {
       setExportProgress(prev => {
         if (prev >= 100) {
@@ -6215,17 +6247,17 @@ function AuditRoomScreen() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
             <h1 style={{ fontSize: '28px', fontWeight: 700 }}>{l.title}</h1>
             {/* Auditor Mode Badge */}
-            <div style={{ 
-              padding: '6px 14px', 
-              background: auditorMode ? 'rgba(168, 85, 247, 0.15)' : 'rgba(16, 185, 129, 0.15)', 
-              border: `1px solid ${auditorMode ? 'rgba(168, 85, 247, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`, 
-              borderRadius: '20px', 
-              fontSize: '12px', 
-              fontWeight: 600, 
-              color: auditorMode ? '#a855f7' : '#10b981', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px' 
+            <div style={{
+              padding: '6px 14px',
+              background: auditorMode ? 'rgba(168, 85, 247, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+              border: `1px solid ${auditorMode ? 'rgba(168, 85, 247, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+              borderRadius: '20px',
+              fontSize: '12px',
+              fontWeight: 600,
+              color: auditorMode ? '#a855f7' : '#10b981',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}>
               {auditorMode ? <Eye size={14} /> : <Lock size={14} />}
               {auditorMode ? l.readOnly : l.fullAccess}
@@ -6233,15 +6265,15 @@ function AuditRoomScreen() {
           </div>
           <p style={{ color: t.textDim, fontSize: '15px' }}>{l.subtitle}</p>
         </div>
-        
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {/* Auditor Mode Toggle */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '10px', 
-            padding: '8px 14px', 
-            background: t.inputBg, 
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '8px 14px',
+            background: t.inputBg,
             borderRadius: '10px',
             border: `1px solid ${t.border}`
           }}>
@@ -6272,23 +6304,23 @@ function AuditRoomScreen() {
               }} />
             </button>
           </div>
-          
+
           {/* Auditor's Binder Button */}
-          <button 
+          <button
             onClick={() => setShowExportModal(true)}
-            style={{ 
-              padding: '12px 24px', 
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
-              border: 'none', 
-              borderRadius: '10px', 
-              color: 'white', 
-              fontWeight: 600, 
-              cursor: 'pointer', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px', 
-              fontSize: '14px', 
-              boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3)' 
+            style={{
+              padding: '12px 24px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              border: 'none',
+              borderRadius: '10px',
+              color: 'white',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3)'
             }}
           >
             <Download size={18} />
@@ -6299,11 +6331,11 @@ function AuditRoomScreen() {
 
       {/* Auditor Mode Banner */}
       {auditorMode && (
-        <div style={{ 
-          padding: '12px 20px', 
-          background: 'rgba(168, 85, 247, 0.1)', 
-          border: '1px solid rgba(168, 85, 247, 0.2)', 
-          borderRadius: '12px', 
+        <div style={{
+          padding: '12px 20px',
+          background: 'rgba(168, 85, 247, 0.1)',
+          border: '1px solid rgba(168, 85, 247, 0.2)',
+          borderRadius: '12px',
           marginBottom: '20px',
           display: 'flex',
           alignItems: 'center',
@@ -6313,7 +6345,7 @@ function AuditRoomScreen() {
             <Eye size={18} color="#a855f7" />
             <span style={{ fontSize: '13px', color: '#a855f7', fontWeight: 500 }}>{l.approvedOnly}</span>
           </div>
-          <button 
+          <button
             onClick={() => setAuditorMode(false)}
             style={{
               padding: '6px 12px',
@@ -6336,12 +6368,12 @@ function AuditRoomScreen() {
         <div style={{ display: 'flex', gap: '12px' }}>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px', background: t.inputBg, borderRadius: '10px', padding: '10px 14px', border: `1px solid ${t.border}` }}>
             <Search size={18} color={t.textDim} />
-            <input 
-              type="text" 
-              value={searchQuery} 
-              onChange={(e) => setSearchQuery(e.target.value)} 
-              placeholder={l.semanticSearch} 
-              style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontSize: '14px' }} 
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={l.semanticSearch}
+              style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontSize: '14px' }}
             />
           </div>
           <button style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
@@ -6389,32 +6421,32 @@ function AuditRoomScreen() {
       {activeTab === 'folders' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
           {folders.map((folder) => (
-            <div 
-              key={folder.id} 
+            <div
+              key={folder.id}
               onClick={() => setSelectedFolder(folder)}
-              style={{ 
-                background: t.cardBg, 
-                backdropFilter: 'blur(10px)', 
-                borderRadius: '16px', 
-                padding: '20px', 
-                border: `1px solid ${t.border}`, 
+              style={{
+                background: t.cardBg,
+                backdropFilter: 'blur(10px)',
+                borderRadius: '16px',
+                padding: '20px',
+                border: `1px solid ${t.border}`,
                 cursor: 'pointer',
                 transition: 'all 0.2s ease'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-                <div style={{ 
-                  width: '48px', 
-                  height: '48px', 
-                  borderRadius: '12px', 
-                  background: 'rgba(168, 85, 247, 0.15)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center' 
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '12px',
+                  background: 'rgba(168, 85, 247, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}>
                   <Folder size={24} color="#a855f7" />
                 </div>
-                <div style={{ 
+                <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
@@ -6434,7 +6466,7 @@ function AuditRoomScreen() {
                 <span style={{ fontSize: '12px', color: t.textDim }}>{folder.items} {l.items}</span>
                 <ExternalLink size={14} color={t.textDim} />
               </div>
-              
+
               {/* Preview of evidences */}
               {!auditorMode && (
                 <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${t.border}` }}>
@@ -6470,7 +6502,7 @@ function AuditRoomScreen() {
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               {/* Time Filter */}
-              <select 
+              <select
                 value={timeFilter}
                 onChange={(e) => setTimeFilter(e.target.value)}
                 style={{
@@ -6488,9 +6520,9 @@ function AuditRoomScreen() {
                 <option value="30d">{l.last30d}</option>
                 <option value="all">{l.allTime}</option>
               </select>
-              
+
               {/* Action Filter */}
-              <select 
+              <select
                 value={trailFilter}
                 onChange={(e) => setTrailFilter(e.target.value)}
                 style={{
@@ -6510,7 +6542,7 @@ function AuditRoomScreen() {
                 <option value="deleted">{l.deleted}</option>
                 <option value="exported">{l.exported}</option>
               </select>
-              
+
               <button style={{
                 padding: '8px 16px',
                 background: t.inputBg,
@@ -6674,18 +6706,18 @@ function AuditRoomScreen() {
                 <h4 style={{ fontSize: '12px', fontWeight: 600, color: t.textMuted, textTransform: 'uppercase', marginBottom: '12px' }}>Options</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: t.inputBg, borderRadius: '10px', cursor: 'pointer' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={includeAnnexes} 
+                    <input
+                      type="checkbox"
+                      checked={includeAnnexes}
                       onChange={(e) => setIncludeAnnexes(e.target.checked)}
                       style={{ width: '18px', height: '18px', accentColor: '#10b981' }}
                     />
                     <span style={{ fontSize: '13px', color: t.text }}>{l.includeAnnexes}</span>
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: t.inputBg, borderRadius: '10px', cursor: 'pointer' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={includeTrail} 
+                    <input
+                      type="checkbox"
+                      checked={includeTrail}
                       onChange={(e) => setIncludeTrail(e.target.checked)}
                       style={{ width: '18px', height: '18px', accentColor: '#10b981' }}
                     />
@@ -6699,7 +6731,7 @@ function AuditRoomScreen() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <h4 style={{ fontSize: '12px', fontWeight: 600, color: t.textMuted, textTransform: 'uppercase' }}>{l.selectClauses}</h4>
-                <button 
+                <button
                   onClick={() => setSelectedClauses(selectedClauses.length === folders.length ? [] : folders.map(f => f.id))}
                   style={{
                     background: 'none',
@@ -6717,21 +6749,21 @@ function AuditRoomScreen() {
                 {folders.map((folder) => {
                   const isSelected = selectedClauses.includes(folder.id);
                   return (
-                    <label 
+                    <label
                       key={folder.id}
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '12px', 
-                        padding: '12px', 
-                        background: isSelected ? '#10b98110' : t.inputBg, 
-                        borderRadius: '10px', 
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '12px',
+                        background: isSelected ? '#10b98110' : t.inputBg,
+                        borderRadius: '10px',
                         cursor: 'pointer',
                         border: `1px solid ${isSelected ? '#10b98140' : 'transparent'}`
                       }}
                     >
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={isSelected}
                         onChange={(e) => {
                           if (e.target.checked) {
@@ -6746,11 +6778,11 @@ function AuditRoomScreen() {
                         <div style={{ fontSize: '13px', fontWeight: 500, color: t.text }}>{folder.name}</div>
                         <div style={{ fontSize: '11px', color: t.textDim }}>{folder.items} {l.items}</div>
                       </div>
-                      <div style={{ 
-                        width: '8px', 
-                        height: '8px', 
-                        borderRadius: '50%', 
-                        background: folder.status === 'complete' ? '#10b981' : '#f59e0b' 
+                      <div style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: folder.status === 'complete' ? '#10b981' : '#f59e0b'
                       }} />
                     </label>
                   );
@@ -6760,10 +6792,10 @@ function AuditRoomScreen() {
           </div>
 
           {/* Export Summary & Button */}
-          <div style={{ 
-            marginTop: '24px', 
-            padding: '16px 20px', 
-            background: t.inputBg, 
+          <div style={{
+            marginTop: '24px',
+            padding: '16px 20px',
+            background: t.inputBg,
             borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
@@ -6781,7 +6813,7 @@ function AuditRoomScreen() {
                 <div style={{ fontSize: '20px', fontWeight: 700, color: t.text }}>~48 MB</div>
               </div>
             </div>
-            <button 
+            <button
               onClick={handleExport}
               style={{
                 padding: '14px 32px',
@@ -6807,24 +6839,24 @@ function AuditRoomScreen() {
 
       {/* Export Modal */}
       {showExportModal && (
-        <div style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          background: 'rgba(0,0,0,0.6)', 
-          backdropFilter: 'blur(8px)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          zIndex: 200 
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 200
         }}>
-          <div style={{ 
-            width: '480px', 
-            background: darkMode ? '#1e293b' : '#ffffff', 
-            borderRadius: '20px', 
-            border: `1px solid ${t.border}`, 
+          <div style={{
+            width: '480px',
+            background: darkMode ? '#1e293b' : '#ffffff',
+            borderRadius: '20px',
+            border: `1px solid ${t.border}`,
             overflow: 'hidden',
             boxShadow: '0 25px 50px rgba(0,0,0,0.3)'
           }}>
@@ -6845,18 +6877,18 @@ function AuditRoomScreen() {
                   </div>
                   <h3 style={{ fontSize: '18px', fontWeight: 600, color: t.text, marginBottom: '8px' }}>{l.generating}</h3>
                   <p style={{ fontSize: '14px', color: t.textDim, marginBottom: '20px' }}>{l.exportDescription}</p>
-                  
+
                   {/* Progress Bar */}
-                  <div style={{ 
-                    height: '8px', 
-                    background: t.inputBg, 
-                    borderRadius: '4px', 
+                  <div style={{
+                    height: '8px',
+                    background: t.inputBg,
+                    borderRadius: '4px',
                     overflow: 'hidden',
                     marginBottom: '12px'
                   }}>
-                    <div style={{ 
-                      width: `${Math.min(exportProgress, 100)}%`, 
-                      height: '100%', 
+                    <div style={{
+                      width: `${Math.min(exportProgress, 100)}%`,
+                      height: '100%',
                       background: 'linear-gradient(90deg, #10b981, #3b82f6)',
                       borderRadius: '4px',
                       transition: 'width 0.3s ease'
@@ -6906,7 +6938,7 @@ function AuditRoomScreen() {
                 </>
               )}
             </div>
-            
+
             {exportProgress < 100 && (
               <div style={{ padding: '16px 24px', borderTop: `1px solid ${t.border}`, display: 'flex', justifyContent: 'center' }}>
                 <button
@@ -6954,13 +6986,13 @@ function UserManagementScreen() {
     { id: 6, name: 'Laura Fernández', email: 'laura.fernandez@company.com', role: 'employee', department: 'Engineering', status: 'inactive', lastLogin: '2024-11-28 11:20', avatar: 'LF' },
     { id: 7, name: 'Roberto Díaz', email: 'roberto.diaz@company.com', role: 'employee', department: 'HR', status: 'active', lastLogin: '2024-12-14 07:50', avatar: 'RD' },
   ]);
-  
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  
+
   // New user form state
   const [newUser, setNewUser] = useState({ name: '', email: '', role: 'employee', department: '', password: '' });
 
@@ -7133,8 +7165,8 @@ function UserManagementScreen() {
   const departments = ['IT Security', 'Executive', 'Compliance', 'Engineering', 'HR', 'Finance', 'Operations', 'External'];
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         user.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = filterRole === 'all' || user.role === filterRole;
     const matchesStatus = filterStatus === 'all' || user.status === filterStatus;
     return matchesSearch && matchesRole && matchesStatus;
@@ -7312,22 +7344,22 @@ function UserManagementScreen() {
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: t.textMuted, marginBottom: '8px' }}>{l.fullName}</label>
-                <input value={newUser.name} onChange={(e) => setNewUser({...newUser, name: e.target.value})} style={{ width: '100%', padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none' }} />
+                <input value={newUser.name} onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} style={{ width: '100%', padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: t.textMuted, marginBottom: '8px' }}>{l.email}</label>
-                <input type="email" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} style={{ width: '100%', padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none' }} />
+                <input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} style={{ width: '100%', padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none' }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: t.textMuted, marginBottom: '8px' }}>{l.role}</label>
-                  <select value={newUser.role} onChange={(e) => setNewUser({...newUser, role: e.target.value})} style={{ width: '100%', padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none', cursor: 'pointer' }}>
+                  <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })} style={{ width: '100%', padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none', cursor: 'pointer' }}>
                     {roles.map(role => <option key={role.id} value={role.id}>{l[role.id]}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: t.textMuted, marginBottom: '8px' }}>{l.department}</label>
-                  <select value={newUser.department} onChange={(e) => setNewUser({...newUser, department: e.target.value})} style={{ width: '100%', padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none', cursor: 'pointer' }}>
+                  <select value={newUser.department} onChange={(e) => setNewUser({ ...newUser, department: e.target.value })} style={{ width: '100%', padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none', cursor: 'pointer' }}>
                     <option value="">{l.selectDepartment}</option>
                     {departments.map(dept => <option key={dept} value={dept}>{dept}</option>)}
                   </select>
@@ -7335,9 +7367,9 @@ function UserManagementScreen() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: t.textMuted, marginBottom: '8px' }}>{l.password}</label>
-                <input type="password" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} style={{ width: '100%', padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none' }} />
+                <input type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} style={{ width: '100%', padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none' }} />
               </div>
-              
+
               {/* Role Permissions Info */}
               <div style={{ background: `${getRoleColor(newUser.role)}10`, border: `1px solid ${getRoleColor(newUser.role)}30`, borderRadius: '12px', padding: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -7383,18 +7415,18 @@ function UserManagementScreen() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: t.textMuted, marginBottom: '8px' }}>{l.role}</label>
-                  <select value={showEditModal.role} onChange={(e) => setShowEditModal({...showEditModal, role: e.target.value})} style={{ width: '100%', padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none', cursor: 'pointer' }}>
+                  <select value={showEditModal.role} onChange={(e) => setShowEditModal({ ...showEditModal, role: e.target.value })} style={{ width: '100%', padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none', cursor: 'pointer' }}>
                     {roles.map(role => <option key={role.id} value={role.id}>{l[role.id]}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: t.textMuted, marginBottom: '8px' }}>{l.department}</label>
-                  <select value={showEditModal.department} onChange={(e) => setShowEditModal({...showEditModal, department: e.target.value})} style={{ width: '100%', padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none', cursor: 'pointer' }}>
+                  <select value={showEditModal.department} onChange={(e) => setShowEditModal({ ...showEditModal, department: e.target.value })} style={{ width: '100%', padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none', cursor: 'pointer' }}>
                     {departments.map(dept => <option key={dept} value={dept}>{dept}</option>)}
                   </select>
                 </div>
               </div>
-              
+
               {/* Role Permissions Info */}
               <div style={{ background: `${getRoleColor(showEditModal.role)}10`, border: `1px solid ${getRoleColor(showEditModal.role)}30`, borderRadius: '12px', padding: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -7568,7 +7600,7 @@ function SettingsModal({ darkMode, setDarkMode, language, setLanguage, languages
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, animation: 'fadeIn 0.2s ease' }}>
       <div style={{ width: '720px', maxHeight: '85vh', background: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
-        
+
         {/* Header */}
         <div style={{ padding: '20px 24px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -7584,7 +7616,7 @@ function SettingsModal({ darkMode, setDarkMode, language, setLanguage, languages
 
         {/* Content */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          
+
           {/* Sidebar Navigation */}
           <div style={{ width: '200px', borderRight: `1px solid ${t.border}`, padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {sections.map((section) => {
@@ -7619,13 +7651,13 @@ function SettingsModal({ darkMode, setDarkMode, language, setLanguage, languages
 
           {/* Main Content */}
           <div style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
-            
+
             {/* Password Section */}
             {activeSection === 'password' && (
               <div style={{ animation: 'fadeIn 0.2s ease' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: t.text }}>{l.changePassword}</h3>
                 <p style={{ fontSize: '13px', color: t.textDim, marginBottom: '24px' }}>{l.passwordRequirements}</p>
-                
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: t.textMuted, marginBottom: '8px' }}>{l.currentPassword}</label>
@@ -7641,7 +7673,7 @@ function SettingsModal({ darkMode, setDarkMode, language, setLanguage, languages
                       </button>
                     </div>
                   </div>
-                  
+
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: t.textMuted, marginBottom: '8px' }}>{l.newPassword}</label>
                     <div style={{ position: 'relative' }}>
@@ -7656,7 +7688,7 @@ function SettingsModal({ darkMode, setDarkMode, language, setLanguage, languages
                       </button>
                     </div>
                   </div>
-                  
+
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: t.textMuted, marginBottom: '8px' }}>{l.confirmPassword}</label>
                     <div style={{ position: 'relative' }}>
@@ -7671,7 +7703,7 @@ function SettingsModal({ darkMode, setDarkMode, language, setLanguage, languages
                       </button>
                     </div>
                   </div>
-                  
+
                   <button style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '10px', color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer', marginTop: '8px', alignSelf: 'flex-start' }}>
                     {l.updatePassword}
                   </button>
@@ -7684,7 +7716,7 @@ function SettingsModal({ darkMode, setDarkMode, language, setLanguage, languages
               <div style={{ animation: 'fadeIn 0.2s ease' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: t.text }}>{l.twoFactorAuth}</h3>
                 <p style={{ fontSize: '13px', color: t.textDim, marginBottom: '24px' }}>{l.twoFADescription}</p>
-                
+
                 {/* Toggle */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: t.inputBg, borderRadius: '12px', marginBottom: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -7780,7 +7812,7 @@ function SettingsModal({ darkMode, setDarkMode, language, setLanguage, languages
               <div style={{ animation: 'fadeIn 0.2s ease' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: t.text }}>{l.auditCycleTitle}</h3>
                 <p style={{ fontSize: '13px', color: t.textDim, marginBottom: '24px' }}>{l.auditCycleDescription}</p>
-                
+
                 {/* Audit Cycle Day Selector */}
                 <div style={{ padding: '20px', background: t.inputBg, borderRadius: '12px', marginBottom: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
@@ -7792,7 +7824,7 @@ function SettingsModal({ darkMode, setDarkMode, language, setLanguage, languages
                       <div style={{ fontSize: '12px', color: t.textDim }}>{l.auditCycleDayHelp}</div>
                     </div>
                   </div>
-                  
+
                   {/* Day Selection Grid */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
                     {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => {
@@ -7822,14 +7854,14 @@ function SettingsModal({ darkMode, setDarkMode, language, setLanguage, languages
                       );
                     })}
                   </div>
-                  
+
                   {/* Current Selection Display */}
                   <div style={{ marginTop: '16px', padding: '12px 16px', background: darkMode ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.08)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <CheckCircle2 size={16} color="#10b981" />
                     <span style={{ fontSize: '13px', color: t.text }}>
-                      {language === 'es' ? `Ciclo mensual comienza el día ${auditCycleDay}` : 
-                       language === 'pt' ? `Ciclo mensal começa no dia ${auditCycleDay}` : 
-                       `Monthly cycle starts on day ${auditCycleDay}`}
+                      {language === 'es' ? `Ciclo mensual comienza el día ${auditCycleDay}` :
+                        language === 'pt' ? `Ciclo mensal começa no dia ${auditCycleDay}` :
+                          `Monthly cycle starts on day ${auditCycleDay}`}
                     </span>
                   </div>
                 </div>
@@ -7841,7 +7873,7 @@ function SettingsModal({ darkMode, setDarkMode, language, setLanguage, languages
               <div style={{ animation: 'fadeIn 0.2s ease' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: t.text }}>{l.defaultLanguage}</h3>
                 <p style={{ fontSize: '13px', color: t.textDim, marginBottom: '24px' }}>{l.languageDescription}</p>
-                
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {languages.map((lang) => {
                     const isSelected = language === lang.code;
@@ -7888,7 +7920,7 @@ function SettingsModal({ darkMode, setDarkMode, language, setLanguage, languages
               <div style={{ animation: 'fadeIn 0.2s ease' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: t.text }}>{l.screenMode}</h3>
                 <p style={{ fontSize: '13px', color: t.textDim, marginBottom: '24px' }}>{l.appearanceDescription}</p>
-                
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   {/* Dark Mode Card */}
                   <button

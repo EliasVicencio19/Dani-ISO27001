@@ -1,5 +1,5 @@
 // src/contexts/AuthContext.jsx
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
@@ -9,6 +9,16 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Cargar usuario desde localStorage al iniciar
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
   const login = useCallback(async (email, password, isRegistering, name) => {
     setIsLoading(true);
     setError(null);
@@ -17,9 +27,19 @@ export function AuthProvider({ children }) {
       ? 'http://localhost:8000/api/auth/register' 
       : 'http://localhost:8000/api/auth/login';
 
-    const payload = isRegistering 
-      ? { name, email, password } 
-      : { email, password };
+    let payload;
+    if (isRegistering) {
+      payload = {
+        name: name,
+        email: email,
+        password: password
+      };
+    } else {
+      payload = {
+        email: email,
+        password: password
+      };
+    }
 
     try {
       const response = await fetch(endpoint, {
@@ -28,25 +48,38 @@ export function AuthProvider({ children }) {
         body: JSON.stringify(payload),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        const data = await response.json();
-        
+        // 🔥 SOLO PARA LOGIN: Guardar usuario y token
+        // 🔥 PARA REGISTRO: NO guardar nada, solo retornar éxito
         if (!isRegistering) {
-          // Login exitoso
           const userData = {
-            email: email,
-            token: data.access_token,
-            role: 'user'
+            id: data.user_id,
+            email: data.email,
+            name: data.name || name,
+            token: data.access_token
           };
+
           setUser(userData);
           setToken(data.access_token);
           localStorage.setItem('token', data.access_token);
+          localStorage.setItem('user', JSON.stringify(userData));
         }
-        // Si es registro, no hacemos login automático
-        return data;
+        
+        return { success: true, data };
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Error de autenticación');
+        let errorMessage = 'Error de autenticación';
+        if (data.detail) {
+          if (typeof data.detail === 'string') {
+            errorMessage = data.detail;
+          } else if (Array.isArray(data.detail)) {
+            errorMessage = data.detail.map(err => 
+              `${err.loc?.join('.') || 'field'}: ${err.msg}`
+            ).join(', ');
+          }
+        }
+        throw new Error(errorMessage);
       }
     } catch (err) {
       setError(err.message);
@@ -61,6 +94,7 @@ export function AuthProvider({ children }) {
     setToken(null);
     setError(null);
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
   }, []);
 
   const value = {
@@ -70,7 +104,7 @@ export function AuthProvider({ children }) {
     error,
     login,
     logout,
-    isAuthenticated: !!user
+    isAuthenticated: !!user || !!localStorage.getItem('token')
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

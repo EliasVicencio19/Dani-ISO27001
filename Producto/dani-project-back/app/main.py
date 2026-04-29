@@ -8,6 +8,7 @@ from app.config import settings
 from app.routes import auth, risk, dashboard
 # from app.utils.redis_client import RedisClient
 # from app.utils.pubsub import PubSubManager
+from app.dependencies.database import engine, Base
 import os
 from dotenv import load_dotenv
 
@@ -17,12 +18,13 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6380/0")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    # app.state.redis = await RedisClient.create(settings.REDIS_URL)
-    # app.state.pubsub = PubSubManager(app.state.redis)
+    # Startup: crear tablas
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        print("✅ Base de datos inicializada")
     yield
-    # Shutdown
-    # await app.state.redis.close()
+    # Shutdown: limpiar
+    await engine.dispose()
 
 app = FastAPI(
     title="DANI27001 Backend API",
@@ -34,9 +36,9 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 
