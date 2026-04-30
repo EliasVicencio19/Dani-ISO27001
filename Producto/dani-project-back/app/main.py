@@ -1,34 +1,60 @@
-from fastapi import FastAPI, Depends
+# app/main.py
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer
-import redis.asyncio as redis
 from contextlib import asynccontextmanager
+import logging
+import uuid
+from datetime import datetime
 
 from app.config import settings
-from app.routes import auth, risk, dashboard
-# from app.utils.redis_client import RedisClient
-# from app.utils.pubsub import PubSubManager
-from app.dependencies.database import engine, Base
-import os
-from dotenv import load_dotenv
+from app.dependencies.database import engine, Base, AsyncSessionLocal
+from app.routes import auth, risk, evidence, documents
+from app.routes import compliance_routes
 
-load_dotenv()
-
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6380/0")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: crear tablas
+    # Startup
+    logger.info("🚀 Starting DANI27001 Backend...")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        print("✅ Base de datos inicializada")
+        logger.info("✅ Database tables created/verified")
+    
+    # Crear usuario admin por defecto
+    from app.services.auth_service import AuthService
+    from app.models.user import User, UserRole
+    
+    async with AsyncSessionLocal() as session:
+        from sqlalchemy import select
+        result = await session.execute(select(User).where(User.email == "admin@dani27001.com"))
+        admin = result.scalar_one_or_none()
+        
+        if not admin:
+            admin_user = User(
+                id=str(uuid.uuid4()),
+                full_name="Admin User",
+                email="admin@dani27001.com",
+                hashed_password=AuthService.get_password_hash("admin123"),
+                role=UserRole.ADMIN,
+                is_active=True
+            )
+            session.add(admin_user)
+            await session.commit()
+            logger.info("✅ Admin user created: admin@dani27001.com / admin123")
+    
+    logger.info("✅ Backend ready!")
     yield
-    # Shutdown: limpiar
+    
+    # Shutdown
+    logger.info("👋 Shutting down...")
     await engine.dispose()
 
+# Crear la aplicación FastAPI
 app = FastAPI(
-    title="DANI27001 Backend API",
-    description="Security Compliance Management System",
+    title="DANI27001 API",
+    description="Security Compliance Management System for ISO 27001",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -36,26 +62,41 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Security
-security = HTTPBearer()
-
 # Include routers
-app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
-app.include_router(risk.router, prefix="/api/risks", tags=["Risk Management"])
-app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
-# app.include_router(evidence.router, prefix="/api/evidence", tags=["Evidence"])
-# app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
+app.include_router(auth.router)
+app.include_router(risk.router)
+app.include_router(evidence.router)
+app.include_router(documents.router)
+app.include_router(compliance_routes.router)
 
 @app.get("/")
 async def root():
-    return {"message": "DANI27001 API", "status": "operational"}
+    return {
+        "message": "DANI27001 API",
+        "status": "operational",
+        "version": "1.0.0"
+    }
 
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+# 🔴 IMPORTANTE: Esto es lo que faltaba
+if __name__ == "__main__":
+    import uvicorn
+    print("=" * 50)
+    print("🚀 Iniciando servidor FastAPI")
+    print("=" * 50)
+    uvicorn.run(
+        app,
+        host="127.0.0.1",
+        port=8000,
+        log_level="info",
+        reload=False  # Cambia a True solo en desarrollo
+    )
