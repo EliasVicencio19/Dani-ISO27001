@@ -9,7 +9,8 @@ from datetime import datetime
 from app.config import settings
 from app.dependencies.database import engine, Base, AsyncSessionLocal
 from app.routes import auth, risk, evidence, documents
-from app.routes import compliance_routes
+from app.routes import compliance
+from app.models.iso_controls import ISOCControl
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -62,7 +63,10 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -73,7 +77,7 @@ app.include_router(auth.router)
 app.include_router(risk.router)
 app.include_router(evidence.router)
 app.include_router(documents.router)
-app.include_router(compliance_routes.router)
+app.include_router(compliance.router)
 
 @app.get("/")
 async def root():

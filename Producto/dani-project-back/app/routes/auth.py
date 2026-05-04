@@ -11,7 +11,7 @@ from app.services.auth_service import AuthService
 from app.dependencies.database import get_db
 from app.models import User
 
-router = APIRouter()
+router = APIRouter(prefix="/api/auth", tags=["Auth"])
 security = HTTPBearer()
 logger = logging.getLogger(__name__)
 

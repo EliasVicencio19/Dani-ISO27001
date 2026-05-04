@@ -12,7 +12,7 @@ from app.dependencies.auth import get_current_user
 # --- IMPORTAMOS NUESTRO NUEVO SERVICIO DE DEEPSEEK ---
 from app.services.deepseek_service import DeepSeekService
 
-router = APIRouter()
+router = APIRouter(prefix="/api/risks", tags=["Risks"])
 ai_processor = DeepSeekService() # Instanciamos el servicio de IA de Max
 
 class RiskCreate(BaseModel):
