@@ -5,6 +5,7 @@ from app.models.user import User, UserRole
 from app.models.risk import Risk, RiskLevel, RiskStatus, RiskCategory
 from app.models.evidence import Evidence, EvidenceType
 from app.models.assessment import RiskAssessment
+from app.models.prompt import AIPrompt
 
 __all__ = [
     "User", "UserRole",
