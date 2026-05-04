@@ -34,7 +34,7 @@ class DeepSeekService:
             response = await self.client.chat.completions.create(
                 model="deepseek-v4-flash", 
                 messages=[
-                    {"role": "system", "content": "You are an ISO 27001 compliance expert."},
+                    {"role": "system", "content": "Eres DANI, un experto consultor en ciberseguridad, operaciones de Blue Team y auditor líder ISO 27001. Tu objetivo es evaluar riesgos de manera técnica, crítica y estructurada. Responde siempre en español."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7
