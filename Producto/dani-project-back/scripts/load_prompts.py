@@ -2,6 +2,12 @@
 import asyncio
 import json
 import os
+import sys
+from pathlib import Path
+
+# La línea mágica para que encuentre la carpeta "app"
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from sqlalchemy import delete
 from app.dependencies.database import engine, AsyncSessionLocal, Base
 from app.models.prompt import AIPrompt
