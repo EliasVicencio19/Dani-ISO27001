@@ -6,7 +6,7 @@ import json
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.database import AsyncSessionLocal
+from app.dependencies.database import AsyncSessionLocal
 from app.services.iso_parser import ISOParser
 from app.models.iso_controls import ISOCControl
 
@@ -24,11 +24,13 @@ async def load_iso_controls():
         
         # Cargar nuevos controles
         for control_data in standard["controls"]:
+            
             control = ISOCControl(
-                control_id=control_data["control_id"],
-                title=control_data["title"],
-                description=control_data["description"],
-                category=control_data["category"],
+                # Buscamos "control_id", si no existe buscamos "id", y si no, ponemos "N/A"
+                control_id=control_data.get("control_id", control_data.get("id", "N/A")),
+                title=control_data.get("title", "Sin título"),
+                description=control_data.get("description", "Sin descripción"),
+                category=control_data.get("category", "General"),
                 clause_reference=control_data.get("clause_reference"),
                 implementation_guide=control_data.get("implementation_guide"),
                 related_controls=control_data.get("related_controls", []),
