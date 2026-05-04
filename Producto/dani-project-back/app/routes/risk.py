@@ -9,7 +9,11 @@ from app.repositories.risk_repository import RiskRepository
 from app.models.risk import RiskLevel, RiskStatus, RiskCategory
 from app.dependencies.auth import get_current_user
 
+# --- IMPORTAMOS NUESTRO NUEVO SERVICIO DE DEEPSEEK ---
+from app.services.deepseek_service import DeepSeekService
+
 router = APIRouter()
+ai_processor = DeepSeekService() # Instanciamos el servicio de IA de Max
 
 class RiskCreate(BaseModel):
     title: str
@@ -117,3 +121,33 @@ async def update_risk_status(
         raise HTTPException(status_code=404, detail="Risk not found")
     
     return {"message": "Risk status updated successfully", "risk": risk}
+
+# ==========================================
+# 🤖 NUEVO ENDPOINT: ANÁLISIS DE IA (DEEPSEEK)
+# ==========================================
+@router.post("/{risk_id}/analyze")
+async def analyze_risk_with_ai(
+    risk_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Analizar un riesgo existente usando DeepSeek V4 Flash"""
+    risk_repo = RiskRepository(db)
+    
+    # 1. Buscamos el riesgo en la BD
+    risk = await risk_repo.get_by_id(risk_id) 
+    
+    if not risk:
+        raise HTTPException(status_code=404, detail="Risk not found")
+    
+    # Convertimos el objeto SQLAlchemy a diccionario para enviarlo a la IA
+    risk_data = {
+        "title": risk.title,
+        "description": risk.description,
+        "category": str(risk.category)
+    }
+    
+    # 2. Enviamos los datos al servicio de DeepSeek
+    analysis_result = await ai_processor.analyze_risk(risk_data)
+    
+    return {"message": "Analysis complete", "data": analysis_result}
