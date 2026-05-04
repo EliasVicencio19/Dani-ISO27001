@@ -1,5 +1,8 @@
 import openai
+from sqlalchemy import select
 from app.config import settings
+from app.dependencies.database import AsyncSessionLocal
+from app.models.prompt import AIPrompt
 
 class DeepSeekService:
     def __init__(self):
@@ -9,40 +12,48 @@ class DeepSeekService:
             base_url="https://api.deepseek.com" # Base URL oficial de DeepSeek
         )
         
-    async def analyze_risk(self, risk: dict) -> dict:
-        """Analyze risk using DeepSeek V4 Flash"""
+    async def get_prompt_from_db(self, prompt_name: str):
+        """Busca el prompt en PostgreSQL por su nombre único"""
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(AIPrompt).where(AIPrompt.name == prompt_name))
+            return result.scalar_one_or_none()
+
+    async def analyze_risk(self, risk: dict, prompt_name: str = "riesgo_analisis_inicial") -> dict:
+        """Analyze risk using DeepSeek V4 Flash y Prompts Dinámicos"""
         
+        # 1. Traer la personalidad y el molde desde la BD
+        prompt_data = await self.get_prompt_from_db(prompt_name)
+        
+        if not prompt_data:
+            return {"error": f"No se encontró el prompt '{prompt_name}' en la base de datos."}
+
         # Placeholder para el futuro RAG con Weaviate
         context = "Aquí irán los fragmentos recuperados de Weaviate."
         
-        prompt = f"""
-        As a security compliance expert for ISO 27001, analyze this risk:
+        # 2. Inyectar los datos del riesgo en el molde del prompt
+        user_message = prompt_data.user_prompt_template.format(
+            title=risk.get('title', 'N/A'),
+            description=risk.get('description', 'N/A')
+        )
         
-        Title: {risk.get('title', 'N/A')}
-        Description: {risk.get('description', 'N/A')}
-        
-        Context from Weaviate: {context}
-        
-        Please provide:
-        1. Risk severity assessment
-        2. Recommended controls based on ISO 27001 Annex A
-        3. Action plan for mitigation
-        """
+        # Le añadimos el contexto al final de la petición
+        user_message += f"\n\nContexto extraído de documentos: {context}"
         
         try:
-            # Uso explícito del modelo Flash
+            # Uso explícito del modelo Flash con la nueva personalidad
             response = await self.client.chat.completions.create(
                 model="deepseek-v4-flash", 
                 messages=[
-                    {"role": "system", "content": "Eres DANI, un experto consultor en ciberseguridad, operaciones de Blue Team y auditor líder ISO 27001. Tu objetivo es evaluar riesgos de manera técnica, crítica y estructurada. Responde siempre en español."},
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": prompt_data.system_prompt},
+                    {"role": "user", "content": user_message}
                 ],
                 temperature=0.7
             )
             
             return {
                 "analysis": response.choices[0].message.content,
-                "model_used": "deepseek-v4-flash"
+                "model_used": "deepseek-v4-flash",
+                "prompt_used": prompt_name
             }
         except Exception as e:
-            return {"error": f"Error calling DeepSeek API: {str(e)}"}
+            return {"error": f"Error llamando a DeepSeek API: {str(e)}"}
