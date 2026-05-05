@@ -57,3 +57,22 @@ class DeepSeekService:
             }
         except Exception as e:
             return {"error": f"Error llamando a DeepSeek API: {str(e)}"}
+            
+    # AQUÍ EMPIEZA LA NUEVA FUNCIÓN (Bien alineada) 
+    async def chat_with_dani(self, message: str) -> dict:
+        prompt_data = await self.get_prompt_from_db("chat_general_iso27001")
+        sys_prompt = prompt_data.system_prompt if prompt_data else "Eres DANI, experto en ISO 27001. Responde en español."
+        
+        try:
+            response = await self.client.chat.completions.create(
+                model="deepseek-v4-flash", 
+                messages=[
+                    {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": message}
+                ],
+                temperature=0.7
+            )
+            return {"reply": response.choices[0].message.content}
+        except Exception as e:
+            return {"reply": f"Lo siento, tuve un error: {str(e)}"}
+        

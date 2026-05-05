@@ -734,6 +734,8 @@ export default function DaniPlatform() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
+  const [messages, setMessages] = useState([{ role: 'assistant', content: '👋 ¡Hola! Soy DANI, tu asistente de cumplimiento ISO 27001. ¿En qué puedo ayudarte hoy?' }]);
+  const [isThinking, setIsThinking] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
   const [highContrast, setHighContrast] = useState(false);
   const [language, setLanguage] = useState('en');
@@ -791,6 +793,34 @@ export default function DaniPlatform() {
 
   const unreadNotifications = 3;
 
+  const handleSendMessage = async () => {
+    if (!chatMessage.trim()) return;
+
+    // 1. Agregar el mensaje del usuario a la pantalla
+    const newUserMessage = { role: 'user', content: chatMessage };
+    setMessages(prev => [...prev, newUserMessage]);
+    setChatMessage('');
+    setIsThinking(true);
+
+    try {
+      // 2. Hacer la llamada a tu backend de Python (Asegúrate que el puerto sea el tuyo)
+      const response = await fetch('http://127.0.0.1:8000/api/chat/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: newUserMessage.content })
+      });
+
+      if (!response.ok) throw new Error('Error en la respuesta');
+      
+      const data = await response.json();
+      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+    } catch (error) {
+      console.error("Error:", error);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Lo siento, tuve un problema de conexión.' }]);
+    } finally {
+      setIsThinking(false);
+    }
+      };
   return (
     <ThemeContext.Provider value={{ darkMode, highContrast, theme: t, language }}>
       <div style={{ minHeight: '100vh', background: t.bg, fontFamily: "'DM Sans', -apple-system, sans-serif", color: t.text, display: 'flex', position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease' }}>
@@ -907,17 +937,38 @@ export default function DaniPlatform() {
           <div style={{ position: 'fixed', bottom: '110px', right: '32px', width: '380px', height: '500px', background: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', boxShadow: '0 10px 50px rgba(0,0,0,0.3)', border: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 100 }}>
             <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={18} color="white" /></div>
-              <div><div style={{ fontWeight: 600, fontSize: '14px' }}>Dani AI</div><div style={{ fontSize: '11px', color: '#10b981' }}>● Online</div></div>
+              <div><div style={{ fontWeight: 600, fontSize: '14px' }}>DANI IA</div><div style={{ fontSize: '11px', color: '#10b981' }}>● En línea</div></div>
             </div>
-            <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
-              <div style={{ background: t.inputBg, padding: '14px 16px', borderRadius: '12px 12px 12px 4px', marginBottom: '12px', maxWidth: '85%' }}>
-                <p style={{ fontSize: '13px', lineHeight: '1.5', color: t.text }}>👋 Hello! I'm Dani, your ISO 27001 compliance assistant. How can I help you today?</p>
-              </div>
+            
+            <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {messages.map((msg, index) => (
+                <div key={index} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                    <div style={{ background: msg.role === 'user' ? '#10b981' : t.inputBg, color: msg.role === 'user' ? 'white' : t.text, padding: '14px 16px', borderRadius: msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px', maxWidth: '85%', fontSize: '13px', lineHeight: '1.5' }}>
+                      {msg.content}
+                    </div>
+                </div>
+              ))}
+              {isThinking && (
+                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                  <div style={{ background: t.inputBg, padding: '14px 16px', borderRadius: '12px 12px 12px 4px', maxWidth: '85%', fontSize: '13px', color: t.textDim }}>
+                    DANI está analizando...
+                  </div>
+                </div>
+              )}
             </div>
+
             <div style={{ padding: '16px', borderTop: `1px solid ${t.border}` }}>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <input value={chatMessage} onChange={(e) => setChatMessage(e.target.value)} placeholder="Ask anything about ISO 27001..." style={{ flex: 1, padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, fontSize: '13px', outline: 'none' }} />
-                <button style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Send size={18} color="white" /></button>
+                <input 
+                  value={chatMessage} 
+                  onChange={(e) => setChatMessage(e.target.value)} 
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                  placeholder="Pregunta sobre ISO 27001..." 
+                  style={{ flex: 1, padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, fontSize: '13px', outline: 'none' }} 
+                />
+                <button onClick={handleSendMessage} disabled={isThinking} style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', cursor: isThinking ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isThinking ? 0.7 : 1 }}>
+                  <Send size={18} color="white" />
+                </button>
               </div>
             </div>
           </div>
