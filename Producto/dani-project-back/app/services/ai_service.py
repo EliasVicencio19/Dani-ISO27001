@@ -1,90 +1,81 @@
-from openai import AsyncOpenAI
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores import Pinecone
-from typing import List, Dict, Any
-
+# app/services/ai_service.py - Versión para DeepSeek
+from openai import AsyncOpenAI  # DeepSeek usa el mismo SDK que OpenAI
 from app.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 class AIService:
     def __init__(self):
-        self.openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-        self.embeddings = OpenAIEmbeddings(openai_api_key=settings.OPENAI_API_KEY)
+        # DeepSeek usa la misma biblioteca pero con base_url diferente
+        self.api_key = settings.DEEPSEEK_API_KEY or settings.OPENAI_API_KEY
         
-        # Initialize vector store (example with Pinecone)
-        # import pinecone
-        # pinecone.init(api_key=settings.VECTOR_STORE_API_KEY)
-        # self.vector_store = Pinecone.from_existing_index(
-        #     index_name="dani27001",
-        #     embedding=self.embeddings
-        # )
+        if not self.api_key:
+            logger.warning("⚠️ API key no configurada")
+            self.client = None
+        else:
+            # Configurar cliente para DeepSeek
+            self.client = AsyncOpenAI(
+                api_key=self.api_key,
+                base_url="https://api.deepseek.com"  # Endpoint de DeepSeek
+            )
+            logger.info("✅ DeepSeek client inicializado")
     
-    async def analyze_risk(self, risk: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze risk using GPT and RAG"""
+    async def chat(self, message: str) -> str:
+        """Enviar mensaje a DeepSeek"""
+        if not self.client:
+            return "Error: API key no configurada"
         
-        # Build context from vector store (RAG)
-        similar_risks = await self._search_similar_risks(risk["description"])
+        try:
+            # DeepSeek usa los mismos modelos
+            response = await self.client.chat.completions.create(
+                model="deepseek-chat",  # Modelo de DeepSeek
+                messages=[
+                    {"role": "system", "content": "Eres un experto en ISO 27001 y seguridad de la información."},
+                    {"role": "user", "content": message}
+                ],
+                temperature=0.7,
+                max_tokens=500
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            logger.error(f"Error en DeepSeek: {e}")
+            return f"Lo siento, tuve un error: {str(e)}"
+    
+    async def analyze_risk(self, risk_description: str) -> dict:
+        """Analizar un riesgo usando DeepSeek"""
+        if not self.client:
+            return {"error": "IA no disponible"}
         
         prompt = f"""
-        As a security compliance expert for ISO 27001, analyze this risk:
+        Como experto en ISO 27001, analiza el siguiente riesgo:
         
-        Title: {risk['title']}
-        Description: {risk['description']}
-        Current Controls: {risk.get('controls', [])}
+        Riesgo: {risk_description}
         
-        Similar cases from knowledge base: {similar_risks}
-        
-        Please provide:
-        1. Risk severity assessment
-        2. Recommended controls based on ISO 27001 Annex A
-        3. Action plan for mitigation
+        Responde SOLO en formato JSON (sin markdown):
+        {{
+            "risk_level": "critical|high|medium|low",
+            "recommended_controls": ["control1", "control2"],
+            "mitigation_steps": ["paso1", "paso2"],
+            "priority": "alta|media|baja"
+        }}
         """
         
-        response = await self.openai_client.chat.completions.create(
-            model="gpt-4-turbo-preview",
-            messages=[
-                {"role": "system", "content": "You are an ISO 27001 compliance expert."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7
-        )
-        
-        return {
-            "analysis": response.choices[0].message.content,
-            "risk_id": risk["id"],
-            "analyzed_at": "2024-01-01T00:00:00Z"
-        }
-    
-    async def _search_similar_risks(self, query: str) -> List[str]:
-        """RAG query to vector store"""
-        # results = self.vector_store.similarity_search(query, k=3)
-        # return [doc.page_content for doc in results]
-        return []  # Placeholder
-    
-    async def generate_document(self, doc_type: str, data: Dict[str, Any]) -> str:
-        """Generate compliance documents using AI"""
-        templates = {
-            "risk_report": "Generate a detailed risk assessment report for ISO 27001...",
-            "soa": "Generate Statement of Applicability based on controls...",
-            "policy": "Generate security policy document..."
-        }
-        
-        prompt = f"""
-        Generate an ISO 27001 compliance document of type: {doc_type}
-        
-        Data: {data}
-        
-        Template guidelines: {templates.get(doc_type, "")}
-        
-        Format the document professionally with proper sections.
-        """
-        
-        response = await self.openai_client.chat.completions.create(
-            model="gpt-4-turbo-preview",
-            messages=[
-                {"role": "system", "content": "You are a compliance document generator."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3
-        )
-        
-        return response.choices[0].message.content
+        try:
+            response = await self.client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=300
+            )
+            
+            import json
+            content = response.choices[0].message.content
+            # Limpiar caracteres no JSON
+            content = content.replace('```json', '').replace('```', '').strip()
+            return json.loads(content)
+            
+        except Exception as e:
+            return {"error": str(e), "risk_description": risk_description}

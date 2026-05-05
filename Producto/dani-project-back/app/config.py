@@ -1,10 +1,12 @@
 from pydantic_settings import BaseSettings
 from typing import List, Optional
+import os
 
 class Settings(BaseSettings):
     
     #DeepSeepk KEY
-    DEEPSEEK_API_KEY: str = "sk-dummy-deepseek-key"
+    DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")
+    #OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     
     
     # API
@@ -30,8 +32,13 @@ class Settings(BaseSettings):
     GOOGLE_APPLICATION_CREDENTIALS: str
     CLOUD_STORAGE_BUCKET: str
     
-    # OpenAI
-    OPENAI_API_KEY: str
+    @property
+    def AI_API_KEY(self):
+        return self.DEEPSEEK_API_KEY or self.OPENAI_API_KEY
+    
+    @property
+    def AI_BASE_URL(self):
+        return "https://api.deepseek.com" if self.DEEPSEEK_API_KEY else None
     
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://your-vercel-app.vercel.app"]
@@ -43,5 +50,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        
 
 settings = Settings()
