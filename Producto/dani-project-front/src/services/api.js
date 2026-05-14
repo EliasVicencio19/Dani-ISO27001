@@ -1,4 +1,4 @@
-// src/services/api.js
+// src/services/api.js - CORREGIDO
 const API_BASE_URL = 'http://localhost:8000/api';
 
 const getToken = () => localStorage.getItem('token');
@@ -19,8 +19,7 @@ async function apiRequest(endpoint, options = {}) {
 
   if (response.status === 401) {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+    window.location.reload();
     throw new Error('Sesión expirada');
   }
 
@@ -32,31 +31,50 @@ async function apiRequest(endpoint, options = {}) {
   return response.json();
 }
 
-// Autenticación
+// ✅ Autenticación
 export const authAPI = {
   login: (email, password) => apiRequest('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password })
   }),
-  register: (userData) => apiRequest('/auth/register', {
+  register: (name, email, password) => apiRequest('/auth/register', {
     method: 'POST',
-    body: JSON.stringify(userData)
+    body: JSON.stringify({ name, email, password })
   }),
-  getProfile: () => apiRequest('/auth/profile'),
+  verify: () => apiRequest('/auth/verify'),
 };
 
-// Dashboard
+// ✅ Dashboard (endpoint CORRECTO)
 export const dashboardAPI = {
-  getStats: () => apiRequest('/dashboard/stats'),
-  getRecentRisks: (limit = 5) => apiRequest(`/risks/?limit=${limit}`),
-  getRiskSummary: () => apiRequest('/risks/summary'),
+  getSummary: () => apiRequest('/dashboard/summary'),
+  getRecentActivity: (limit = 10) => apiRequest(`/dashboard/recent-activity?limit=${limit}`),
 };
 
-// Riesgos
+// ✅ Usuarios
+export const userAPI = {
+  getAll: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/users${query ? `?${query}` : ''}`);
+  },
+  getById: (id) => apiRequest(`/users/${id}`),
+  create: (userData) => apiRequest('/users', {
+    method: 'POST',
+    body: JSON.stringify(userData),
+  }),
+  update: (id, userData) => apiRequest(`/users/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(userData),
+  }),
+  delete: (id) => apiRequest(`/users/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
+// ✅ Riesgos (endpoint CORRECTO)
 export const riskAPI = {
   getAll: (params = {}) => {
     const query = new URLSearchParams(params).toString();
-    return apiRequest(`/risks/${query ? `?${query}` : ''}`);
+    return apiRequest(`/risks${query ? `?${query}` : ''}`);
   },
   getById: (id) => apiRequest(`/risks/${id}`),
   create: (data) => apiRequest('/risks/', {
@@ -67,45 +85,23 @@ export const riskAPI = {
     method: 'PUT',
     body: JSON.stringify(data)
   }),
-  delete: (id) => apiRequest(`/risks/${id}`, {
-    method: 'DELETE'
-  }),
   getStats: () => apiRequest('/risks/statistics'),
+  getHighPriority: () => apiRequest('/risks/high-priority'),
 };
 
-// Documentos (para el DocGenerator)
+// 📦 Pendiente - cuando creemos el backend
 export const documentsAPI = {
-  generateChapter: (chapterId, context) => apiRequest('/documents/generate', {
+  generateChapter: (chapterId, title) => apiRequest('/documents/generate', {
     method: 'POST',
-    body: JSON.stringify({ chapter_id: chapterId, context })
+    body: JSON.stringify({ chapter_id: chapterId, title })
   }),
-  saveDocument: (chapterId, content) => apiRequest(`/documents/${chapterId}`, {
-    method: 'PUT',
-    body: JSON.stringify({ content })
-  }),
-  getDocument: (chapterId) => apiRequest(`/documents/${chapterId}`),
 };
 
-// Evidencias
-export const evidenceAPI = {
-  getAll: () => apiRequest('/evidence/'),
-  upload: (file, controlId) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('control_id', controlId);
-    
-    return fetch(`${API_BASE_URL}/evidence/upload`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${getToken()}` },
-      body: formData
-    }).then(res => res.json());
-  },
-  getByControl: (controlId) => apiRequest(`/evidence/control/${controlId}`),
-};
-
-// Health check
-export const healthAPI = {
-  check: () => fetch('http://localhost:8000/health').then(res => res.json())
+export const chatAPI = {
+  sendMessage: (message) => apiRequest('/chat/', {
+    method: 'POST',
+    body: JSON.stringify({ message })
+  }),
 };
 
 export default apiRequest;

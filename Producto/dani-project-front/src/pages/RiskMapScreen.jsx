@@ -1,0 +1,245 @@
+/* eslint-disable */
+import React, { useState, useContext } from 'react';
+import { 
+  AlertTriangle, Database, Plus, ChevronDown, ChevronUp, ArrowRight, 
+  Sparkles, Check, Download, Search, Shield, Target,
+  Layers, Cloud, Globe, FileText
+} from 'lucide-react';
+import { ThemeContext } from '../contexts/ThemeContext';
+
+const RiskMapScreen = () => {
+  const { theme: t, language } = useContext(ThemeContext);
+  
+  // ==========================================
+  // 1. ESTADOS LOCALES
+  // ==========================================
+  const [selectedRisk, setSelectedRisk] = useState({
+    id: 1, name: 'Unauthorized Access', prob: 4, impact: 5, category: 'Access',
+    controls: [
+      { id: 'c1', name: 'Multi-Factor Authentication', reduction: 8 },
+      { id: 'c2', name: 'Privileged Access Management', reduction: 6 }
+    ]
+  });
+  const [appliedControls, setAppliedControls] = useState([]);
+  const [showAssetDiscovery, setShowAssetDiscovery] = useState(true);
+  const [activeAssetSource, setActiveAssetSource] = useState('network');
+
+  // ==========================================
+  // 2. DATOS DE DEMOSTRACIÓN (Basados en la imagen)
+  // ==========================================
+  const assets = [
+    { id: 'fw1', name: 'firewall-main', type: 'Network', criticality: 'Critical', source: 'network' },
+    { id: 'sw1', name: 'switch-core-01', type: 'Network', criticality: 'High', source: 'network' },
+    { id: 'rt1', name: 'router-edge-01', type: 'Network', criticality: 'High', source: 'network' },
+    { id: 'vg1', name: 'vpn-gateway', type: 'Network', criticality: 'Critical', source: 'network' }
+  ];
+
+  // ==========================================
+  // 3. FUNCIONES DE CÁLCULO
+  // ==========================================
+  const getMatrixCellColor = (prob, impact) => {
+    const score = prob * impact;
+    if (score >= 15) return 'rgba(153, 27, 27, 0.4)';  // Rojo oscuro
+    if (score >= 10) return 'rgba(154, 52, 18, 0.4)';  // Naranja oscuro
+    if (score >= 5) return 'rgba(133, 77, 14, 0.4)';   // Amarillo oscuro
+    return 'rgba(6, 78, 59, 0.4)';                     // Verde oscuro
+  };
+
+  const getRiskBadgeColor = (score) => {
+    if (score >= 15) return '#ef4444';
+    if (score >= 8) return '#f59e0b';
+    return '#10b981';
+  };
+
+  const calculateMitigatedScore = (risk) => {
+    if (!risk) return 0;
+    const baseScore = risk.prob * risk.impact;
+    const reduction = appliedControls.reduce((sum, controlId) => {
+      const c = risk.controls?.find(ctrl => ctrl.id === controlId);
+      return sum + (c ? c.reduction : 0);
+    }, 0);
+    return Math.max(1, baseScore - reduction);
+  };
+
+  const toggleControl = (controlId) => {
+    setAppliedControls(prev => prev.includes(controlId) 
+      ? prev.filter(id => id !== controlId) 
+      : [...prev, controlId]);
+  };
+
+  // ==========================================
+  // 4. DISEÑO VISUAL (JSX)
+  // ==========================================
+  return (
+    <div style={{ animation: 'fadeIn 0.4s ease', color: t.text, display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      
+      {/* 1. SECCIÓN: DESCUBRIMIENTO DE ACTIVOS */}
+      <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+        <div 
+          onClick={() => setShowAssetDiscovery(!showAssetDiscovery)}
+          style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: showAssetDiscovery ? `1px solid ${t.border}` : 'none' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Database size={24} color="white" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: t.text }}>Descubrimiento Automático de Activos</h2>
+              <p style={{ fontSize: '13px', color: t.textDim }}>12 activos • 4 sincronizado de</p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: t.textDim }}>
+            <div style={{ display: 'flex', gap: '12px', fontSize: '12px', fontWeight: 600 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Cloud size={14} /> 4</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#3b82f6' }}><Layers size={14} /> 2</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f59e0b' }}><FileText size={14} /> 2</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#06b6d4' }}><Globe size={14} /> 4</span>
+            </div>
+            {showAssetDiscovery ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </div>
+        </div>
+
+        {showAssetDiscovery && (
+          <div style={{ padding: '24px' }}>
+            {/* Filtros */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+              <button style={{ padding: '8px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textMuted, fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Todas las Fuentes (12)</button>
+              <button style={{ padding: '8px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textMuted, fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><Cloud size={14} /> AWS (4)</button>
+              <button style={{ padding: '8px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textMuted, fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><Layers size={14} color="#3b82f6" /> Azure AD (2)</button>
+              <button style={{ padding: '8px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textMuted, fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><FileText size={14} color="#f59e0b" /> Jira (2)</button>
+              <button style={{ padding: '8px 16px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981', borderRadius: '8px', color: '#10b981', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><Globe size={14} /> Network Scan (4)</button>
+            </div>
+
+            {/* Tarjetas de Activos */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+              {assets.map((asset, idx) => (
+                <div key={idx} style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <Globe size={16} color="#06b6d4" />
+                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: asset.criticality === 'Critical' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: asset.criticality === 'Critical' ? '#ef4444' : '#f59e0b', textTransform: 'uppercase' }}>{asset.criticality}</span>
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: t.text, marginBottom: '4px' }}>{asset.name}</div>
+                  <div style={{ fontSize: '12px', color: t.textDim }}>{asset.type}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 2. SECCIÓN: MATRIZ Y SIMULADOR */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '24px' }}>
+        
+        {/* LA MATRIZ 5x5 */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gridTemplateRows: 'repeat(5, 1fr)', gap: '8px', background: 'transparent' }}>
+          {[5, 4, 3, 2, 1].map((prob) => (
+            [1, 2, 3, 4, 5].map((impact) => {
+              // Valores harcodeados para que se vea igual a la foto
+              let riskCount = null;
+              if (prob === 2 && impact === 4) riskCount = 4;
+              if (prob === 2 && impact === 5) riskCount = 1;
+
+              return (
+                <div key={`${prob}-${impact}`} style={{ 
+                  aspectRatio: '1', 
+                  background: getMatrixCellColor(prob, impact), 
+                  borderRadius: '12px', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: `1px solid rgba(255,255,255,0.02)`
+                }}>
+                  {riskCount && (
+                    <div style={{ 
+                      width: '36px', height: '36px', borderRadius: '8px', 
+                      background: getRiskBadgeColor(prob * impact), 
+                      color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      fontSize: '16px', fontWeight: 800, boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                      cursor: 'pointer'
+                    }}>
+                      {riskCount}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ))}
+        </div>
+
+        {/* PANEL DE SIMULACIÓN */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
+          {/* Header del Riesgo */}
+          <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <AlertTriangle size={24} color="white" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: t.text, marginBottom: '6px' }}>Unauthorized Access</h2>
+              <span style={{ fontSize: '11px', padding: '4px 10px', background: t.inputBg, borderRadius: '6px', color: t.textDim }}>Access</span>
+            </div>
+          </div>
+
+          {/* Caja Oscura de Simulación */}
+          <div style={{ background: '#1e1b4b', borderRadius: '16px', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
+              <Sparkles size={16} color="#8b5cf6" />
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '1px' }}>Modo Simulación</span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Antes</div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#ef4444', lineHeight: '1' }}>20</div>
+                <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>Crítico</div>
+              </div>
+              
+              <ArrowRight size={24} color="rgba(255,255,255,0.2)" />
+              
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Después</div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: appliedControls.length > 0 ? '#10b981' : 'rgba(255,255,255,0.2)', lineHeight: '1', transition: 'color 0.3s' }}>
+                  {appliedControls.length > 0 ? calculateMitigatedScore(selectedRisk) : '--'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Controles de Mitigación */}
+          <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '24px', flex: 1 }}>
+            <h3 style={{ fontSize: '11px', fontWeight: 700, color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>Controles de Mitigación</h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {selectedRisk.controls.map(control => {
+                const isApplied = appliedControls.includes(control.id);
+                return (
+                  <div 
+                    key={control.id} 
+                    onClick={() => toggleControl(control.id)}
+                    style={{ 
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                      padding: '16px', background: isApplied ? 'rgba(16, 185, 129, 0.05)' : t.inputBg, 
+                      border: `1px solid ${isApplied ? 'rgba(16, 185, 129, 0.3)' : t.border}`, 
+                      borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${isApplied ? '#10b981' : t.textDim}`, background: isApplied ? '#10b981' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {isApplied && <Check size={14} color="white" />}
+                      </div>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: t.text }}>{control.name}</span>
+                    </div>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '4px 8px', borderRadius: '6px' }}>
+                      -{control.reduction}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default RiskMapScreen;
