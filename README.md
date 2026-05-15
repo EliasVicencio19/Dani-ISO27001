@@ -10,19 +10,19 @@
 
 ## 📋 Tabla de Contenidos
 
-* [Descripción General](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-descripci%C3%B3n-general)
-* [El Problema que Resuelve](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-el-problema-que-resuelve)
-* [Características Principales](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-caracter%C3%ADsticas-principales)
-* [Stack Tecnológico](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#%EF%B8%8F-stack-tecnol%C3%B3gico)
-* [Arquitectura del Sistema](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#%EF%B8%8F-arquitectura-del-sistema)
-* [Módulos de la Plataforma](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-m%C3%B3dulos-de-la-plataforma)
-* [Diseño UX/UI](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-dise%C3%B1o-uxui)
-* [Instalación y Configuración](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-instalaci%C3%B3n-y-configuraci%C3%B3n)
-* [Estructura del Proyecto](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-estructura-del-proyecto)
-* [Plan de Desarrollo](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-plan-de-desarrollo)
-* [Equipo y Roles](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-equipo-y-roles)
-* [Contexto: Ecosistema Alloxentric](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-contexto-ecosistema-alloxentric)
-* [Contribución](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-contribuci%C3%B3n)
+* [Descripción General](#-descripción-general)
+* [El Problema que Resuelve](#-el-problema-que-resuelve)
+* [Características Principales](#-características-principales)
+* [Stack Tecnológico](#️-stack-tecnológico)
+* [Arquitectura del Sistema](#️-arquitectura-del-sistema)
+* [Módulos de la Plataforma](#-módulos-de-la-plataforma)
+* [Diseño UX/UI](#-diseño-uxui)
+* [Instalación y Configuración](#-instalación-y-configuración)
+* [Estructura del Proyecto](#-estructura-del-proyecto)
+* [Plan de Desarrollo](#-plan-de-desarrollo)
+* [Equipo y Roles](#-equipo-y-roles)
+* [Contexto: Ecosistema Alloxentric](#-contexto-ecosistema-alloxentric)
+* [Contribución](#-contribución)
 
 ---
 
@@ -347,8 +347,8 @@ El proyecto sigue metodología **Scrum** con sprints de 2 semanas.
 | Rol                                     | Especialización                 | Responsabilidades                         |
 | --------------------------------------- | ------------------------------- | ----------------------------------------- |
 | Backend Junior (Elías Vicencio)         | Node.js, PostgreSQL, LLM APIs   | Arquitectura, Auth, Core APIs, Agentes IA |
-| Lider de proyecto (Jordy Mondaca)       | Node.js, MongoDB, Integraciones | Conectores, Evidencias, Reportes          |
-| Frontend Junior (Génesis Valdebeito)    | React, CSS, Accesibilidad       | Pantallas, Formularios, i18n, a11y        |
+| Lider de proyecto (Jordy Mondaca)       | Fullstack, Integraciones        | Conectores, Evidencias, Reportes          |
+| Frontend Junior (Génesis Valdebeito)    | React, CSS, Accesibilidad       | Pantallas, Formularios                    |
 
 ---
 
