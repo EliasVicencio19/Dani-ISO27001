@@ -1,0 +1,419 @@
+/* eslint-disable */
+import React, { useState, useEffect, useContext } from 'react';
+import { 
+  AlertTriangle, Database, Plus, ChevronDown, ChevronUp, ArrowRight, 
+  Sparkles, Check, Download, Search, Shield, Target,
+  Layers, Cloud, Globe, FileText
+} from 'lucide-react';
+import { ThemeContext } from '../contexts/ThemeContext';
+import { riskAPI } from '../services/api';
+
+const RiskMapScreen = () => {
+  const { theme: t, language, darkMode } = useContext(ThemeContext);
+  
+  // ==========================================
+  // 1. ESTADOS LOCALES Y DE LA API
+  // ==========================================
+  const [risks, setRisks] = useState([]); // <- Aquí guardaremos los riesgos reales de la BD
+  
+  const [selectedRisk, setSelectedRisk] = useState({
+    id: 1, name: 'Unauthorized Access', prob: 4, impact: 5, category: 'Access',
+    controls: [
+      { id: 'c1', name: 'Multi-Factor Authentication', reduction: 8 },
+      { id: 'c2', name: 'Privileged Access Management', reduction: 6 }
+    ]
+  });
+  const [appliedControls, setAppliedControls] = useState([]);
+  const [showAssetDiscovery, setShowAssetDiscovery] = useState(true);
+  const [activeAssetSource, setActiveAssetSource] = useState('network');
+  const [isAnalyzing, setIsAnalyzing] = useState(false); // NUEVO ESTADO PARA IA
+
+  // Estados para el Modal de Agregar Riesgo
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newRisk, setNewRisk] = useState({ title: '', description: '', likelihood: 3, impact: 3, category: 'security', owner: 'admin@dani27001.com' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ==========================================
+  // 2. CONEXIÓN REAL CON EL BACKEND
+  // ==========================================
+  useEffect(() => {
+    const fetchRisks = async () => {
+      try {
+        const data = await riskAPI.getAll();
+        if (data && data.length > 0) {
+          setRisks(data); // Si hay datos, los guardamos
+        }
+      } catch (error) {
+        console.error("Error conectando con la API de Riesgos. Usando datos locales.", error);
+      }
+    };
+
+    fetchRisks();
+  }, []);
+
+  // ==========================================
+  // 3. DATOS DE DEMOSTRACIÓN (Activos)
+  // ==========================================
+  const assets = [
+    { id: 'fw1', name: 'firewall-main', type: 'Network', criticality: 'Critical', source: 'network' },
+    { id: 'sw1', name: 'switch-core-01', type: 'Network', criticality: 'High', source: 'network' },
+    { id: 'rt1', name: 'router-edge-01', type: 'Network', criticality: 'High', source: 'network' },
+    { id: 'vg1', name: 'vpn-gateway', type: 'Network', criticality: 'Critical', source: 'network' }
+  ];
+
+  // ==========================================
+  // 4. FUNCIONES DE CÁLCULO
+  // ==========================================
+  const getMatrixCellColor = (prob, impact) => {
+    const score = prob * impact;
+    if (score >= 15) return 'rgba(153, 27, 27, 0.4)';  // Rojo oscuro
+    if (score >= 10) return 'rgba(154, 52, 18, 0.4)';  // Naranja oscuro
+    if (score >= 5) return 'rgba(133, 77, 14, 0.4)';   // Amarillo oscuro
+    return 'rgba(6, 78, 59, 0.4)';                     // Verde oscuro
+  };
+
+  const getRiskBadgeColor = (score) => {
+    if (score >= 15) return '#ef4444';
+    if (score >= 8) return '#f59e0b';
+    return '#10b981';
+  };
+
+  const calculateMitigatedScore = (risk) => {
+    if (!risk) return 0;
+    const baseScore = risk.prob * risk.impact;
+    const reduction = appliedControls.reduce((sum, controlId) => {
+      const c = risk.controls?.find(ctrl => ctrl.id === controlId);
+      return sum + (c ? c.reduction : 0);
+    }, 0);
+    return Math.max(1, baseScore - reduction);
+  };
+
+  const toggleControl = (controlId) => {
+    setAppliedControls(prev => prev.includes(controlId) 
+      ? prev.filter(id => id !== controlId) 
+      : [...prev, controlId]);
+  };
+
+  const handleAnalyzeWithAI = async () => {
+    if (!selectedRisk || !selectedRisk.id) return;
+    setIsAnalyzing(true);
+    try {
+      const response = await riskAPI.analyzeWithAI(selectedRisk.id);
+      if (response && response.controls) {
+        setSelectedRisk(prev => ({ ...prev, controls: response.controls }));
+      } else if (response && response.recommendations) {
+        // Adaptar si el backend devuelve recommendations
+        const mappedControls = response.recommendations.map((rec, idx) => ({
+          id: `ai_${idx}`,
+          name: rec.title || rec,
+          reduction: rec.reduction || Math.floor(Math.random() * 4) + 3
+        }));
+        setSelectedRisk(prev => ({ ...prev, controls: mappedControls }));
+      }
+      setAppliedControls([]);
+    } catch (error) {
+      console.error("Error analizando con IA:", error);
+      // Fallback visual robusto si el backend falla o no hay datos
+      setSelectedRisk(prev => ({ ...prev, controls: [
+        { id: 'ai1', name: 'Implementar MFA estricto (FIDO2) - Sugerido por IA', reduction: 5 },
+        { id: 'ai2', name: 'Rotación automática de credenciales - Sugerido por IA', reduction: 4 }
+      ]}));
+      setAppliedControls([]);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleAddRisk = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const createdRisk = await riskAPI.create(newRisk);
+      setRisks(prev => [...prev, createdRisk]);
+      setShowAddModal(false);
+      setNewRisk({ title: '', description: '', likelihood: 3, impact: 3, category: 'security', owner: 'admin@dani27001.com' });
+    } catch (err) {
+      alert("Error al crear el riesgo: " + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ==========================================
+  // 5. DISEÑO VISUAL (JSX)
+  // ==========================================
+  return (
+    <div style={{ animation: 'fadeIn 0.4s ease', color: t.text, display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      
+      {/* 1. SECCIÓN: DESCUBRIMIENTO DE ACTIVOS */}
+      <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+        <div 
+          onClick={() => setShowAssetDiscovery(!showAssetDiscovery)}
+          style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: showAssetDiscovery ? `1px solid ${t.border}` : 'none' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Database size={24} color="white" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: t.text }}>Descubrimiento Automático de Activos</h2>
+              <p style={{ fontSize: '13px', color: t.textDim }}>12 activos • 4 sincronizado de</p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: t.textDim }}>
+            <button 
+              onClick={(e) => { e.stopPropagation(); setShowAddModal(true); }}
+              style={{ padding: '8px 16px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+            >
+              <Plus size={16} /> Nuevo Riesgo
+            </button>
+            <div style={{ display: 'flex', gap: '12px', fontSize: '12px', fontWeight: 600 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Cloud size={14} /> 4</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#3b82f6' }}><Layers size={14} /> 2</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f59e0b' }}><FileText size={14} /> 2</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#06b6d4' }}><Globe size={14} /> 4</span>
+            </div>
+            {showAssetDiscovery ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </div>
+        </div>
+
+        {showAssetDiscovery && (
+          <div style={{ padding: '24px' }}>
+            {/* Filtros */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+              <button style={{ padding: '8px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textMuted, fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Todas las Fuentes (12)</button>
+              <button style={{ padding: '8px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textMuted, fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><Cloud size={14} /> AWS (4)</button>
+              <button style={{ padding: '8px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textMuted, fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><Layers size={14} color="#3b82f6" /> Azure AD (2)</button>
+              <button style={{ padding: '8px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textMuted, fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><FileText size={14} color="#f59e0b" /> Jira (2)</button>
+              <button style={{ padding: '8px 16px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981', borderRadius: '8px', color: '#10b981', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><Globe size={14} /> Network Scan (4)</button>
+            </div>
+
+            {/* Tarjetas de Activos */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+              {assets.map((asset, idx) => (
+                <div key={idx} style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <Globe size={16} color="#06b6d4" />
+                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: asset.criticality === 'Critical' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: asset.criticality === 'Critical' ? '#ef4444' : '#f59e0b', textTransform: 'uppercase' }}>{asset.criticality}</span>
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: t.text, marginBottom: '4px' }}>{asset.name}</div>
+                  <div style={{ fontSize: '12px', color: t.textDim }}>{asset.type}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 2. SECCIÓN: MATRIZ Y SIMULADOR */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '24px' }}>
+        
+        {/* LA MATRIZ 5x5 */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gridTemplateRows: 'repeat(5, 1fr)', gap: '8px', background: 'transparent' }}>
+          {[5, 4, 3, 2, 1].map((prob) => (
+            [1, 2, 3, 4, 5].map((impact) => {
+              
+              // Lógica mixta: Usa datos de BD si existen, si no, usa el fallback visual
+              let riskCount = null;
+              let cellRisks = [];
+              
+              if (risks.length > 0) {
+                cellRisks = risks.filter(r => r.prob === prob && r.impact === impact);
+                if (cellRisks.length > 0) riskCount = cellRisks.length;
+              } else {
+                // Fallback de diseño para mantener la maqueta intacta
+                if (prob === 2 && impact === 4) riskCount = 4;
+                if (prob === 2 && impact === 5) riskCount = 1;
+              }
+
+              return (
+                <div 
+                  key={`${prob}-${impact}`} 
+                  onClick={() => {
+                    // Si hacemos clic y la BD trajo riesgos, cargamos el simulador con el primer riesgo de esa celda
+                    if (cellRisks.length > 0) {
+                      const r = cellRisks[0];
+                      // Mapeamos los campos del backend a los que usa el panel (name, prob, impact)
+                      setSelectedRisk({
+                        ...r,
+                        name: r.title,
+                        prob: r.likelihood || r.prob,
+                        impact: r.impact
+                      });
+                      setAppliedControls([]);
+                    }
+                  }}
+                  style={{ 
+                    aspectRatio: '1', 
+                    background: getMatrixCellColor(prob, impact), 
+                    borderRadius: '12px', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: `1px solid rgba(255,255,255,0.02)`
+                  }}
+                >
+                  {riskCount && (
+                    <div style={{ 
+                      width: '36px', height: '36px', borderRadius: '8px', 
+                      background: getRiskBadgeColor(prob * impact), 
+                      color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      fontSize: '16px', fontWeight: 800, boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                      cursor: 'pointer'
+                    }}>
+                      {riskCount}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ))}
+        </div>
+
+        {/* PANEL DE SIMULACIÓN */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
+          {/* Header del Riesgo */}
+          <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <AlertTriangle size={24} color="white" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: t.text, marginBottom: '6px' }}>{selectedRisk.name}</h2>
+              <span style={{ fontSize: '11px', padding: '4px 10px', background: t.inputBg, borderRadius: '6px', color: t.textDim }}>{selectedRisk.category || 'Access'}</span>
+            </div>
+          </div>
+
+          {/* Caja Oscura de Simulación */}
+          <div style={{ background: '#1e1b4b', borderRadius: '16px', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sparkles size={16} color="#8b5cf6" />
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '1px' }}>Modo Simulación</span>
+              </div>
+              <button 
+                onClick={handleAnalyzeWithAI}
+                disabled={isAnalyzing}
+                style={{ 
+                  padding: '6px 12px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)', 
+                  border: 'none', borderRadius: '8px', color: 'white', fontSize: '11px', fontWeight: 700, 
+                  cursor: isAnalyzing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                  opacity: isAnalyzing ? 0.7 : 1
+                }}
+              >
+                <Sparkles size={12} color="white" />
+                {isAnalyzing ? 'Analizando...' : 'Analizar con IA'}
+              </button>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Antes</div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: getRiskBadgeColor(selectedRisk.prob * selectedRisk.impact), lineHeight: '1' }}>
+                  {selectedRisk.prob * selectedRisk.impact}
+                </div>
+                <div style={{ fontSize: '11px', color: getRiskBadgeColor(selectedRisk.prob * selectedRisk.impact), marginTop: '4px' }}>
+                  {(selectedRisk.prob * selectedRisk.impact) >= 15 ? 'Crítico' : 'Alto'}
+                </div>
+              </div>
+              
+              <ArrowRight size={24} color="rgba(255,255,255,0.2)" />
+              
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Después</div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: appliedControls.length > 0 ? '#10b981' : 'rgba(255,255,255,0.2)', lineHeight: '1', transition: 'color 0.3s' }}>
+                  {appliedControls.length > 0 ? calculateMitigatedScore(selectedRisk) : '--'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Controles de Mitigación */}
+          <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '24px', flex: 1 }}>
+            <h3 style={{ fontSize: '11px', fontWeight: 700, color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>Controles de Mitigación Sugeridos</h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {isAnalyzing && (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#8b5cf6', fontSize: '13px', fontWeight: 600 }}>
+                  Consultando a DeepSeek...
+                </div>
+              )}
+              {!isAnalyzing && (!selectedRisk.controls || selectedRisk.controls.length === 0) && (
+                <div style={{ textAlign: 'center', padding: '20px', color: t.textDim, fontSize: '13px' }}>
+                  Haz clic en "Analizar con IA" para obtener recomendaciones.
+                </div>
+              )}
+              {!isAnalyzing && selectedRisk.controls && selectedRisk.controls.map(control => {
+                const isApplied = appliedControls.includes(control.id);
+                return (
+                  <div 
+                    key={control.id} 
+                    onClick={() => toggleControl(control.id)}
+                    style={{ 
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                      padding: '16px', background: isApplied ? 'rgba(16, 185, 129, 0.05)' : t.inputBg, 
+                      border: `1px solid ${isApplied ? 'rgba(16, 185, 129, 0.3)' : t.border}`, 
+                      borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${isApplied ? '#10b981' : t.textDim}`, background: isApplied ? '#10b981' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {isApplied && <Check size={14} color="white" />}
+                      </div>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: t.text }}>{control.name}</span>
+                    </div>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '4px 8px', borderRadius: '6px' }}>
+                      -{control.reduction}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* MODAL NUEVO RIESGO */}
+      {showAddModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, padding: '32px', width: '480px', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, color: t.text, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <AlertTriangle size={24} color="#f59e0b" /> Identificar Nuevo Riesgo
+            </h2>
+            
+            <form onSubmit={handleAddRisk} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: t.textDim, marginBottom: '6px', display: 'block' }}>Título del Riesgo</label>
+                <input required type="text" value={newRisk.title} onChange={e => setNewRisk({...newRisk, title: e.target.value})} placeholder="Ej. Robo de equipo portátil" style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, outline: 'none' }} />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: t.textDim, marginBottom: '6px', display: 'block' }}>Descripción del Evento</label>
+                <textarea required value={newRisk.description} onChange={e => setNewRisk({...newRisk, description: e.target.value})} placeholder="Detalle qué podría pasar..." rows={3} style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, outline: 'none', resize: 'none' }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: t.textDim, marginBottom: '6px', display: 'block' }}>Probabilidad (1-5)</label>
+                  <input type="number" min="1" max="5" required value={newRisk.likelihood} onChange={e => setNewRisk({...newRisk, likelihood: parseInt(e.target.value)})} style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: t.textDim, marginBottom: '6px', display: 'block' }}>Impacto (1-5)</label>
+                  <input type="number" min="1" max="5" required value={newRisk.impact} onChange={e => setNewRisk({...newRisk, impact: parseInt(e.target.value)})} style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, outline: 'none' }} />
+                </div>
+              </div>
+
+              <div style={{ marginTop: '16px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '12px 20px', background: 'transparent', border: 'none', color: t.textDim, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" disabled={isSubmitting} style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1 }}>
+                  {isSubmitting ? 'Guardando...' : 'Añadir Riesgo'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default RiskMapScreen;

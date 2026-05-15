@@ -1,4 +1,4 @@
-// src/services/api.js
+// src/services/api.js - ACTUALIZADO CON SWAGGER Y CHAT
 const API_BASE_URL = 'http://localhost:8000/api';
 
 const getToken = () => localStorage.getItem('token');
@@ -12,6 +12,11 @@ async function apiRequest(endpoint, options = {}) {
     ...options.headers,
   };
 
+  // Si enviamos FormData (archivos), el navegador debe calcular el Content-Type automáticamente
+  if (options.body instanceof FormData) {
+    delete headers['Content-Type'];
+  }
+
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
@@ -19,8 +24,7 @@ async function apiRequest(endpoint, options = {}) {
 
   if (response.status === 401) {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+    window.location.reload();
     throw new Error('Sesión expirada');
   }
 
@@ -32,80 +36,114 @@ async function apiRequest(endpoint, options = {}) {
   return response.json();
 }
 
-// Autenticación
+// ✅ Autenticación
 export const authAPI = {
   login: (email, password) => apiRequest('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password })
   }),
-  register: (userData) => apiRequest('/auth/register', {
+  register: (name, email, password) => apiRequest('/auth/register', {
     method: 'POST',
-    body: JSON.stringify(userData)
+    body: JSON.stringify({ name, email, password })
   }),
-  getProfile: () => apiRequest('/auth/profile'),
+  verify: () => apiRequest('/auth/verify', { method: 'POST' }),
 };
 
-// Dashboard
+// ✅ Dashboard
 export const dashboardAPI = {
-  getStats: () => apiRequest('/dashboard/stats'),
-  getRecentRisks: (limit = 5) => apiRequest(`/risks/?limit=${limit}`),
-  getRiskSummary: () => apiRequest('/risks/summary'),
+  getSummary: () => apiRequest('/dashboard/summary'),
+  getRecentActivity: (limit = 10) => apiRequest(`/dashboard/recent-activity?limit=${limit}`),
 };
 
-// Riesgos
-export const riskAPI = {
+// ✅ Usuarios
+export const userAPI = {
   getAll: (params = {}) => {
     const query = new URLSearchParams(params).toString();
-    return apiRequest(`/risks/${query ? `?${query}` : ''}`);
+    return apiRequest(`/users${query ? `?${query}` : ''}`);
   },
-  getById: (id) => apiRequest(`/risks/${id}`),
+  getById: (id) => apiRequest(`/users/${id}`),
+  create: (userData) => apiRequest('/users', {
+    method: 'POST',
+    body: JSON.stringify(userData),
+  }),
+  update: (id, userData) => apiRequest(`/users/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(userData),
+  }),
+  delete: (id) => apiRequest(`/users/${id}`, {
+    method: 'DELETE',
+  }),
+};
+
+// ✅ Riesgos (Conectado a Swagger)
+export const riskAPI = {
+  getAll: () => apiRequest('/risks/'),
   create: (data) => apiRequest('/risks/', {
     method: 'POST',
     body: JSON.stringify(data)
   }),
-  update: (id, data) => apiRequest(`/risks/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data)
-  }),
-  delete: (id) => apiRequest(`/risks/${id}`, {
-    method: 'DELETE'
-  }),
   getStats: () => apiRequest('/risks/statistics'),
-};
-
-// Documentos (para el DocGenerator)
-export const documentsAPI = {
-  generateChapter: (chapterId, context) => apiRequest('/documents/generate', {
-    method: 'POST',
-    body: JSON.stringify({ chapter_id: chapterId, context })
-  }),
-  saveDocument: (chapterId, content) => apiRequest(`/documents/${chapterId}`, {
+  getHighPriority: () => apiRequest('/risks/high-priority'),
+  updateStatus: (id, status) => apiRequest(`/risks/${id}/status`, {
     method: 'PUT',
-    body: JSON.stringify({ content })
+    body: JSON.stringify({ status })
   }),
-  getDocument: (chapterId) => apiRequest(`/documents/${chapterId}`),
+  analyzeWithAI: (id) => apiRequest(`/risks/${id}/analyze`, { method: 'POST' })
 };
 
-// Evidencias
+// ✅ Evidencia (Nuevo de Swagger)
 export const evidenceAPI = {
   getAll: () => apiRequest('/evidence/'),
-  upload: (file, controlId) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('control_id', controlId);
-    
-    return fetch(`${API_BASE_URL}/evidence/upload`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${getToken()}` },
-      body: formData
-    }).then(res => res.json());
+  getById: (id) => apiRequest(`/evidence/${id}`),
+  upload: (formData) => apiRequest('/evidence/upload', {
+    method: 'POST',
+    body: formData
+  }),
+  download: async (id) => {
+    const token = getToken();
+    const response = await fetch(`${API_BASE_URL}/evidence/${id}/download`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    if (!response.ok) throw new Error('Error al descargar archivo');
+    const blob = await response.blob();
+    return window.URL.createObjectURL(blob);
   },
-  getByControl: (controlId) => apiRequest(`/evidence/control/${controlId}`),
+  exportZip: async () => {
+    const token = getToken();
+    const response = await fetch(`${API_BASE_URL}/evidence/export/zip`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    if (!response.ok) throw new Error('Error al generar ZIP');
+    const blob = await response.blob();
+    return window.URL.createObjectURL(blob);
+  }
 };
 
-// Health check
-export const healthAPI = {
-  check: () => fetch('http://localhost:8000/health').then(res => res.json())
+// ✅ Cumplimiento ISO 27001
+export const complianceAPI = {
+  getControls: () => apiRequest('/compliance/controls'),
+  getStatistics: () => apiRequest('/compliance/statistics'),
+  fullAssessment: (data) => apiRequest('/compliance/full-assessment', { 
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
 };
 
-export default apiRequest;
+// ✅ Documentos
+export const documentsAPI = {
+  getAll: () => apiRequest('/documents/'),
+  generateDocument: (docType, promptData) => apiRequest(`/documents/generate/${docType}`, {
+    method: 'POST',
+    body: JSON.stringify(promptData)
+  }),
+};
+
+// ✅ Chat IA (CORREGIDO Y EXPORTADO CORRECTAMENTE)
+export const chatAPI = {
+  sendMessage: (textToSend) => apiRequest('/chat/', {
+    method: 'POST',
+    body: JSON.stringify({
+      message: textToSend // Se envía estructurado para evitar el error 422 de FastAPI
+    })
+  })
+};
