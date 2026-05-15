@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     #DeepSeepk KEY
     DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-    #OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     
     # API
     API_V1_STR: str = "/api/v1"
@@ -34,11 +34,11 @@ class Settings(BaseSettings):
     
     @property
     def AI_API_KEY(self):
-        return self.DEEPSEEK_API_KEY or self.OPENAI_API_KEY
+        return self.GROQ_API_KEY or self.DEEPSEEK_API_KEY or self.OPENAI_API_KEY
     
     @property
     def AI_BASE_URL(self):
-        return "https://api.deepseek.com" if self.DEEPSEEK_API_KEY else None
+        return "https://api.groq.com/openai/v1" if self.GROQ_API_KEY else "https://api.deepseek.com"
     
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://your-vercel-app.vercel.app"]
