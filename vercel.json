@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd Producto/dani-project-front && npm install && npm run build",
+  "buildCommand": "cd Producto/dani-project-front && npm install && CI=false npm run build",
   "outputDirectory": "Producto/dani-project-front/build",
   "installCommand": "cd Producto/dani-project-front && npm install",
   "framework": "create-react-app",

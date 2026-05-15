@@ -11,6 +11,7 @@ import Sidebar from './components/Sidebar';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
 import NotificationCenter from './components/NotificationCenter';
+import CommandPalette from './components/CommandPalette';
 
 // IMPORTACIÓN DE PÁGINAS
 import DashboardScreen from './pages/Dashboard';
@@ -148,7 +149,7 @@ export default function DaniPlatform() {
 
       <ChatDANI isOpen={chatOpen} onClose={() => setChatOpen(false)} />
       
-      {commandPaletteOpen && <CommandPalette onClose={() => setCommandPaletteOpen(false)} onNavigate={handleNavigate} />}
+      {commandPaletteOpen && <CommandPalette isOpen={commandPaletteOpen} darkMode={darkMode} onClose={() => setCommandPaletteOpen(false)} onNavigate={handleNavigate} />}
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
 
     </div>
