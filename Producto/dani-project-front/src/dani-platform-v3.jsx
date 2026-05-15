@@ -89,21 +89,36 @@ export default function DaniPlatform() {
             )}
           </div>
 
+          {/* High Contrast Toggle */}
+          <button onClick={() => setHighContrast(!highContrast)} title="Alto Contraste" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: highContrast ? '#ffffff' : t.inputBg, border: `1px solid ${highContrast ? '#000000' : t.border}`, borderRadius: '12px', color: highContrast ? '#000000' : t.text, cursor: 'pointer' }}>
+            <Contrast size={20} />
+          </button>
+
           {/* Toggle Modo Oscuro */}
-          <button onClick={() => setDarkMode(!darkMode)} style={{ width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, cursor: 'pointer' }}>
-            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+          <button onClick={() => setDarkMode(!darkMode)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', transform: darkMode ? 'translateY(0)' : 'translateY(-40px)', opacity: darkMode ? 1 : 0 }}>
+              <Sun size={20} color="#f59e0b" />
+            </div>
+            <div style={{ position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', transform: darkMode ? 'translateY(40px)' : 'translateY(0)', opacity: darkMode ? 0 : 1 }}>
+              <Moon size={20} color="#6366f1" />
+            </div>
           </button>
 
           {/* Notificaciones */}
           <div style={{ position: 'relative' }}>
-            <button onClick={() => setNotificationsOpen(!notificationsOpen)} style={{ width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, cursor: 'pointer' }}>
+            <button onClick={() => setNotificationsOpen(!notificationsOpen)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, cursor: 'pointer' }}>
               <Bell size={20} />
             </button>
             <NotificationCenter isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
           </div>
 
+          {/* Settings */}
+          <button onClick={() => setSettingsOpen(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, cursor: 'pointer' }}>
+            <Settings size={20} />
+          </button>
+
           {/* Cerrar Sesión */}
-          <button onClick={logout} style={{ width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: '#ef4444', cursor: 'pointer' }}>
+          <button onClick={logout} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: '#ef4444', cursor: 'pointer' }}>
             <LogOut size={20} />
           </button>
         </header>
