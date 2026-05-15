@@ -19,37 +19,59 @@ const UserManagementScreen = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedUser, setSelectedUser] = useState(null);
 
+  // Modal de Crear Usuario
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newUser, setNewUser] = useState({ full_name: '', email: '', password: '', role: 'employee', department: 'General' });
+  const [isCreating, setIsCreating] = useState(false);
+
   // ==========================================
   // 2. CONEXIÓN REAL CON EL BACKEND
   // ==========================================
   const [users, setUsers] = useState([]);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const data = await userAPI.getAll();
-        if (data && Array.isArray(data)) {
-          const mappedUsers = data.map(u => {
-            const fullName = u.full_name || 'Usuario';
-            return {
-              id: u.id,
-              name: fullName,
-              email: u.email,
-              role: u.role || 'employee',
-              department: u.department || 'General',
-              status: u.is_active ? 'active' : 'inactive',
-              lastLogin: u.last_login ? new Date(u.last_login).toLocaleDateString() : 'Nunca',
-              avatar: fullName.substring(0, 2).toUpperCase()
-            };
-          });
-          setUsers(mappedUsers);
-        }
-      } catch (error) {
-        console.error("Error conectando con la API de Usuarios:", error);
+  const loadUsers = async () => {
+    try {
+      const data = await userAPI.getAll();
+      if (data && Array.isArray(data)) {
+        const mappedUsers = data.map(u => {
+          const fullName = u.full_name || 'Usuario';
+          return {
+            id: u.id,
+            name: fullName,
+            email: u.email,
+            role: u.role || 'employee',
+            department: u.department || 'General',
+            status: u.is_active ? 'active' : 'inactive',
+            lastLogin: u.last_login ? new Date(u.last_login).toLocaleDateString() : 'Nunca',
+            avatar: fullName.substring(0, 2).toUpperCase()
+          };
+        });
+        setUsers(mappedUsers);
       }
-    };
-    fetchUsers();
+    } catch (error) {
+      console.error("Error conectando con la API de Usuarios:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
   }, []);
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    setIsCreating(true);
+    try {
+      await userAPI.create(newUser);
+      setIsAddModalOpen(false);
+      setNewUser({ full_name: '', email: '', password: '', role: 'employee', department: 'General' });
+      await loadUsers(); // Refrescar tabla automáticamente
+    } catch (error) {
+      console.error("Error creando usuario:", error);
+      alert("Error al crear usuario: " + error.message);
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   // Configuración visual de Roles
   const rolesConfig = {
@@ -81,7 +103,10 @@ const UserManagementScreen = () => {
           <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>Gestión de Usuarios</h1>
           <p style={{ color: t.textDim, fontSize: '15px' }}>Administra accesos y asigna roles para cumplimiento ISO 27001</p>
         </div>
-        <button style={{ padding: '10px 20px', background: '#3b82f6', border: 'none', borderRadius: '10px', color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }}>
+        <button 
+          onClick={() => setIsAddModalOpen(true)}
+          style={{ padding: '10px 20px', background: '#3b82f6', border: 'none', borderRadius: '10px', color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }}
+        >
           <UserPlus size={18} /> Agregar Usuario
         </button>
       </div>
@@ -274,6 +299,53 @@ const UserManagementScreen = () => {
         </div>
 
       </div>
+
+      {/* MODAL CREAR USUARIO */}
+      {isAddModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, width: '400px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', animation: 'fadeIn 0.2s ease' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: t.text }}>Crear Nuevo Usuario</h3>
+              <button onClick={() => setIsAddModalOpen(false)} style={{ background: 'none', border: 'none', color: t.textDim, cursor: 'pointer' }}><XCircle size={20} /></button>
+            </div>
+            
+            <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Nombre Completo</label>
+                <input required type="text" value={newUser.full_name} onChange={e => setNewUser({...newUser, full_name: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }} placeholder="Ej: Ana Martínez" />
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Correo Electrónico</label>
+                <input required type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }} placeholder="ana@empresa.com" />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Contraseña</label>
+                <input required type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }} placeholder="••••••••" />
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Rol en el Sistema</label>
+                <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }}>
+                  <option value="admin">Administrador</option>
+                  <option value="ciso">CISO</option>
+                  <option value="security_manager">Gerente de Seguridad</option>
+                  <option value="auditor">Auditor</option>
+                  <option value="employee">Empleado</option>
+                </select>
+              </div>
+
+              <div style={{ marginTop: '8px', display: 'flex', gap: '12px' }}>
+                <button type="button" onClick={() => setIsAddModalOpen(false)} style={{ flex: 1, padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" disabled={isCreating} style={{ flex: 1, padding: '12px', background: '#3b82f6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: isCreating ? 'not-allowed' : 'pointer', opacity: isCreating ? 0.7 : 1 }}>
+                  {isCreating ? 'Creando...' : 'Crear Usuario'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
