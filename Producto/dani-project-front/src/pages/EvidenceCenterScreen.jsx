@@ -84,7 +84,7 @@ function EvidenceCenterScreen() {
 
   const l = labels[language] || labels.en;
 
-  const evidences = [
+  const evidences_hardcoded = [
     { id: 1, name: 'AWS S3 Encryption Config', control: 'A.8.24', type: 'automatic', source: 'AWS', sourceIcon: '☁️', lastUpdated: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), validityDays: 30, status: 'fresh', apiData: { endpoint: 'GET /s3/bucket-encryption', timestamp: '2024-12-13T14:32:00Z', response: { ServerSideEncryptionConfiguration: { Rules: [{ ApplyServerSideEncryptionByDefault: { SSEAlgorithm: 'aws:kms' } }] } } } },
     { id: 2, name: 'Azure AD MFA Status Report', control: 'A.5.17', type: 'automatic', source: 'Azure', sourceIcon: '🔷', lastUpdated: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), validityDays: 7, status: 'fresh', apiData: { endpoint: 'GET /reports/authenticationMethods', timestamp: '2024-12-10T09:15:00Z', response: { totalMfaEnabled: 245, totalUsers: 250, complianceRate: '98%' } } },
     { id: 3, name: 'Backup Verification Log', control: 'A.8.13', type: 'manual', source: 'Manual', sourceIcon: '📄', lastUpdated: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000), validityDays: 30, status: 'expired' },
@@ -93,6 +93,73 @@ function EvidenceCenterScreen() {
     { id: 6, name: 'Penetration Test Report Q4', control: 'A.8.8', type: 'manual', source: 'Manual', sourceIcon: '📄', lastUpdated: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), validityDays: 365, status: 'fresh' },
     { id: 7, name: 'GitHub Branch Protection Rules', control: 'A.8.9', type: 'automatic', source: 'GitHub', sourceIcon: '🐙', lastUpdated: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), validityDays: 30, status: 'expired', apiData: { endpoint: 'GET /repos/{owner}/{repo}/branches/{branch}/protection', timestamp: '2024-10-15T08:30:00Z', response: { required_pull_request_reviews: { required_approving_review_count: 2 } } } }
   ];
+
+  const [evidences, setEvidences] = useState(evidences_hardcoded); // Comenzamos con los mock mientras cargan los reales
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Cargar evidencias reales
+  const loadEvidences = async () => {
+    try {
+      // Import evidenceAPI dynamically if not imported at top
+      const { evidenceAPI } = await import('../services/api');
+      const data = await evidenceAPI.getAll();
+      if (Array.isArray(data) && data.length > 0) {
+        const mapped = data.map(e => ({
+          ...e,
+          lastUpdated: new Date(e.lastUpdated)
+        }));
+        // Combinamos las reales con los ejemplos para que no quede vacía la demo
+        setEvidences([...mapped, ...evidences_hardcoded]);
+      }
+    } catch (error) {
+      console.error("Error loading real evidences:", error);
+    }
+  };
+
+  React.useEffect(() => {
+    loadEvidences();
+  }, []);
+
+  const handleFileUpload = async (event) => {
+    event.preventDefault();
+    const files = event.target.files || event.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+    
+    setIsUploading(true);
+    try {
+      const { evidenceAPI } = await import('../services/api');
+      const formData = new FormData();
+      formData.append("file", files[0]);
+      formData.append("control", "ISO-GEN");
+      formData.append("source", "Portal");
+      formData.append("validityDays", "90");
+      
+      await evidenceAPI.upload(formData);
+      await loadEvidences();
+      setActiveTab('evidences');
+    } catch (error) {
+      alert("Error subiendo evidencia: " + error.message);
+    } finally {
+      setIsUploading(false);
+      setDragOver(false);
+    }
+  };
+
+  const handleViewEvidence = async (evidence, e) => {
+    e.stopPropagation();
+    try {
+      // Si el id es muy corto (ej: 1, 2, 3), es un mock hardcodeado
+      if (evidence.id.toString().length < 5) {
+        alert("Esta evidencia es un ejemplo de diseño. Para probar el visualizador, sube tu propia evidencia real usando la pestaña Carga Masiva.");
+        return;
+      }
+      const { evidenceAPI } = await import('../services/api');
+      const fileUrl = await evidenceAPI.download(evidence.id);
+      window.open(fileUrl, '_blank');
+    } catch (error) {
+      alert("No se pudo abrir el archivo: " + error.message);
+    }
+  };
 
   const evidenceRequests = [
     { id: 1, title: 'HR Policy Acknowledgment Records', control: 'A.6.2', assignee: 'María López', department: 'HR', dueDate: '2024-12-20', status: 'pending', magicLink: 'https://dani.app/upload/abc123' },
@@ -238,7 +305,7 @@ function EvidenceCenterScreen() {
                       <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                           {freshnessStatus === 'expired' && <button style={{ padding: '6px 12px', background: '#ef444420', border: '1px solid #ef444440', borderRadius: '6px', color: '#ef4444', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><RefreshCw size={12} /> {l.updateNow}</button>}
-                          <button onClick={(e) => { e.stopPropagation(); setSelectedEvidence(evidence); }} style={{ padding: '6px 12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '6px', color: t.textMuted, fontSize: '11px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><Eye size={12} /> {l.view}</button>
+                          <button onClick={(e) => handleViewEvidence(evidence, e)} style={{ padding: '6px 12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '6px', color: t.textMuted, fontSize: '11px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><Eye size={12} /> {l.view}</button>
                         </div>
                       </td>
                     </tr>
@@ -253,15 +320,19 @@ function EvidenceCenterScreen() {
       {/* Upload Tab */}
       {activeTab === 'upload' && (
         <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
-          <div style={{ padding: '60px 40px', textAlign: 'center', cursor: 'pointer' }}
+          <label style={{ padding: '60px 40px', textAlign: 'center', cursor: 'pointer', display: 'block' }}
+            onDrop={handleFileUpload}
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
-            style={{ border: `2px dashed ${dragOver ? '#10b981' : t.border}`, borderRadius: '16px', margin: '24px', background: dragOver ? 'rgba(16, 185, 129, 0.05)' : 'transparent' }}>
-            <Upload size={48} color={dragOver ? '#10b981' : t.textDim} style={{ marginBottom: '16px' }} />
-            <h3 style={{ fontSize: '18px', fontWeight: 600, color: t.text, marginBottom: '8px' }}>Drag & drop files here</h3>
-            <p style={{ fontSize: '14px', color: t.textDim }}>or click to browse</p>
-            <p style={{ fontSize: '12px', color: t.textMuted, marginTop: '8px' }}>PDF, DOCX, PNG, JPG, JSON, CSV (max 50MB per file)</p>
-          </div>
+            style={{ border: `2px dashed ${dragOver ? '#10b981' : t.border}`, borderRadius: '16px', margin: '24px', background: dragOver ? 'rgba(16, 185, 129, 0.05)' : 'transparent', display: 'block', cursor: isUploading ? 'not-allowed' : 'pointer' }}>
+            <input type="file" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading} />
+            <Upload size={48} color={dragOver ? '#10b981' : t.textDim} style={{ marginBottom: '16px', opacity: isUploading ? 0.5 : 1 }} />
+            <h3 style={{ fontSize: '18px', fontWeight: 600, color: t.text, marginBottom: '8px' }}>
+              {isUploading ? 'Subiendo evidencia segura...' : 'Arrastra y suelta tu evidencia aquí'}
+            </h3>
+            <p style={{ fontSize: '14px', color: t.textDim }}>o haz clic para explorar tus archivos</p>
+            <p style={{ fontSize: '12px', color: t.textMuted, marginTop: '8px' }}>Se registrará automáticamente con metadatos en PostgreSQL</p>
+          </label>
         </div>
       )}
 

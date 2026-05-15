@@ -98,7 +98,16 @@ export const evidenceAPI = {
   upload: (formData) => apiRequest('/evidence/upload', {
     method: 'POST',
     body: formData
-  })
+  }),
+  download: async (id) => {
+    const token = getToken();
+    const response = await fetch(`${API_BASE_URL}/evidence/${id}/download`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    if (!response.ok) throw new Error('Error al descargar archivo');
+    const blob = await response.blob();
+    return window.URL.createObjectURL(blob);
+  }
 };
 
 // ✅ Cumplimiento ISO 27001

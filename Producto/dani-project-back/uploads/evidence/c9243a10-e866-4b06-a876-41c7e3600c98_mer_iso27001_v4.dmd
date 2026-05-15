@@ -1,0 +1,13 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<OSDM_Design class="oracle.dbtools.crest.model.design.Design" name="mer_iso27001_v4" id="EEE8B334-0C01-981B-DA5C-C00743711778" version="3.5">
+<createdBy>AO-Alumno</createdBy>
+<createdTime>2026-05-13 21:08:39 UTC</createdTime>
+<ownerDesignName>mer_iso27001_v4</ownerDesignName>
+<capitalNames>false</capitalNames>
+<designId>EEE8B334-0C01-981B-DA5C-C00743711778</designId>
+<usedDesignStorageDescriptors>
+<designDescr class="oracle.dbtools.crest.model.design.Design$DesignStorageDesc" id="83DF490D-4A03-200C-83D0-5CDFBCF9A7E8">
+<designStoragePath>C:\schema_iso27001_v2</designStoragePath>
+</designDescr>
+</usedDesignStorageDescriptors>
+</OSDM_Design>
