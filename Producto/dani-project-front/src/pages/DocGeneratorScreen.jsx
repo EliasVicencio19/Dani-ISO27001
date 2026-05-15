@@ -72,13 +72,10 @@ const DocGeneratorScreen = () => {
       return;
     }
 
-    // 1. Creamos un contenedor "invisible" para darle diseño al PDF
-    const printElement = document.createElement('div');
-    
-    // Le inyectamos el logo (texto), la fecha y el título del documento
+    // 1. Inyectamos el logo (texto), la fecha y el título del documento
     const today = new Date().toLocaleDateString();
     let htmlContent = `
-      <div style="font-family: Helvetica, Arial, sans-serif; padding: 40px; color: #333;">
+      <div style="font-family: Helvetica, Arial, sans-serif; padding: 40px; color: #333; background-color: #ffffff;">
         <div style="border-bottom: 2px solid #10b981; padding-bottom: 10px; margin-bottom: 30px; display: flex; justify-content: space-between;">
           <strong style="font-size: 24px; color: #10b981;">DANI GR&C</strong>
           <span style="color: #666;">ISO 27001 - ${today}</span>
@@ -95,19 +92,19 @@ const DocGeneratorScreen = () => {
     }).join('');
 
     htmlContent += `</div>`;
-    printElement.innerHTML = htmlContent;
-
     // 2. Configuramos las opciones del PDF (tamaño carta, márgenes, etc.)
     const options = {
       margin:       0.5, // Media pulgada de margen
       filename:     `ISO_27001_Capitulo_${selectedChapter.number}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2 }, // Mayor escala = Mayor resolución
+      html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, // Mayor escala = Mayor resolución
       jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
 
-    // 3. Generamos y descargamos el PDF
-    html2pdf().set(options).from(printElement).save();
+    // 3. Pasamos el HTML directamente como string (evita problemas de elementos invisibles o coords negativas)
+    html2pdf().set(options).from(htmlContent).save().catch(err => {
+      console.error("Error generando PDF:", err);
+    });
   };
 
   const renderMarkdown = (text, activeColor) => {
