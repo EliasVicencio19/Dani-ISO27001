@@ -9,7 +9,7 @@ from app.routes import chat
 
 from app.config import settings
 from app.dependencies.database import engine, Base, AsyncSessionLocal
-from app.routes import auth, risk, evidence, documents
+from app.routes import auth, risk, evidence, documents, users
 from app.routes import compliance
 from app.models.iso_controls import ISOCControl
 
@@ -80,6 +80,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router)
+app.include_router(users.router)
 app.include_router(risk.router)
 app.include_router(evidence.router)
 app.include_router(documents.router)
