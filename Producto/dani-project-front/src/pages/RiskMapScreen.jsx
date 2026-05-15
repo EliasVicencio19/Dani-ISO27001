@@ -28,6 +28,11 @@ const RiskMapScreen = () => {
   const [activeAssetSource, setActiveAssetSource] = useState('network');
   const [isAnalyzing, setIsAnalyzing] = useState(false); // NUEVO ESTADO PARA IA
 
+  // Estados para el Modal de Agregar Riesgo
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newRisk, setNewRisk] = useState({ title: '', description: '', likelihood: 3, impact: 3, category: 'security', owner: 'admin@dani27001.com' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // ==========================================
   // 2. CONEXIÓN REAL CON EL BACKEND
   // ==========================================
@@ -119,6 +124,21 @@ const RiskMapScreen = () => {
     }
   };
 
+  const handleAddRisk = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const createdRisk = await riskAPI.create(newRisk);
+      setRisks(prev => [...prev, createdRisk]);
+      setShowAddModal(false);
+      setNewRisk({ title: '', description: '', likelihood: 3, impact: 3, category: 'security', owner: 'admin@dani27001.com' });
+    } catch (err) {
+      alert("Error al crear el riesgo: " + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // ==========================================
   // 5. DISEÑO VISUAL (JSX)
   // ==========================================
@@ -141,6 +161,12 @@ const RiskMapScreen = () => {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: t.textDim }}>
+            <button 
+              onClick={(e) => { e.stopPropagation(); setShowAddModal(true); }}
+              style={{ padding: '8px 16px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+            >
+              <Plus size={16} /> Nuevo Riesgo
+            </button>
             <div style={{ display: 'flex', gap: '12px', fontSize: '12px', fontWeight: 600 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Cloud size={14} /> 4</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#3b82f6' }}><Layers size={14} /> 2</span>
@@ -206,7 +232,14 @@ const RiskMapScreen = () => {
                   onClick={() => {
                     // Si hacemos clic y la BD trajo riesgos, cargamos el simulador con el primer riesgo de esa celda
                     if (cellRisks.length > 0) {
-                      setSelectedRisk(cellRisks[0]);
+                      const r = cellRisks[0];
+                      // Mapeamos los campos del backend a los que usa el panel (name, prob, impact)
+                      setSelectedRisk({
+                        ...r,
+                        name: r.title,
+                        prob: r.likelihood || r.prob,
+                        impact: r.impact
+                      });
                       setAppliedControls([]);
                     }
                   }}
@@ -338,6 +371,47 @@ const RiskMapScreen = () => {
 
         </div>
       </div>
+
+      {/* MODAL NUEVO RIESGO */}
+      {showAddModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, padding: '32px', width: '480px', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, color: t.text, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <AlertTriangle size={24} color="#f59e0b" /> Identificar Nuevo Riesgo
+            </h2>
+            
+            <form onSubmit={handleAddRisk} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: t.textDim, marginBottom: '6px', display: 'block' }}>Título del Riesgo</label>
+                <input required type="text" value={newRisk.title} onChange={e => setNewRisk({...newRisk, title: e.target.value})} placeholder="Ej. Robo de equipo portátil" style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, outline: 'none' }} />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: t.textDim, marginBottom: '6px', display: 'block' }}>Descripción del Evento</label>
+                <textarea required value={newRisk.description} onChange={e => setNewRisk({...newRisk, description: e.target.value})} placeholder="Detalle qué podría pasar..." rows={3} style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, outline: 'none', resize: 'none' }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: t.textDim, marginBottom: '6px', display: 'block' }}>Probabilidad (1-5)</label>
+                  <input type="number" min="1" max="5" required value={newRisk.likelihood} onChange={e => setNewRisk({...newRisk, likelihood: parseInt(e.target.value)})} style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: t.textDim, marginBottom: '6px', display: 'block' }}>Impacto (1-5)</label>
+                  <input type="number" min="1" max="5" required value={newRisk.impact} onChange={e => setNewRisk({...newRisk, impact: parseInt(e.target.value)})} style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, outline: 'none' }} />
+                </div>
+              </div>
+
+              <div style={{ marginTop: '16px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '12px 20px', background: 'transparent', border: 'none', color: t.textDim, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" disabled={isSubmitting} style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1 }}>
+                  {isSubmitting ? 'Guardando...' : 'Añadir Riesgo'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

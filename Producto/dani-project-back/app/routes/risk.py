@@ -28,9 +28,15 @@ class RiskResponse(BaseModel):
     id: str
     title: str
     description: str
+    category: str
+    likelihood: int
+    impact: int
     risk_level: str
     status: str
     created_at: datetime
+    
+    class Config:
+        from_attributes = True
 
 @router.post("/", response_model=RiskResponse)
 async def create_risk(
