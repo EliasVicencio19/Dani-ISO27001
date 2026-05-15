@@ -12,20 +12,55 @@ function SidebarProgressRings({ theme: t, language, collapsed }) {
     { name: language === 'es' ? 'Procesos' : 'Processes', progress: 55, color: '#f59e0b' }
   ];
 
+  const overallProgress = Math.round(domainProgress.reduce((sum, d) => sum + d.progress, 0) / domainProgress.length);
+  const darkMode = t.bg.includes('#000000') || t.bg.includes('#0a0f1c'); // Infer dark mode from theme bg
+
+  if (collapsed) {
+    return (
+      <div style={{ padding: '12px 8px', borderTop: `1px solid ${t.border}`, marginTop: 'auto' }}>
+        <div style={{ width: '48px', height: '48px', margin: '0 auto', position: 'relative' }}>
+          <svg width="48" height="48" viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r="20" fill="none" stroke={darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'} strokeWidth="4" />
+            <circle cx="24" cy="24" r="20" fill="none" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${overallProgress * 1.26} 126`} transform="rotate(-90 24 24)" />
+          </svg>
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '11px', fontWeight: 700, color: '#10b981' }}>{overallProgress}%</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '16px', borderTop: `1px solid ${t.border}`, marginTop: 'auto' }}>
-      <div style={{ fontSize: '10px', fontWeight: 700, color: t.textDim, textTransform: 'uppercase', marginBottom: '12px' }}>GAP ANALYSIS</div>
-      {domainProgress.map((d, i) => (
-        <div key={i} style={{ marginBottom: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '4px' }}>
-            <span style={{ color: t.textMuted }}>{d.name}</span>
-            <span style={{ color: d.color, fontWeight: 600 }}>{d.progress}%</span>
-          </div>
-          <div style={{ height: '4px', background: t.border, borderRadius: '2px', overflow: 'hidden' }}>
-            <div style={{ width: `${d.progress}%`, height: '100%', background: d.color }} />
-          </div>
+      <div style={{ fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>{language === 'es' ? 'Análisis de Brechas' : 'Gap Analysis'}</div>
+      
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+        <div style={{ width: '64px', height: '64px', position: 'relative' }}>
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="26" fill="none" stroke={darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'} strokeWidth="6" />
+            <circle cx="32" cy="32" r="26" fill="none" stroke="url(#overallGradient)" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${overallProgress * 1.63} 163`} transform="rotate(-90 32 32)" />
+            <defs><linearGradient id="overallGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#10b981" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient></defs>
+          </svg>
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '16px', fontWeight: 700, color: '#10b981' }}>{overallProgress}%</div>
         </div>
-      ))}
+        <div>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: t.text }}>{language === 'es' ? 'General' : 'Overall'}</div>
+          <div style={{ fontSize: '11px', color: t.textDim }}>4 {language === 'es' ? 'dominios' : 'domains'}</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {domainProgress.map((domain, i) => (
+          <div key={i}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <span style={{ fontSize: '11px', color: t.textMuted }}>{domain.name}</span>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: domain.color }}>{domain.progress}%</span>
+            </div>
+            <div style={{ height: '6px', background: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ width: `${domain.progress}%`, height: '100%', background: domain.color, borderRadius: '3px', transition: 'width 0.5s ease' }} />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -47,22 +82,33 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
   ];
 
   return (
-    <aside style={{ width: sidebarCollapsed ? '80px' : '280px', background: t.sidebarBg, borderRight: `1px solid ${t.border}`, transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', zIndex: 20 }}>
-      <div style={{ padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        {!sidebarCollapsed && <span style={{ fontSize: '20px', fontWeight: 800, color: t.text, display: 'flex', alignItems: 'center', gap: '10px' }}><Shield size={24} color="#10b981" /> DANI</span>}
-        <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: t.textDim }}>
-          {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-        </button>
+    <aside style={{ width: sidebarCollapsed ? '80px' : '260px', background: t.sidebarBg, backdropFilter: 'blur(20px)', borderRight: `1px solid ${t.border}`, padding: '24px 16px', display: 'flex', flexDirection: 'column', transition: 'all 0.3s ease', position: 'relative', zIndex: 10 }}>
+      {/* Logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px', padding: '0 8px' }}>
+        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Shield size={24} color="white" />
+        </div>
+        {!sidebarCollapsed && <div><div style={{ fontWeight: 700, fontSize: '20px' }}>Dani</div><div style={{ fontSize: '11px', color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px' }}>ISO 27001</div></div>}
       </div>
-      <nav style={{ flex: 1, padding: '0 16px' }}>
-        {navItems.map((item) => (
-          <button key={item.id} onClick={() => setActiveScreen(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', marginBottom: '4px', borderRadius: '12px', border: 'none', background: activeScreen === item.id ? 'rgba(16, 185, 129, 0.1)' : 'transparent', color: activeScreen === item.id ? '#10b981' : t.textMuted, cursor: 'pointer' }}>
-            <item.icon size={20} />
-            {!sidebarCollapsed && <span style={{ fontSize: '14px', fontWeight: activeScreen === item.id ? 600 : 500 }}>{item.label}</span>}
-          </button>
-        ))}
+
+      <nav style={{ flex: 1 }}>
+        {navItems.map((item) => {
+          const isActive = activeScreen === item.id;
+          return (
+            <button key={item.id} onClick={() => setActiveScreen(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: sidebarCollapsed ? '12px' : '12px 16px', marginBottom: '6px', background: isActive ? 'rgba(16, 185, 129, 0.15)' : 'transparent', border: 'none', borderRadius: '12px', color: isActive ? '#10b981' : t.textMuted, cursor: 'pointer', transition: 'all 0.2s ease', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
+              <item.icon size={20} />
+              {!sidebarCollapsed && <span style={{ fontSize: '14px', fontWeight: isActive ? 600 : 500 }}>{item.label}</span>}
+            </button>
+          );
+        })}
       </nav>
+
       <SidebarProgressRings theme={t} language={language} collapsed={sidebarCollapsed} />
+
+      {/* Collapse Button */}
+      <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{ position: 'absolute', top: '50%', right: '-12px', width: '24px', height: '24px', borderRadius: '50%', background: t.cardBg, border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: t.textDim }}>
+        {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
     </aside>
   );
 };
