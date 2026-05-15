@@ -59,6 +59,19 @@ export const translations = {
     continue: 'Continuar', saveProgress: 'Guardar', overallProgress: 'Progreso General',
     phases: 'Fases', question: 'Pregunta', of: 'de', critical: 'Crítico', previous: 'Anterior',
     soaPreview: 'Vista Previa SOA', previewSoa: 'Ver SOA', highContrast: 'Alto Contraste'
+  },
+  pt: {
+    dashboard: 'Painel', gapAnalysis: 'Análise de Lacunas', docGenerator: 'Gerador de Docs', 
+    riskMap: 'Mapa de Riscos', evidenceCenter: 'Centro de Evidências', documents: 'Documentos', 
+    auditRoom: 'Sala de Auditoria', settings: 'Configurações', userManagement: 'Gestão de Usuários',
+    commandCenter: 'Centro de Comando', realtimeOverview: 'Visão geral ISO 27001 em tempo real',
+    synced: 'Sincronizado há', minAgo: 'min', exportReport: 'Exportar Relatório', healthScore: 'Pontuação de Saúde',
+    ready: 'Pronto', controlsImplemented: 'Controles Implementados', pendingActions: 'Ações Pendentes',
+    highPriority: 'alta prioridade', daysToAudit: 'Dias para Auditoria', continueGapAnalysis: 'Continuar Análise',
+    completeAssessment: 'Complete sua avaliação ISO 27001:2022', complete: 'completo', 
+    continue: 'Continuar', saveProgress: 'Salvar', overallProgress: 'Progresso Geral',
+    phases: 'Fases', question: 'Pergunta', of: 'de', critical: 'Crítico', previous: 'Anterior',
+    soaPreview: 'Prévia do SOA', previewSoa: 'Ver SOA', highContrast: 'Alto Contraste'
   }
 };
 
