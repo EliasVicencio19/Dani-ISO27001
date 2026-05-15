@@ -1,11 +1,12 @@
 /* eslint-disable */
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { 
   Users, UserPlus, Search, Filter, MoreHorizontal, 
   Shield, Edit3, Trash2, Mail, CheckCircle2, XCircle, 
   Clock, Key, Building2, ShieldCheck
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
+import { userAPI } from '../services/api';
 
 const UserManagementScreen = () => {
   const { theme: t, language, darkMode } = useContext(ThemeContext);
@@ -19,16 +20,36 @@ const UserManagementScreen = () => {
   const [selectedUser, setSelectedUser] = useState(null);
 
   // ==========================================
-  // 2. DATOS DE DEMOSTRACIÓN
+  // 2. CONEXIÓN REAL CON EL BACKEND
   // ==========================================
-  const users = [
-    { id: 1, name: 'Ana Martínez', email: 'ana.martinez@empresa.com', role: 'ciso', department: 'Seguridad', status: 'active', lastLogin: 'Hace 2 horas', avatar: 'AM' },
-    { id: 2, name: 'Carlos López', email: 'carlos.lopez@empresa.com', role: 'admin', department: 'Tecnología', status: 'active', lastLogin: 'Hace 5 min', avatar: 'CL' },
-    { id: 3, name: 'Jordy Mondaca', email: 'j.mondaca@empresa.com', role: 'security_manager', department: 'Ciberseguridad', status: 'active', lastLogin: 'Hace 1 día', avatar: 'JM' },
-    { id: 4, name: 'Pedro Sánchez', email: 'psanchez@empresa.com', role: 'auditor', department: 'Auditoría Externa', status: 'inactive', lastLogin: 'Hace 15 días', avatar: 'PS' },
-    { id: 5, name: 'Laura Gómez', email: 'lgomez@empresa.com', role: 'employee', department: 'Recursos Humanos', status: 'active', lastLogin: 'Hace 3 días', avatar: 'LG' },
-    { id: 6, name: 'Roberto Díaz', email: 'rdiaz@empresa.com', role: 'compliance_officer', department: 'Legal', status: 'pending', lastLogin: 'Nunca', avatar: 'RD' }
-  ];
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const data = await userAPI.getAll();
+        if (data && Array.isArray(data)) {
+          const mappedUsers = data.map(u => {
+            const fullName = u.full_name || 'Usuario';
+            return {
+              id: u.id,
+              name: fullName,
+              email: u.email,
+              role: u.role || 'employee',
+              department: u.department || 'General',
+              status: u.is_active ? 'active' : 'inactive',
+              lastLogin: u.last_login ? new Date(u.last_login).toLocaleDateString() : 'Nunca',
+              avatar: fullName.substring(0, 2).toUpperCase()
+            };
+          });
+          setUsers(mappedUsers);
+        }
+      } catch (error) {
+        console.error("Error conectando con la API de Usuarios:", error);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   // Configuración visual de Roles
   const rolesConfig = {
@@ -68,10 +89,10 @@ const UserManagementScreen = () => {
       {/* TARJETAS DE ESTADÍSTICAS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
         {[
-          { label: 'Total Usuarios', value: '245', color: '#3b82f6', icon: Users },
-          { label: 'Usuarios Activos', value: '238', color: '#10b981', icon: CheckCircle2 },
-          { label: 'Invitaciones Pendientes', value: '7', color: '#f59e0b', icon: Mail },
-          { label: 'Equipo de Seguridad', value: '12', color: '#8b5cf6', icon: Shield }
+          { label: 'Total Usuarios', value: users.length, color: '#3b82f6', icon: Users },
+          { label: 'Usuarios Activos', value: users.filter(u => u.status === 'active').length, color: '#10b981', icon: CheckCircle2 },
+          { label: 'Inactivos / Pendientes', value: users.filter(u => u.status !== 'active').length, color: '#f59e0b', icon: Mail },
+          { label: 'Equipo de Seguridad', value: users.filter(u => ['ciso', 'security_manager', 'admin'].includes(u.role)).length, color: '#8b5cf6', icon: Shield }
         ].map((stat, idx) => (
           <div key={idx} style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

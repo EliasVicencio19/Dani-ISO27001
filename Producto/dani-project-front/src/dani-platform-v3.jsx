@@ -21,9 +21,9 @@ import EvidenceCenterScreen from './pages/EvidenceCenterScreen';
 import DocumentsScreen from './pages/DocumentsScreen';
 import AuditRoomScreen from './pages/AuditRoomScreen';
 import UserManagementScreen from './pages/UserManagementScreen';
-import EmployeePortal from './pages/EmployeePortal';
 import SettingsModal from './pages/SettingsModal';
 import ChatDANI from './pages/ChatDANI';
+import EmployeePortalScreen from './pages/EmployeePortal';
 
 export default function DaniPlatform() {
   const { logout } = useAuth();
@@ -44,7 +44,6 @@ export default function DaniPlatform() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [showEmployeePortal, setShowEmployeePortal] = useState(false);
 
   const languages = [
     { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -52,12 +51,8 @@ export default function DaniPlatform() {
     { code: 'pt', name: 'Português', flag: '🇧🇷' }
   ];
 
-  const handleNavigate = (screen) => {
-    if (screen === 'employee-portal') {
-      setShowEmployeePortal(true);
-    } else {
-      setActiveScreen(screen);
-    }
+ const handleNavigate = (screen) => {
+    setActiveScreen(screen);
   };
 
   return (
@@ -123,6 +118,8 @@ export default function DaniPlatform() {
           {activeScreen === 'documents' && <DocumentsScreen />}
           {activeScreen === 'audit-room' && <AuditRoomScreen />}
           {activeScreen === 'user-management' && <UserManagementScreen />}
+          {activeScreen === 'employee-portal' && <EmployeePortalScreen />}
+            
         </div>
       </main>
 
@@ -137,7 +134,6 @@ export default function DaniPlatform() {
       <ChatDANI isOpen={chatOpen} onClose={() => setChatOpen(false)} />
       
       {commandPaletteOpen && <CommandPalette onClose={() => setCommandPaletteOpen(false)} onNavigate={handleNavigate} />}
-      {showEmployeePortal && <EmployeePortal onClose={() => setShowEmployeePortal(false)} />}
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
 
     </div>

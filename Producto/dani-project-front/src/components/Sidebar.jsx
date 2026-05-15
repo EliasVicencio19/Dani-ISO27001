@@ -1,6 +1,6 @@
 /* eslint-disable */
 import React from 'react';
-import { LayoutDashboard, Search, FilePlus2, AlertTriangle, Database, FileText, FileCheck, Users, ChevronLeft, ChevronRight, Shield } from 'lucide-react';
+import { LayoutDashboard, Search, FilePlus2, AlertTriangle, Database, FileText, FileCheck, Users, ChevronLeft, ChevronRight, Shield, UserCircle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 function SidebarProgressRings({ theme: t, language, collapsed }) {
@@ -43,6 +43,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
     { id: 'documents', label: l.documents, icon: FileText },
     { id: 'audit-room', label: l.auditRoom, icon: FileCheck },
     { id: 'user-management', label: l.userManagement, icon: Users },
+    { id: 'employee-portal', label: language === 'es' ? 'Portal de Empleados' : 'Employee Portal', icon: UserCircle },
   ];
 
   return (

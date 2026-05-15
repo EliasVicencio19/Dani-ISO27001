@@ -1,18 +1,21 @@
 /* eslint-disable */
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { 
   AlertTriangle, Database, Plus, ChevronDown, ChevronUp, ArrowRight, 
   Sparkles, Check, Download, Search, Shield, Target,
   Layers, Cloud, Globe, FileText
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
+import { riskAPI } from '../services/api';
 
 const RiskMapScreen = () => {
-  const { theme: t, language } = useContext(ThemeContext);
+  const { theme: t, language, darkMode } = useContext(ThemeContext);
   
   // ==========================================
-  // 1. ESTADOS LOCALES
+  // 1. ESTADOS LOCALES Y DE LA API
   // ==========================================
+  const [risks, setRisks] = useState([]); // <- Aquí guardaremos los riesgos reales de la BD
+  
   const [selectedRisk, setSelectedRisk] = useState({
     id: 1, name: 'Unauthorized Access', prob: 4, impact: 5, category: 'Access',
     controls: [
@@ -25,7 +28,25 @@ const RiskMapScreen = () => {
   const [activeAssetSource, setActiveAssetSource] = useState('network');
 
   // ==========================================
-  // 2. DATOS DE DEMOSTRACIÓN (Basados en la imagen)
+  // 2. CONEXIÓN REAL CON EL BACKEND
+  // ==========================================
+  useEffect(() => {
+    const fetchRisks = async () => {
+      try {
+        const data = await riskAPI.getAll();
+        if (data && data.length > 0) {
+          setRisks(data); // Si hay datos, los guardamos
+        }
+      } catch (error) {
+        console.error("Error conectando con la API de Riesgos. Usando datos locales.", error);
+      }
+    };
+
+    fetchRisks();
+  }, []);
+
+  // ==========================================
+  // 3. DATOS DE DEMOSTRACIÓN (Activos)
   // ==========================================
   const assets = [
     { id: 'fw1', name: 'firewall-main', type: 'Network', criticality: 'Critical', source: 'network' },
@@ -35,7 +56,7 @@ const RiskMapScreen = () => {
   ];
 
   // ==========================================
-  // 3. FUNCIONES DE CÁLCULO
+  // 4. FUNCIONES DE CÁLCULO
   // ==========================================
   const getMatrixCellColor = (prob, impact) => {
     const score = prob * impact;
@@ -68,7 +89,7 @@ const RiskMapScreen = () => {
   };
 
   // ==========================================
-  // 4. DISEÑO VISUAL (JSX)
+  // 5. DISEÑO VISUAL (JSX)
   // ==========================================
   return (
     <div style={{ animation: 'fadeIn 0.4s ease', color: t.text, display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -134,19 +155,38 @@ const RiskMapScreen = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gridTemplateRows: 'repeat(5, 1fr)', gap: '8px', background: 'transparent' }}>
           {[5, 4, 3, 2, 1].map((prob) => (
             [1, 2, 3, 4, 5].map((impact) => {
-              // Valores harcodeados para que se vea igual a la foto
+              
+              // Lógica mixta: Usa datos de BD si existen, si no, usa el fallback visual
               let riskCount = null;
-              if (prob === 2 && impact === 4) riskCount = 4;
-              if (prob === 2 && impact === 5) riskCount = 1;
+              let cellRisks = [];
+              
+              if (risks.length > 0) {
+                cellRisks = risks.filter(r => r.prob === prob && r.impact === impact);
+                if (cellRisks.length > 0) riskCount = cellRisks.length;
+              } else {
+                // Fallback de diseño para mantener la maqueta intacta
+                if (prob === 2 && impact === 4) riskCount = 4;
+                if (prob === 2 && impact === 5) riskCount = 1;
+              }
 
               return (
-                <div key={`${prob}-${impact}`} style={{ 
-                  aspectRatio: '1', 
-                  background: getMatrixCellColor(prob, impact), 
-                  borderRadius: '12px', 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: `1px solid rgba(255,255,255,0.02)`
-                }}>
+                <div 
+                  key={`${prob}-${impact}`} 
+                  onClick={() => {
+                    // Si hacemos clic y la BD trajo riesgos, cargamos el simulador con el primer riesgo de esa celda
+                    if (cellRisks.length > 0) {
+                      setSelectedRisk(cellRisks[0]);
+                      setAppliedControls([]);
+                    }
+                  }}
+                  style={{ 
+                    aspectRatio: '1', 
+                    background: getMatrixCellColor(prob, impact), 
+                    borderRadius: '12px', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: `1px solid rgba(255,255,255,0.02)`
+                  }}
+                >
                   {riskCount && (
                     <div style={{ 
                       width: '36px', height: '36px', borderRadius: '8px', 
@@ -173,8 +213,8 @@ const RiskMapScreen = () => {
               <AlertTriangle size={24} color="white" />
             </div>
             <div>
-              <h2 style={{ fontSize: '18px', fontWeight: 700, color: t.text, marginBottom: '6px' }}>Unauthorized Access</h2>
-              <span style={{ fontSize: '11px', padding: '4px 10px', background: t.inputBg, borderRadius: '6px', color: t.textDim }}>Access</span>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: t.text, marginBottom: '6px' }}>{selectedRisk.name}</h2>
+              <span style={{ fontSize: '11px', padding: '4px 10px', background: t.inputBg, borderRadius: '6px', color: t.textDim }}>{selectedRisk.category || 'Access'}</span>
             </div>
           </div>
 
@@ -188,8 +228,12 @@ const RiskMapScreen = () => {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Antes</div>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: '#ef4444', lineHeight: '1' }}>20</div>
-                <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>Crítico</div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: getRiskBadgeColor(selectedRisk.prob * selectedRisk.impact), lineHeight: '1' }}>
+                  {selectedRisk.prob * selectedRisk.impact}
+                </div>
+                <div style={{ fontSize: '11px', color: getRiskBadgeColor(selectedRisk.prob * selectedRisk.impact), marginTop: '4px' }}>
+                  {(selectedRisk.prob * selectedRisk.impact) >= 15 ? 'Crítico' : 'Alto'}
+                </div>
               </div>
               
               <ArrowRight size={24} color="rgba(255,255,255,0.2)" />
@@ -208,7 +252,7 @@ const RiskMapScreen = () => {
             <h3 style={{ fontSize: '11px', fontWeight: 700, color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>Controles de Mitigación</h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {selectedRisk.controls.map(control => {
+              {selectedRisk.controls && selectedRisk.controls.map(control => {
                 const isApplied = appliedControls.includes(control.id);
                 return (
                   <div 

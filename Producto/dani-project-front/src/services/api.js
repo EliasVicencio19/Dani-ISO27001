@@ -1,4 +1,4 @@
-// src/services/api.js - CORREGIDO
+// src/services/api.js - ACTUALIZADO CON SWAGGER Y CHAT
 const API_BASE_URL = 'http://localhost:8000/api';
 
 const getToken = () => localStorage.getItem('token');
@@ -11,6 +11,11 @@ async function apiRequest(endpoint, options = {}) {
     ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   };
+
+  // Si enviamos FormData (archivos), el navegador debe calcular el Content-Type automáticamente
+  if (options.body instanceof FormData) {
+    delete headers['Content-Type'];
+  }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
@@ -41,10 +46,10 @@ export const authAPI = {
     method: 'POST',
     body: JSON.stringify({ name, email, password })
   }),
-  verify: () => apiRequest('/auth/verify'),
+  verify: () => apiRequest('/auth/verify', { method: 'POST' }),
 };
 
-// ✅ Dashboard (endpoint CORRECTO)
+// ✅ Dashboard
 export const dashboardAPI = {
   getSummary: () => apiRequest('/dashboard/summary'),
   getRecentActivity: (limit = 10) => apiRequest(`/dashboard/recent-activity?limit=${limit}`),
@@ -70,38 +75,57 @@ export const userAPI = {
   }),
 };
 
-// ✅ Riesgos (endpoint CORRECTO)
+// ✅ Riesgos (Conectado a Swagger)
 export const riskAPI = {
-  getAll: (params = {}) => {
-    const query = new URLSearchParams(params).toString();
-    return apiRequest(`/risks${query ? `?${query}` : ''}`);
-  },
-  getById: (id) => apiRequest(`/risks/${id}`),
+  getAll: () => apiRequest('/risks/'),
   create: (data) => apiRequest('/risks/', {
     method: 'POST',
     body: JSON.stringify(data)
   }),
-  update: (id, data) => apiRequest(`/risks/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data)
-  }),
   getStats: () => apiRequest('/risks/statistics'),
   getHighPriority: () => apiRequest('/risks/high-priority'),
+  updateStatus: (id, status) => apiRequest(`/risks/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status })
+  }),
+  analyzeWithAI: (id) => apiRequest(`/risks/${id}/analyze`, { method: 'POST' })
 };
 
-// 📦 Pendiente - cuando creemos el backend
+// ✅ Evidencia (Nuevo de Swagger)
+export const evidenceAPI = {
+  getAll: () => apiRequest('/evidence/'),
+  getById: (id) => apiRequest(`/evidence/${id}`),
+  upload: (formData) => apiRequest('/evidence/upload', {
+    method: 'POST',
+    body: formData
+  })
+};
+
+// ✅ Cumplimiento ISO 27001
+export const complianceAPI = {
+  getControls: () => apiRequest('/compliance/controls'),
+  getStatistics: () => apiRequest('/compliance/statistics'),
+  fullAssessment: (data) => apiRequest('/compliance/full-assessment', { 
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+};
+
+// ✅ Documentos
 export const documentsAPI = {
-  generateChapter: (chapterId, title) => apiRequest('/documents/generate', {
+  getAll: () => apiRequest('/documents/'),
+  generateDocument: (docType, promptData) => apiRequest(`/documents/generate/${docType}`, {
     method: 'POST',
-    body: JSON.stringify({ chapter_id: chapterId, title })
+    body: JSON.stringify(promptData)
   }),
 };
 
+// ✅ Chat IA (CORREGIDO Y EXPORTADO CORRECTAMENTE)
 export const chatAPI = {
-  sendMessage: (message) => apiRequest('/chat/', {
+  sendMessage: (textToSend) => apiRequest('/chat/', {
     method: 'POST',
-    body: JSON.stringify({ message })
-  }),
+    body: JSON.stringify({
+      message: textToSend // Se envía estructurado para evitar el error 422 de FastAPI
+    })
+  })
 };
-
-export default apiRequest;
