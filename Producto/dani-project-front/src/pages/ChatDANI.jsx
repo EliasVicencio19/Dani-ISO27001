@@ -170,12 +170,31 @@ const ChatDANI = ({ isOpen, onClose }) => {
         )}
       </div>
 
-      {/* CARRUSEL DE 50 PROMPTS AUTOMATIZADO CON MAP (DISEÑO PRESERVADO) */}
-      <div style={{ 
-        padding: '0 16px', display: 'flex', gap: '8px', overflowX: 'auto', 
-        paddingBottom: '8px', whiteSpace: 'nowrap',
-        scrollbarWidth: 'none', msOverflowStyle: 'none'
-      }}>
+      <style>{`
+        .dani-scrollbar::-webkit-scrollbar {
+          width: 5px;
+          height: 5px;
+        }
+        .dani-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .dani-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(16, 185, 129, 0.4);
+          border-radius: 10px;
+        }
+        .dani-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(16, 185, 129, 0.8);
+        }
+      `}</style>
+
+      {/* LISTA DE 50 PROMPTS AUTOMATIZADOS CON MAP (DISEÑO MEJORADO) */}
+      <div 
+        className="dani-scrollbar"
+        style={{ 
+          padding: '0 8px', margin: '0 8px 8px 8px', display: 'flex', flexWrap: 'wrap', gap: '8px', 
+          maxHeight: '120px', overflowY: 'auto',
+          scrollbarWidth: 'thin', scrollbarColor: 'rgba(16, 185, 129, 0.5) transparent'
+        }}>
         {systemPrompts.map((prompt) => {
           const PromptIcon = prompt.icon;
           return (
@@ -188,7 +207,7 @@ const ChatDANI = ({ isOpen, onClose }) => {
                 background: darkMode ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)',
                 border: `1px solid rgba(16, 185, 129, 0.2)`, borderRadius: '20px',
                 color: '#10b981', fontSize: '11px', fontWeight: 600, cursor: isThinking ? 'not-allowed' : 'pointer',
-                flexShrink: 0, transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease'
               }}
             >
               <PromptIcon size={12} />
