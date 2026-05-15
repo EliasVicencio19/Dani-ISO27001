@@ -86,6 +86,7 @@ function AuditRoomScreen() {
   const [activeTab, setActiveTab] = useState('folders');
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+  const [downloadUrl, setDownloadUrl] = useState(null);
   const [selectedExportFormat, setSelectedExportFormat] = useState('zip');
   const [selectedClauses, setSelectedClauses] = useState([1, 2, 3, 4, 5, 6, 7, 8]);
   const [includeAnnexes, setIncludeAnnexes] = useState(true);
@@ -125,12 +126,33 @@ function AuditRoomScreen() {
   const handleExport = () => {
     setShowExportModal(true);
     setExportProgress(0);
-    const interval = setInterval(() => {
+    setDownloadUrl(null);
+    
+    let intervalId;
+
+    // Simulador de barra de progreso mientras esperamos al backend
+    intervalId = setInterval(() => {
       setExportProgress(prev => {
-        if (prev >= 100) { clearInterval(interval); return 100; }
+        if (prev >= 90) { 
+          clearInterval(intervalId); 
+          return 90; // Se queda en 90% esperando la respuesta de la API
+        }
         return prev + Math.random() * 20;
       });
     }, 250);
+
+    // Iniciar llamada real a la API
+    import('../services/api').then(({ evidenceAPI }) => {
+      evidenceAPI.exportZip().then(url => {
+        clearInterval(intervalId); // Matamos el intervalo inmediatamente
+        setDownloadUrl(url);
+        setExportProgress(100);
+      }).catch(err => {
+        clearInterval(intervalId);
+        alert("Error generando ZIP: " + err.message);
+        setShowExportModal(false);
+      });
+    });
   };
 
   const filteredTrail = auditTrailEntries.filter(entry => trailFilter === 'all' || entry.action === trailFilter);
@@ -348,7 +370,18 @@ function AuditRoomScreen() {
                 </div>
                 <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#10b981', marginBottom: '8px' }}>{l.exportReady}</h3>
                 <p style={{ fontSize: '14px', color: t.textDim, marginBottom: '24px' }}>ISO27001_Audit_Package_2024.{selectedExportFormat}</p>
-                <button onClick={() => { setShowExportModal(false); setExportProgress(0); }} style={{ padding: '14px 32px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '12px', color: 'white', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', margin: '0 auto' }}>
+                <button onClick={() => { 
+                  if (downloadUrl) {
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = 'ISO27001_Audit_Package.zip';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  }
+                  setShowExportModal(false); 
+                  setExportProgress(0); 
+                }} style={{ padding: '14px 32px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '12px', color: 'white', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', margin: '0 auto' }}>
                   <Download size={20} /> {l.downloadNow}
                 </button>
               </>

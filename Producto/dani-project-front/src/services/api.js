@@ -107,6 +107,15 @@ export const evidenceAPI = {
     if (!response.ok) throw new Error('Error al descargar archivo');
     const blob = await response.blob();
     return window.URL.createObjectURL(blob);
+  },
+  exportZip: async () => {
+    const token = getToken();
+    const response = await fetch(`${API_BASE_URL}/evidence/export/zip`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    if (!response.ok) throw new Error('Error al generar ZIP');
+    const blob = await response.blob();
+    return window.URL.createObjectURL(blob);
   }
 };
 

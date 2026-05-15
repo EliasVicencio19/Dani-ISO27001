@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
+import zipfile
+import io
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
@@ -111,4 +113,37 @@ async def download_evidence(
         path=evidence.file_url,
         filename=evidence.file_name,
         media_type=evidence.mime_type
+    )
+
+@router.get("/export/zip")
+async def export_evidences_zip(db: AsyncSession = Depends(get_db)):
+    """Exportar todas las evidencias reales en un archivo ZIP estructurado"""
+    query = select(Evidence)
+    result = await db.execute(query)
+    evidences = result.scalars().all()
+    
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, False) as zip_file:
+        added_files = 0
+        for ev in evidences:
+            if os.path.exists(ev.file_url):
+                # Organizar en carpetas por control
+                control_folder = ev.evidence_metadata.get("control", "General") if ev.evidence_metadata else "General"
+                control_folder = "".join(c for c in control_folder if c.isalnum() or c in " ._-")
+                file_path_in_zip = f"{control_folder}/{ev.file_name}"
+                zip_file.write(ev.file_url, file_path_in_zip)
+                added_files += 1
+                
+        if added_files == 0:
+            # Si no hay archivos, agregamos un leeme.txt para que el ZIP no sea inválido
+            zip_file.writestr("LEEME.txt", "No hay evidencias físicas disponibles para exportar.")
+                
+    zip_buffer.seek(0)
+    
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": "attachment; filename=ISO27001_Audit_Package.zip"
+        }
     )
