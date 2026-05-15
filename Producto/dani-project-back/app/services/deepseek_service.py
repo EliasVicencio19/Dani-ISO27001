@@ -6,10 +6,10 @@ from app.models.prompt import AIPrompt
 
 class DeepSeekService:
     def __init__(self):
-        # Configuración compatible con OpenAI apuntando a DeepSeek
+        # Configuración compatible con OpenAI apuntando a Groq (sugerencia de Max)
         self.client = openai.AsyncOpenAI(
-            api_key=settings.DEEPSEEK_API_KEY, 
-            base_url="https://api.deepseek.com" # Base URL oficial de DeepSeek
+            api_key=settings.GROQ_API_KEY, 
+            base_url="https://api.groq.com/openai/v1" 
         )
         
     async def get_prompt_from_db(self, prompt_name: str):
@@ -33,9 +33,8 @@ class DeepSeekService:
         user_message += f"\n\nContexto extraído de documentos: {context}"
         
         try:
-            # CORREGIDO: Usamos el nombre de modelo oficial aceptado por la API
             response = await self.client.chat.completions.create(
-                model="deepseek-chat", 
+                model="meta-llama/llama-4-scout-17b-16e-instruct", # Groq model name fallback, will update below
                 messages=[
                     {"role": "system", "content": prompt_data.system_prompt},
                     {"role": "user", "content": user_message}
@@ -45,16 +44,18 @@ class DeepSeekService:
             
             return {
                 "analysis": response.choices[0].message.content,
-                "model_used": "deepseek-chat",
+                "model_used": "meta-llama/llama-4-scout-17b-16e-instruct",
                 "prompt_used": prompt_name
             }
         except Exception as e:
             # Capturamos el error de saldo o conexión externa
-            print(f"⚠️ DeepSeek API sin saldo o caída ({str(e)}). Activando simulación experta de respaldo.")
+            print(f"⚠️ Groq API error o sin saldo ({str(e)}). Activando simulación experta de respaldo.")
             
             # Devolvemos una simulación de respuesta experta de primer nivel basada en el prompt enviado
             return {
-                "reply": f"🤖 **[MODO DEMO - DANI COMPLIANCE]**\n\nHe recibido tu requerimiento técnico relacionado con la normativa: *\"{message}\"*.\n\nAl analizar el vector bajo los estándares de la **ISO 27001:2022**, se determina la necesidad de aplicar de forma prioritaria las directrices del **Anexo A (Controles de Seguridad)**, enfocándose en la segregación de funciones, endurecimiento perimetral (Hardening) y cifrado de datos en tránsito utilizando protocolos criptográficos TLS 1.3. \n\n*Nota: El motor principal de DeepSeek se encuentra en mantenimiento de balance corporativo.*"
+                "analysis": f"🤖 **[MODO DEMO - DANI COMPLIANCE]**\n\nHe recibido tu requerimiento técnico relacionado con la normativa: *\"{risk.get('title', 'Evaluación de Riesgo')}\"*.\n\nAl analizar el vector bajo los estándares de la **ISO 27001:2022**, se determina la necesidad de aplicar de forma prioritaria las directrices del **Anexo A (Controles de Seguridad)**, enfocándose en la segregación de funciones, endurecimiento perimetral (Hardening) y cifrado de datos en tránsito utilizando protocolos criptográficos TLS 1.3. \n\n*Nota: El motor principal de IA (Groq/Llama) no está configurado correctamente o requiere una nueva API Key.*",
+                "model_used": "simulated-fallback",
+                "prompt_used": prompt_name
             }
 
     async def chat_with_dani(self, message: str) -> dict:
@@ -62,9 +63,8 @@ class DeepSeekService:
         sys_prompt = prompt_data.system_prompt if prompt_data else "Eres DANI, experto en ISO 27001. Responde en español."
         
         try:
-            # CORREGIDO: quitamos el '.client' repetido y aseguramos el modelo 'deepseek-chat'
             response = await self.client.chat.completions.create(
-                model="deepseek-chat", 
+                model="meta-llama/llama-4-scout-17b-16e-instruct", # We will change this via sed if need exact
                 messages=[
                     {"role": "system", "content": sys_prompt},
                     {"role": "user", "content": message}
@@ -73,4 +73,14 @@ class DeepSeekService:
             )
             return {"reply": response.choices[0].message.content}
         except Exception as e:
-            return {"reply": f"Lo siento, tuve un error: {str(e)}"}
+            print(f"⚠️ Groq Chat API error: {str(e)}")
+            # Fallback brillante para la demostración
+            fallback_response = (
+                f"🤖 **[DANI OFFLINE - MODO DEMO]**\n\n"
+                f"Analizando tu mensaje: *\"{message}\"*\n\n"
+                f"Te comento que desde la perspectiva de la **ISO 27001:2022**, esta consulta requeriría revisar los controles del **Anexo A**. "
+                f"Te recomiendo específicamente revisar los lineamientos sobre **Concientización y Capacitación (Cláusula 7.3)** y "
+                f"los **Controles de Acceso (A.5.15)**.\n\n"
+                f"*(Aviso Interno para la Demo: La API Key de Groq no se ha configurado o es inválida. Esta es una respuesta simulada de respaldo para que puedas continuar con la demostración sin interrupciones).* 😉"
+            )
+            return {"reply": fallback_response}

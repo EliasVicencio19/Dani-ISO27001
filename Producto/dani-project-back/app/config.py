@@ -6,8 +6,8 @@ class Settings(BaseSettings):
     
     #DeepSeepk KEY
     DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     #OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    
     
     # API
     API_V1_STR: str = "/api/v1"
