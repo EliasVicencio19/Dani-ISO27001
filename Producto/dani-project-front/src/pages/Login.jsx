@@ -4,6 +4,8 @@ import { Shield, Mail, Lock, LogIn, UserPlus, User, CheckCircle2 } from 'lucide-
 import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
+  const { login, isLoading, error } = useAuth();  // ← ESTO ES CLAVE
+  
   const [isRegistering, setIsRegistering] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
