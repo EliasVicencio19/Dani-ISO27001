@@ -3,6 +3,8 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import {API_URL} from '../services/api'
 
 const AuthContext = createContext(null);
+
+
 const endpoint = isRegistering 
     ? `${API_URL}/api/auth/register`   // ← USAR API_URL
     : `${API_URL}/api/auth/login`;     // ← USAR API_URL
@@ -36,8 +38,8 @@ export function AuthProvider({ children }) {
     setError(null);
 
     const endpoint = isRegistering 
-      ? 'http://localhost:8000/api/auth/register' 
-      : 'http://localhost:8000/api/auth/login';
+    ? `${API_URL}/api/auth/register`
+    : `${API_URL}/api/auth/login`;
 
     let payload;
     if (isRegistering) {
