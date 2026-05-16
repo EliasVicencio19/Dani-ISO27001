@@ -6,7 +6,10 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/Producto/dani-project-front/build/index.html"
+      "destination": "/Producto/dani-project-front/build/index.html",
+      "env": {
+        "VITE_API_URL": "https://dani-iso27001-backend.onrender.com"
+  }
     }
   ]
 }
