@@ -1,4 +1,4 @@
-// src/services/api.js - VERSIÓN COMPLETA (con todo lo que necesitas)
+// src/services/api.js - VERSIÓN COMPLETA CON userAPI
 // Configuración centralizada de la API
 
 // ============================================
@@ -9,6 +9,57 @@ export const API_URL = 'https://dani-iso27001-backend.onrender.com';
 
 // Para DESARROLLO LOCAL (comenta la de arriba y descomenta esta):
 // export const API_URL = 'http://localhost:8000';
+
+// ============================================
+// 👤 USER API
+// ============================================
+export const userAPI = {
+  getUsers: async (token) => {
+    const response = await fetch(`${API_URL}/api/users`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return response.json();
+  },
+  
+  getUserById: async (userId, token) => {
+    const response = await fetch(`${API_URL}/api/users/${userId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return response.json();
+  },
+  
+  createUser: async (userData, token) => {
+    const response = await fetch(`${API_URL}/api/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(userData)
+    });
+    return response.json();
+  },
+  
+  updateUser: async (userId, userData, token) => {
+    const response = await fetch(`${API_URL}/api/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(userData)
+    });
+    return response.json();
+  },
+  
+  deleteUser: async (userId, token) => {
+    const response = await fetch(`${API_URL}/api/users/${userId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return response.json();
+  }
+};
 
 // ============================================
 // 📌 CHAT API
@@ -235,13 +286,15 @@ export const endpoints = {
   evidence: `${API_URL}/api/evidence`,
   risks: `${API_URL}/api/risks`,
   chat: `${API_URL}/api/chat`,
+  users: `${API_URL}/api/users`,
 };
 
 // ============================================
-// 🚪 EXPORT DEFAULT (para importar todo junto)
+// 🚪 EXPORT DEFAULT
 // ============================================
 const api = {
   API_URL,
+  userAPI,
   chatAPI,
   documentsAPI,
   complianceAPI,
