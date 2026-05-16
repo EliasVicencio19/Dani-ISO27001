@@ -67,7 +67,7 @@ origins = [
     "http://localhost:3000",           # Desarrollo local React
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
-    "https://dani-iso-27001.vercel.app/login",  # ← URL DE TU FRONTEND EN VERCEL
+    "https://dani-iso-27001.vercel.app",  # ← URL DE TU FRONTEND EN VERCEL
     "https://*.vercel.app",            # Cualquier subdominio de Vercel
 ]
 
