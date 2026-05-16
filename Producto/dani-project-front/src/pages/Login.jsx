@@ -28,6 +28,8 @@ const Login = () => {
     return strength;
   };
 
+  const API_URL = 'https://dani-iso27001-backend.onrender.com';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSuccess('');
