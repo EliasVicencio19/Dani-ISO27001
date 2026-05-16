@@ -1,5 +1,13 @@
 // src/services/api.js - ACTUALIZADO CON SWAGGER Y CHAT
-const API_BASE_URL = 'http://localhost:8000/api';
+
+// Detectar el entorno
+const isDevelopment = import.meta.env.DEV || process.env.NODE_ENV === 'development';
+
+// ✅ Configuración CORRECTA para producción
+const PRODUCTION_API_URL = 'https://dani-iso27001-backend.onrender.com';
+const DEVELOPMENT_API_URL = 'http://localhost:8000';
+
+export const API_URL = isDevelopment ? DEVELOPMENT_API_URL : PRODUCTION_API_URL;
 
 const getToken = () => localStorage.getItem('token');
 

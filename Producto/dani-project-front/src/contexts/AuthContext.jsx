@@ -1,7 +1,19 @@
 // src/contexts/AuthContext.jsx
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import {API_URL} from '../services/api'
 
 const AuthContext = createContext(null);
+const endpoint = isRegistering 
+    ? `${API_URL}/api/auth/register`   // ← USAR API_URL
+    : `${API_URL}/api/auth/login`;     // ← USAR API_URL
+
+console.log('🔍 Llamando a:', endpoint); // Para debug
+
+const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+});
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
