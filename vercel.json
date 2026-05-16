@@ -3,13 +3,14 @@
   "outputDirectory": "Producto/dani-project-front/build",
   "installCommand": "cd Producto/dani-project-front && npm install",
   "framework": "create-react-app",
+  "env": {
+    "VITE_API_URL": "https://dani-iso27001-backend.onrender.com",
+    "REACT_APP_API_URL": "https://dani-iso27001-backend.onrender.com"
+  },
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/Producto/dani-project-front/build/index.html",
-      "env": {
-        "VITE_API_URL": "https://dani-iso27001-backend.onrender.com"
-  }
+      "destination": "/Producto/dani-project-front/build/index.html"
     }
   ]
 }

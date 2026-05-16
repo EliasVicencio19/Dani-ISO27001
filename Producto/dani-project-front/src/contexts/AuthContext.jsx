@@ -1,15 +1,10 @@
-// src/contexts/AuthContext.jsx
+// Producto/dani-project-front/src/contexts/AuthContext.jsx
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
-// ✅ CONFIGURACIÓN ÚNICA - CAMBIA SOLO ESTA LÍNEA SEGÚN TU ENTORNO
-// ================================================================
-// Para PRODUCCIÓN (Vercel):
-const API_URL = 'https://dani-iso27001-backend.onrender.com';
-// Para DESARROLLO LOCAL (descomenta esta y comenta la de arriba):
-// const API_URL = 'http://localhost:8000';
-// ================================================================
+// ✅ Usar REACT_APP_API_URL para CRA, no VITE_API_URL
+const API_URL = process.env.REACT_APP_API_URL || 'https://dani-iso27001-backend.onrender.com';
 
-console.log('🔍 [AuthContext] API_URL configurada:', API_URL);
+console.log('🔍 API_URL:', API_URL);
 
 const AuthContext = createContext(null);
 
@@ -19,7 +14,6 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Cargar usuario desde localStorage al iniciar
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
@@ -33,82 +27,42 @@ export function AuthProvider({ children }) {
     setIsLoading(true);
     setError(null);
 
-    // 🔥 CONSTRUIR ENDPOINT CON API_URL
     const endpoint = isRegistering 
       ? `${API_URL}/api/auth/register`
       : `${API_URL}/api/auth/login`;
 
-    console.log('🔍 [AuthContext] Llamando a endpoint:', endpoint);
-    console.log('🔍 [AuthContext] isRegistering:', isRegistering);
+    console.log('🔍 Endpoint:', endpoint);
 
-    let payload;
-    if (isRegistering) {
-      payload = {
-        name: name,
-        email: email,
-        password: password
-      };
-    } else {
-      payload = {
-        email: email,
-        password: password
-      };
-    }
-
-    console.log('🔍 [AuthContext] Payload:', { ...payload, password: '***' });
+    const payload = isRegistering 
+      ? { name, email, password } 
+      : { email, password };
 
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      console.log('🔍 [AuthContext] Response status:', response.status);
-
       const data = await response.json();
-      console.log('🔍 [AuthContext] Response data:', data);
 
       if (response.ok) {
-        // SOLO PARA LOGIN: Guardar usuario y token
         if (!isRegistering) {
           const userData = {
-            id: data.user_id || data.id,
             email: email,
-            name: data.name || name || email.split('@')[0],
+            name: data.name || name,
             token: data.access_token
           };
-
           setUser(userData);
           setToken(data.access_token);
           localStorage.setItem('token', data.access_token);
           localStorage.setItem('user', JSON.stringify(userData));
-          console.log('✅ [AuthContext] Login exitoso, usuario guardado');
-        } else {
-          console.log('✅ [AuthContext] Registro exitoso');
         }
-        
         return { success: true, data };
       } else {
-        // Manejo de errores
-        let errorMessage = 'Error de autenticación';
-        if (data.detail) {
-          if (typeof data.detail === 'string') {
-            errorMessage = data.detail;
-          } else if (Array.isArray(data.detail)) {
-            errorMessage = data.detail.map(err => 
-              `${err.loc?.join('.') || 'campo'}: ${err.msg}`
-            ).join(', ');
-          } else if (typeof data.detail === 'object') {
-            errorMessage = JSON.stringify(data.detail);
-          }
-        }
-        throw new Error(errorMessage);
+        throw new Error(data.detail || 'Error de autenticación');
       }
     } catch (err) {
-      console.error('❌ [AuthContext] Error:', err);
       setError(err.message);
       throw err;
     } finally {
@@ -122,7 +76,6 @@ export function AuthProvider({ children }) {
     setError(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    console.log('🔍 [AuthContext] Usuario desconectado');
   }, []);
 
   const value = {
