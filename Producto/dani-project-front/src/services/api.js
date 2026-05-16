@@ -41,3 +41,18 @@ export const endpoints = {
   controls: `${API_URL}/api/compliance/controls`,
   statistics: `${API_URL}/api/compliance/statistics`,
 };
+
+// ✅ AGREGAR ESTO - chatAPI
+export const chatAPI = {
+  sendMessage: async (message, token) => {
+    const response = await fetch(`${API_URL}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ message })
+    });
+    return response.json();
+  }
+};
