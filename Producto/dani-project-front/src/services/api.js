@@ -212,6 +212,20 @@ export const evidenceAPI = {
       body: formData
     });
     return response.json();
+  },
+
+  exportZip: async (token) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/evidence/export/zip`, {
+      headers: { 
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Error al exportar las evidencias en ZIP');
+    }
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
   }
 };
 
