@@ -6,10 +6,10 @@ from app.models.prompt import AIPrompt
 
 class DeepSeekService:
     def __init__(self):
-        # Configuración compatible con OpenAI apuntando a Groq (sugerencia de Max)
+        # Configuración compatible con OpenAI apuntando de forma dinámica a Groq o DeepSeek
         self.client = openai.AsyncOpenAI(
-            api_key=settings.GROQ_API_KEY, 
-            base_url="https://api.groq.com/openai/v1" 
+            api_key=settings.AI_API_KEY, 
+            base_url=settings.AI_BASE_URL
         )
         
     async def get_prompt_from_db(self, prompt_name: str):
@@ -34,7 +34,7 @@ class DeepSeekService:
         
         try:
             response = await self.client.chat.completions.create(
-                model="meta-llama/llama-4-scout-17b-16e-instruct", # Groq model name fallback, will update below
+                model=settings.AI_MODEL, # Dynamic model based on active key
                 messages=[
                     {"role": "system", "content": prompt_data.system_prompt},
                     {"role": "user", "content": user_message}
@@ -44,7 +44,7 @@ class DeepSeekService:
             
             return {
                 "analysis": response.choices[0].message.content,
-                "model_used": "meta-llama/llama-4-scout-17b-16e-instruct",
+                "model_used": settings.AI_MODEL,
                 "prompt_used": prompt_name
             }
         except Exception as e:
@@ -64,7 +64,7 @@ class DeepSeekService:
         
         try:
             response = await self.client.chat.completions.create(
-                model="meta-llama/llama-4-scout-17b-16e-instruct", # We will change this via sed if need exact
+                model=settings.AI_MODEL, # Dynamic model based on active key
                 messages=[
                     {"role": "system", "content": sys_prompt},
                     {"role": "user", "content": message}

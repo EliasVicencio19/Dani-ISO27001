@@ -37,9 +37,9 @@ class AIService:
             )
         
         try:
-            # Groq model
+            # Dynamic model based on active key
             response = await self.client.chat.completions.create(
-                model="meta-llama/llama-4-scout-17b-16e-instruct",
+                model=settings.AI_MODEL,
                 messages=[
                     {"role": "system", "content": system_content},
                     {"role": "user", "content": message}
@@ -90,7 +90,7 @@ class AIService:
         
         try:
             response = await self.client.chat.completions.create(
-                model="meta-llama/llama-4-scout-17b-16e-instruct",
+                model=settings.AI_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 max_tokens=300
