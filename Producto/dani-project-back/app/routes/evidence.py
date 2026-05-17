@@ -13,8 +13,10 @@ import shutil
 from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db
 from app.models.evidence import Evidence, EvidenceType
+from app.services.embedding_service import EmbeddingService
 
 router = APIRouter(prefix="/api/evidence", tags=["Evidence"])
+embedding_service = EmbeddingService()
 
 # Crear directorio de uploads si no existe
 UPLOAD_DIR = "uploads/evidence"
@@ -83,6 +85,33 @@ async def upload_evidence(
         db.add(new_evidence)
         await db.commit()
         await db.refresh(new_evidence)
+        
+        # 🛡️ RAG: Indexar documento en fragmentos vectoriales de forma defensiva
+        try:
+            # 1. Extraer texto completo del archivo cargado
+            extracted_text = embedding_service.extract_text_from_file(file_path, file.content_type or "")
+            if extracted_text:
+                # 2. Particionar texto en fragmentos
+                chunks = embedding_service.chunk_text(extracted_text)
+                if chunks:
+                    # 3. Generar representaciones vectoriales
+                    embeddings = embedding_service.generate_embeddings(chunks)
+                    
+                    # 4. Almacenar fragmentos con sus vectores
+                    from app.models.evidence_chunk import EvidenceChunk
+                    for idx, (chunk_content, chunk_emb) in enumerate(zip(chunks, embeddings)):
+                        chunk_obj = EvidenceChunk(
+                            evidence_id=new_evidence.id,
+                            content=chunk_content,
+                            embedding=chunk_emb,
+                            chunk_index=idx
+                        )
+                        db.add(chunk_obj)
+                    await db.commit()
+                    print(f"✅ Ingesta RAG completada: {len(chunks)} fragmentos indexados en BD para la evidencia: {new_evidence.id}")
+        except Exception as rag_err:
+            # Captura de errores defensiva para que el fallo en RAG no interrumpa la subida de evidencia
+            print(f"⚠️ Error durante la indexación RAG (el documento principal se guardó): {rag_err}")
         
         return {
             "message": "Evidencia subida correctamente",
