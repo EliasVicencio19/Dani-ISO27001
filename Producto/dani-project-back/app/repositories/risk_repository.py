@@ -86,3 +86,39 @@ class RiskRepository:
         await self.db.commit()
         await self.db.refresh(risk)
         return risk
+
+    async def update_risk(self, risk_id: str, update_data: Dict[str, Any]) -> Optional[Risk]:
+        """Actualiza todos los campos editables de un riesgo."""
+        risk = await self.get_by_id(risk_id)
+        if not risk:
+            return None
+            
+        for key, value in update_data.items():
+            if value is not None and hasattr(risk, key):
+                setattr(risk, key, value)
+                
+        # Recalcular nivel de riesgo si cambió likelihood o impact
+        if "likelihood" in update_data or "impact" in update_data:
+            risk_score = risk.likelihood * risk.impact
+            if risk_score >= 15:
+                risk.risk_level = RiskLevel.CRITICAL
+            elif risk_score >= 8:
+                risk.risk_level = RiskLevel.HIGH
+            elif risk_score >= 4:
+                risk.risk_level = RiskLevel.MEDIUM
+            else:
+                risk.risk_level = RiskLevel.LOW
+                
+        await self.db.commit()
+        await self.db.refresh(risk)
+        return risk
+
+    async def delete_risk(self, risk_id: str) -> bool:
+        """Elimina un riesgo por su ID."""
+        risk = await self.get_by_id(risk_id)
+        if not risk:
+            return False
+            
+        await self.db.delete(risk)
+        await self.db.commit()
+        return True
