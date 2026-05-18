@@ -15,49 +15,75 @@ export const API_URL = 'http://localhost:8000';
 // ============================================
 export const userAPI = {
   getUsers: async (token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/users`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
     });
     return response.json();
+  },
+  getAll: async (token) => {
+    return userAPI.getUsers(token);
   },
   
   getUserById: async (userId, token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/users/${userId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
     });
     return response.json();
   },
+  getOne: async (userId, token) => {
+    return userAPI.getUserById(userId, token);
+  },
   
   createUser: async (userData, token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
       },
       body: JSON.stringify(userData)
     });
     return response.json();
   },
+  create: async (userData, token) => {
+    return userAPI.createUser(userData, token);
+  },
   
   updateUser: async (userId, userData, token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/users/${userId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
       },
       body: JSON.stringify(userData)
     });
     return response.json();
   },
+  update: async (userId, userData, token) => {
+    return userAPI.updateUser(userId, userData, token);
+  },
   
   deleteUser: async (userId, token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/users/${userId}`, {
       method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
     });
     return response.json();
+  },
+  delete: async (userId, token) => {
+    return userAPI.deleteUser(userId, token);
   }
 };
 
@@ -234,18 +260,22 @@ export const evidenceAPI = {
 // ============================================
 export const riskAPI = {
   getAll: async (token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/risks`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
     });
     return response.json();
   },
   
   create: async (riskData, token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/risks`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
       },
       body: JSON.stringify(riskData)
     });
@@ -253,8 +283,23 @@ export const riskAPI = {
   },
   
   getStatistics: async (token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/risks/statistics`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
+    });
+    return response.json();
+  },
+
+  analyzeWithAI: async (riskId, token) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/risks/${riskId}/analyze`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
     });
     return response.json();
   }
