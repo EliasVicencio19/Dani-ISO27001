@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 
 from app.dependencies.database import get_db
@@ -87,5 +87,74 @@ async def get_user_by_id(user_id: str, db: AsyncSession = Depends(get_db)):
         "last_login": user.last_login.isoformat() if user.last_login else None,
         "department": "General"
     }
+
+class UpdateUserRequest(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    department: Optional[str] = None
+
+@router.put("/{user_id}")
+async def update_user(
+    user_id: str,
+    user_data: UpdateUserRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    query = select(User).where(User.id == user_id)
+    result = await db.execute(query)
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+    if user_data.full_name is not None:
+        user.full_name = user_data.full_name
+    if user_data.email is not None:
+        # Check if email is already taken by another user
+        if user_data.email != user.email:
+            dup_query = select(User).where(User.email == user_data.email)
+            dup_res = await db.execute(dup_query)
+            if dup_res.scalar_one_or_none():
+                raise HTTPException(status_code=400, detail="El correo ya está registrado por otro usuario.")
+        user.email = user_data.email
+    if user_data.role is not None:
+        try:
+            user.role = UserRole(user_data.role)
+        except ValueError:
+            pass
+    if user_data.is_active is not None:
+        user.is_active = user_data.is_active
+        
+    await db.commit()
+    await db.refresh(user)
+    
+    return {
+        "message": "Usuario actualizado exitosamente",
+        "user": {
+            "id": user.id,
+            "full_name": user.full_name,
+            "email": user.email,
+            "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+            "is_active": user.is_active
+        }
+    }
+
+@router.delete("/{user_id}")
+async def delete_user(
+    user_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    query = select(User).where(User.id == user_id)
+    result = await db.execute(query)
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+    await db.delete(user)
+    await db.commit()
+    
+    return {"message": "Usuario eliminado exitosamente"}
 
 
