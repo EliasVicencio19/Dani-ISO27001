@@ -157,3 +157,51 @@ async def analyze_risk_with_ai(
     analysis_result = await ai_processor.analyze_risk(risk_data)
     
     return {"message": "Analysis complete", "data": analysis_result}
+
+class RiskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[RiskCategory] = None
+    likelihood: Optional[int] = None
+    impact: Optional[int] = None
+    owner: Optional[str] = None
+    due_date: Optional[datetime] = None
+    status: Optional[RiskStatus] = None
+
+@router.put("/{risk_id}", response_model=RiskResponse)
+async def update_risk(
+    risk_id: str,
+    risk_data: RiskUpdate,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Actualizar un riesgo completo"""
+    risk_repo = RiskRepository(db)
+    
+    # Buscamos el riesgo primero
+    risk = await risk_repo.get_by_id(risk_id)
+    if not risk:
+        raise HTTPException(status_code=404, detail="Risk not found")
+        
+    updated_risk = await risk_repo.update_risk(risk_id, risk_data.dict(exclude_unset=True))
+    return updated_risk
+
+@router.delete("/{risk_id}")
+async def delete_risk(
+    risk_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Eliminar un riesgo"""
+    risk_repo = RiskRepository(db)
+    
+    # Buscamos el riesgo primero
+    risk = await risk_repo.get_by_id(risk_id)
+    if not risk:
+        raise HTTPException(status_code=404, detail="Risk not found")
+        
+    success = await risk_repo.delete_risk(risk_id)
+    if not success:
+         raise HTTPException(status_code=500, detail="Error deleting risk")
+         
+    return {"message": "Risk deleted successfully"}
