@@ -11,7 +11,8 @@ import { complianceAPI } from '../services/api';
 import InteractiveSOA from '../components/InteractiveSOA'; 
 
 function GapAnalysisScreen() {
-  const { theme: t } = useContext(ThemeContext);
+  const { theme: t, language, translations } = useContext(ThemeContext);
+  const tr = (key) => translations?.[language]?.[key] || translations?.en?.[key] || key;
   
   const [activeTab, setActiveTab] = useState('assessment');
   const [currentPhase, setCurrentPhase] = useState(0);
@@ -24,6 +25,15 @@ function GapAnalysisScreen() {
   const [controls, setControls] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Helper local para traducir las opciones dinámicamente en UI sin alterar claves guardadas
+  const translateOption = (option) => {
+    if (language !== 'es') return option;
+    if (option === 'Yes') return 'Sí';
+    if (option === 'No') return 'No';
+    if (option === 'Partially') return 'Parcialmente';
+    return option;
+  };
+
   // 🔄 Carga síncrona de datos reales del backend al montar el componente
   useEffect(() => {
     const loadISOControls = async () => {
@@ -35,16 +45,16 @@ function GapAnalysisScreen() {
         console.error("Error al sincronizar controles ISO con el backend:", error);
         // Fallback local defensivo para que la demo no se rompa si la BD está vacía
         setControls([
-          { id: 'A.5.1', control: 'A.5.1', description: 'Policies for information security', category: 'Organizational', applies: true, status: 'Implementado', justification: 'Required for ISMS framework establishment' },
-          { id: 'A.5.2', control: 'A.5.2', description: 'Information security roles', category: 'Organizational', applies: true, status: 'Implementado', justification: 'Mandatory for security governance' },
-          { id: 'A.5.15', control: 'A.5.15', description: 'Access control', category: 'Organizational', applies: true, status: 'Implementado', justification: 'Critical for data protection' },
-          { id: 'A.5.16', control: 'A.5.16', description: 'Identity management', category: 'Organizational', applies: true, status: 'Planificado', justification: 'Scheduled for Q1 2025' },
-          { id: 'A.7.4', control: 'A.7.4', description: 'Physical security monitoring', category: 'Physical', applies: false, status: 'No Implementado', justification: 'No physical data center - cloud only' }
+          { id: 'A.5.1', control: 'A.5.1', description: language === 'es' ? 'Políticas para la seguridad de la información' : 'Policies for information security', category: 'Organizational', applies: true, status: 'Implementado', justification: language === 'es' ? 'Requerido para el establecimiento del marco de SGSI' : 'Required for ISMS framework establishment' },
+          { id: 'A.5.2', control: 'A.5.2', description: language === 'es' ? 'Roles de seguridad de la información' : 'Information security roles', category: 'Organizational', applies: true, status: 'Implementado', justification: language === 'es' ? 'Obligatorio para la gobernanza de seguridad' : 'Mandatory for security governance' },
+          { id: 'A.5.15', control: 'A.5.15', description: language === 'es' ? 'Control de acceso' : 'Access control', category: 'Organizational', applies: true, status: 'Implementado', justification: language === 'es' ? 'Crítico para la protección de datos' : 'Critical for data protection' },
+          { id: 'A.5.16', control: 'A.5.16', description: language === 'es' ? 'Gestión de identidad' : 'Identity management', category: 'Organizational', applies: true, status: 'Planificado', justification: language === 'es' ? 'Planificado para Q1 2026' : 'Scheduled for Q1 2026' },
+          { id: 'A.7.4', control: 'A.7.4', description: language === 'es' ? 'Monitoreo de seguridad física' : 'Physical security monitoring', category: 'Physical', applies: false, status: 'No Implementado', justification: language === 'es' ? 'Sin centro de datos físico - solo nube' : 'No physical data center - cloud only' }
         ]);
       }
     };
     loadISOControls();
-  }, []);
+  }, [language]); // Recargamos fallbacks si cambia el idioma en caliente
 
   // ==========================================
   // MANEJADOR EN LA NUBE PARA GUARDAR PROGRESO
@@ -55,43 +65,59 @@ function GapAnalysisScreen() {
     try {
       // Disparamos la petición masiva al backend en Python
       await complianceAPI.fullAssessment({ controls });
-      alert("✨ ¡Progreso del Gap Analysis guardado con éxito en PostgreSQL (Neon.tech)!");
+      alert(language === 'es' ? "✨ ¡Progreso del Gap Analysis guardado con éxito en PostgreSQL!" : "✨ Gap Analysis progress saved successfully in PostgreSQL!");
     } catch (error) {
       console.error("Error salvando SOA:", error);
-      alert("⚠️ No se pudo sincronizar con el servidor. Datos guardados localmente en caché.");
+      alert(language === 'es' ? "⚠️ No se pudo sincronizar con el servidor. Datos guardados localmente." : "⚠️ Could not sync with the server. Data saved locally.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Datos de las Fases
+  // Datos de las Fases localizados en tiempo de renderizado
   const phases = [
     { 
-      id: 'context', name: 'Context & Leadership', clause: 'Clauses 4 & 5', icon: Building2, color: '#3b82f6', 
+      id: 'context', 
+      name: language === 'es' ? 'Contexto y Liderazgo' : 'Context & Leadership', 
+      clause: language === 'es' ? 'Cláusulas 4 y 5' : 'Clauses 4 & 5', 
+      icon: Building2, 
+      color: '#3b82f6', 
       questions: [
-        { id: 'q1', title: 'Organization Context', question: 'Have you determined external and internal issues relevant to your ISMS?', options: ['Yes', 'No'], critical: true },
-        { id: 'q2', title: 'Interested Parties', question: 'Have you identified stakeholders relevant to information security?', options: ['Yes', 'No'], critical: true },
-        { id: 'q3', title: 'ISMS Scope', question: 'Is the ISMS scope clearly defined and documented?', options: ['Yes', 'No'], critical: true },
+        { id: 'q1', title: language === 'es' ? 'Contexto de la Organización' : 'Organization Context', question: language === 'es' ? '¿Ha determinado las cuestiones externas e internas relevantes para su SGSI?' : 'Have you determined external and internal issues relevant to your ISMS?', options: ['Yes', 'No'], critical: true },
+        { id: 'q2', title: language === 'es' ? 'Partes Interesadas' : 'Interested Parties', question: language === 'es' ? '¿Ha identificado a las partes interesadas relevantes para la seguridad de la información?' : 'Have you identified stakeholders relevant to information security?', options: ['Yes', 'No'], critical: true },
+        { id: 'q3', title: language === 'es' ? 'Alcance del SGSI' : 'ISMS Scope', question: language === 'es' ? '¿Está el alcance del SGSI claramente definido y documentado?' : 'Is the ISMS scope clearly defined and documented?', options: ['Yes', 'No'], critical: true },
       ]
     },
     { 
-      id: 'planning', name: 'Planning & Risk', clause: 'Clause 6', icon: Target, color: '#10b981', 
+      id: 'planning', 
+      name: language === 'es' ? 'Planificación y Riesgo' : 'Planning & Risk', 
+      clause: language === 'es' ? 'Cláusula 6' : 'Clause 6', 
+      icon: Target, 
+      color: '#10b981', 
       questions: [
-        { id: 'q5', title: 'Risk Methodology', question: 'Do you have a documented risk assessment process?', options: ['Yes', 'No'], critical: true },
-        { id: 'q6', title: 'Risk Treatment', question: 'Have you formulated a risk treatment plan?', options: ['Yes', 'Partially', 'No'], critical: true },
+        { id: 'q5', title: language === 'es' ? 'Metodología de Riesgos' : 'Risk Methodology', question: language === 'es' ? '¿Cuenta con un proceso documentado de evaluación de riesgos?' : 'Do you have a documented risk assessment process?', options: ['Yes', 'No'], critical: true },
+        { id: 'q6', title: language === 'es' ? 'Tratamiento de Riesgos' : 'Risk Treatment', question: language === 'es' ? '¿Ha formulado un plan de tratamiento de riesgos?' : 'Have you formulated a risk treatment plan?', options: ['Yes', 'Partially', 'No'], critical: true },
       ]
     },
     { 
-      id: 'support', name: 'Support & Ops', clause: 'Clauses 7 & 8', icon: Users, color: '#f59e0b', 
+      id: 'support', 
+      name: language === 'es' ? 'Soporte y Operación' : 'Support & Ops', 
+      clause: language === 'es' ? 'Cláusulas 7 y 8' : 'Clauses 7 & 8', 
+      icon: Users, 
+      color: '#f59e0b', 
       questions: [
-        { id: 'q8', title: 'Training & Awareness', question: 'Have employees received security awareness training?', options: ['Yes', 'Partially', 'No'], critical: false },
+        { id: 'q8', title: language === 'es' ? 'Capacitación y Concienciación' : 'Training & Awareness', question: language === 'es' ? '¿Han recibido los empleados capacitación en concienciación sobre seguridad?' : 'Have employees received security awareness training?', options: ['Yes', 'Partially', 'No'], critical: false },
       ]
     },
     { 
-      id: 'annex', name: 'Annex A Controls', clause: 'Annex A', icon: Lock, color: '#a855f7', 
+      id: 'annex', 
+      name: language === 'es' ? 'Controles del Anexo A' : 'Annex A Controls', 
+      clause: language === 'es' ? 'Anexo A' : 'Annex A', 
+      icon: Lock, 
+      color: '#a855f7', 
       questions: [
-        { id: 'q10', title: 'Access Control', question: 'Is there a formal user registration process?', options: ['Yes', 'No'], critical: true },
-        { id: 'q11', title: 'Backups', question: 'Are backups taken and tested regularly?', options: ['Yes', 'Partially', 'No'], critical: true },
+        { id: 'q10', title: language === 'es' ? 'Control de Acceso' : 'Access Control', question: language === 'es' ? '¿Existe un proceso formal de registro de usuarios?' : 'Is there a formal user registration process?', options: ['Yes', 'No'], critical: true },
+        { id: 'q11', title: language === 'es' ? 'Copias de Seguridad' : 'Backups', question: language === 'es' ? '¿Se realizan y prueban copias de seguridad con regularidad?' : 'Are backups taken and tested regularly?', options: ['Yes', 'Partially', 'No'], critical: true },
       ]
     }
   ];
@@ -126,20 +152,22 @@ function GapAnalysisScreen() {
     <div style={{ animation: 'fadeIn 0.4s ease', color: t.text }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
         <div>
-          <h1 style={{ fontSize: '32px', fontWeight: 700, marginBottom: '8px', color: t.text }}>Gap Analysis</h1>
-          <p style={{ color: t.textDim, fontSize: '15px' }}>Complete assessment to generate your SOA</p>
+          <h1 style={{ fontSize: '32px', fontWeight: 700, marginBottom: '8px', color: t.text }}>{tr('gapAnalysis')}</h1>
+          <p style={{ color: t.textDim, fontSize: '15px' }}>
+            {language === 'es' ? 'Completa la evaluación para generar tu Declaración de Aplicabilidad (SOA)' : 'Complete assessment to generate your SOA'}
+          </p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <div style={{ display: 'flex', background: t.inputBg, padding: '4px', borderRadius: '10px', border: `1px solid ${t.border}` }}>
-            <button onClick={() => setActiveTab('assessment')} style={{ padding: '8px 16px', padding8px16px: '8px 16px', borderRadius: '6px', background: activeTab === 'assessment' ? '#0f766e20' : 'transparent', color: activeTab === 'assessment' ? '#10b981' : t.textMuted, fontSize: '13px', fontWeight: 600, cursor: 'pointer', border: activeTab === 'assessment' ? '1px solid #10b98140' : '1px solid transparent' }}>
-              Assessment
+            <button onClick={() => setActiveTab('assessment')} style={{ padding: '8px 16px', borderRadius: '6px', background: activeTab === 'assessment' ? '#0f766e20' : 'transparent', color: activeTab === 'assessment' ? '#10b981' : t.textMuted, fontSize: '13px', fontWeight: 600, cursor: 'pointer', border: activeTab === 'assessment' ? '1px solid #10b98140' : '1px solid transparent' }}>
+              {language === 'es' ? 'Evaluación' : 'Assessment'}
             </button>
             <button onClick={() => setActiveTab('soa')} style={{ padding: '8px 16px', borderRadius: '6px', background: activeTab === 'soa' ? '#8b5cf620' : 'transparent', color: activeTab === 'soa' ? '#8b5cf6' : t.textMuted, fontSize: '13px', fontWeight: 600, cursor: 'pointer', border: activeTab === 'soa' ? '1px solid #8b5cf640' : '1px solid transparent' }}>
-              SOA
+              {tr('soaPreview')}
             </button>
           </div>
           <button style={{ padding: '10px 20px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, cursor: 'pointer', fontSize: '14px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FolderUp size={16} /> Bulk Upload
+            <FolderUp size={16} /> {language === 'es' ? 'Carga Masiva' : 'Bulk Upload'}
           </button>
           {/* CONECTADO: Botón Save Progress ejecuta la sincronización con FastAPI */}
           <button 
@@ -147,7 +175,7 @@ function GapAnalysisScreen() {
             disabled={isSaving}
             style={{ padding: '10px 20px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: isSaving ? t.textMuted : t.text, cursor: isSaving ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px', opacity: isSaving ? 0.7 : 1 }}
           >
-            <Download size={16} /> {isSaving ? 'Saving...' : 'Save Progress'}
+            <Download size={16} /> {isSaving ? (language === 'es' ? 'Guardando...' : 'Saving...') : (language === 'es' ? 'Guardar Progreso' : 'Save Progress')}
           </button>
         </div>
       </div>
@@ -156,7 +184,7 @@ function GapAnalysisScreen() {
         <>
           <div style={{ background: t.cardBg, borderRadius: '16px', padding: '24px', border: `1px solid ${t.border}`, marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '14px', color: t.textDim, fontWeight: 500 }}>Overall Progress:</span>
+              <span style={{ fontSize: '14px', color: t.textDim, fontWeight: 500 }}>{tr('overallProgress')}:</span>
               <span style={{ fontSize: '16px', color: '#10b981', fontWeight: 700 }}>{globalProgress}%</span>
             </div>
             <div style={{ display: 'flex', gap: '4px', height: '8px' }}>
@@ -174,7 +202,7 @@ function GapAnalysisScreen() {
           <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr 300px', gap: '24px' }}>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <h3 style={{ fontSize: '11px', color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginLeft: '4px' }}>PHASES</h3>
+              <h3 style={{ fontSize: '11px', color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginLeft: '4px' }}>{tr('phases')}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {phases.map((phase, idx) => {
                   const Icon = phase.icon; 
@@ -209,10 +237,12 @@ function GapAnalysisScreen() {
 
               <div style={{ padding: '32px', flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', padding: '12px 16px', background: t.inputBg, borderRadius: '10px' }}>
-                  <span style={{ fontSize: '13px', color: t.textDim, fontWeight: 500 }}>Question <strong style={{color: '#3b82f6', fontSize: '15px'}}>{currentQuestion + 1}</strong> of {currentPhaseData.questions.length}</span>
+                  <span style={{ fontSize: '13px', color: t.textDim, fontWeight: 500 }}>
+                    {language === 'es' ? 'Pregunta' : 'Question'} <strong style={{color: '#3b82f6', fontSize: '15px'}}>{currentQuestion + 1}</strong> {language === 'es' ? 'de' : 'of'} {currentPhaseData.questions.length}
+                  </span>
                   {currentQuestionData.critical && (
                     <span style={{ padding: '4px 10px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', borderRadius: '6px', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <AlertCircle size={12} /> Critical
+                      <AlertCircle size={12} /> {tr('critical')}
                     </span>
                   )}
                 </div>
@@ -233,7 +263,7 @@ function GapAnalysisScreen() {
                         transition: 'all 0.2s ease'
                       }}
                     >
-                      {option}
+                      {translateOption(option)}
                     </button>
                   ))}
                 </div>
@@ -241,10 +271,10 @@ function GapAnalysisScreen() {
 
               <div style={{ padding: '24px 32px', borderTop: `1px solid ${t.border}`, display: 'flex', justifyContent: 'space-between', background: 'rgba(0,0,0,0.1)' }}>
                 <button onClick={goToPrev} disabled={currentPhase === 0 && currentQuestion === 0} style={{ padding: '12px 24px', background: 'transparent', border: 'none', color: t.textDim, cursor: (currentPhase === 0 && currentQuestion === 0) ? 'not-allowed' : 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-                  <ChevronLeft size={18} /> Previous
+                  <ChevronLeft size={18} /> {tr('previous')}
                 </button>
                 <button onClick={goToNext} disabled={!answers[currentQuestionData.id]} style={{ padding: '12px 24px', background: answers[currentQuestionData.id] ? '#3b82f6' : t.inputBg, border: 'none', borderRadius: '10px', color: answers[currentQuestionData.id] ? 'white' : t.textMuted, cursor: answers[currentQuestionData.id] ? 'pointer' : 'not-allowed', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', transition: 'all 0.2s ease' }}>
-                  Continue <ChevronRight size={18} />
+                  {language === 'es' ? 'Continuar' : 'Continue'} <ChevronRight size={18} />
                 </button>
               </div>
             </div>
@@ -252,7 +282,7 @@ function GapAnalysisScreen() {
             <div style={{ background: t.cardBg, borderRadius: '20px', padding: '24px', border: `1px solid ${t.border}`, height: 'fit-content', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
                 <Sparkles size={20} color="#10b981" />
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: t.text }}>SOA Preview</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: t.text }}>{tr('soaPreview')}</h3>
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
@@ -269,7 +299,7 @@ function GapAnalysisScreen() {
                 onClick={() => setActiveTab('soa')}
                 style={{ width: '100%', padding: '14px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '10px', color: '#10b981', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px' }}
               >
-                <Eye size={16} /> Preview SOA
+                <Eye size={16} /> {tr('previewSoa')}
               </button>
             </div>
           </div>
