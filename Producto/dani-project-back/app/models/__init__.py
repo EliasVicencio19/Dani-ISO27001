@@ -7,11 +7,13 @@ from app.models.evidence import Evidence, EvidenceType
 from app.models.evidence_chunk import EvidenceChunk
 from app.models.assessment import RiskAssessment
 from app.models.prompt import AIPrompt
+from app.models.normative_chunk import NormativeChunk
 
 __all__ = [
     "User", "UserRole",
     "Risk", "RiskLevel", "RiskStatus", "RiskCategory", 
     "Evidence", "EvidenceType",
     "EvidenceChunk",
-    "RiskAssessment"
+    "RiskAssessment",
+    "NormativeChunk"
 ]

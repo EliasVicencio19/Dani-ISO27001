@@ -16,3 +16,6 @@ __pycache__/
 node_modules/
 dist/
 .eslintcache
+
+# Documentación local (no subir)
+Documentación/Guia_Defensa_Ejecucion_Local.md

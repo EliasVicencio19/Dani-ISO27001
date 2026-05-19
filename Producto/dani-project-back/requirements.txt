@@ -20,6 +20,7 @@ pgvector==0.2.5
 fastembed==0.2.2
 pypdf==4.0.1
 python-docx==1.1.0
+pymupdf==1.23.26
 
 # Utilidades
 python-dotenv==1.0.1
