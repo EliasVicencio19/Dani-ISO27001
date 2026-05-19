@@ -161,12 +161,12 @@ function EvidenceCenterScreen() {
     }
   };
 
-  const evidenceRequests = [
+  const [requests, setRequests] = useState([
     { id: 1, title: 'HR Policy Acknowledgment Records', control: 'A.6.2', assignee: 'María López', department: 'HR', dueDate: '2024-12-20', status: 'pending', magicLink: 'https://dani.app/upload/abc123' },
     { id: 2, title: 'Physical Access Logs - Data Center', control: 'A.7.2', assignee: 'Carlos Ruiz', department: 'Facilities', dueDate: '2024-12-18', status: 'overdue', magicLink: 'https://dani.app/upload/def456' },
     { id: 3, title: 'Vendor Security Assessments', control: 'A.5.19', assignee: 'Ana García', department: 'Procurement', dueDate: '2024-12-25', status: 'pending', magicLink: 'https://dani.app/upload/ghi789' },
     { id: 4, title: 'Employee Background Check Records', control: 'A.6.1', assignee: 'Pedro Sánchez', department: 'HR', dueDate: '2024-12-15', status: 'submitted', magicLink: 'https://dani.app/upload/jkl012' }
-  ];
+  ]);
 
   const connectors = [
     { id: 'aws', name: 'AWS', icon: '☁️', status: 'connected', lastSync: '5 min ago', evidences: 12, color: '#FF9900' },
@@ -217,7 +217,7 @@ function EvidenceCenterScreen() {
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        {[{ label: l.totalEvidences, value: evidences.length, color: '#10b981', icon: Database }, { label: l.autoCollected, value: evidences.filter(e => e.type === 'automatic').length, color: '#3b82f6', icon: Zap }, { label: l.manualUpload, value: evidences.filter(e => e.type === 'manual').length, color: '#f59e0b', icon: Upload }, { label: l.pendingRequests, value: evidenceRequests.filter(r => r.status === 'pending' || r.status === 'overdue').length, color: '#ef4444', icon: Clock }].map((stat, idx) => {
+        {[{ label: l.totalEvidences, value: evidences.length, color: '#10b981', icon: Database }, { label: l.autoCollected, value: evidences.filter(e => e.type === 'automatic').length, color: '#3b82f6', icon: Zap }, { label: l.manualUpload, value: evidences.filter(e => e.type === 'manual').length, color: '#f59e0b', icon: Upload }, { label: l.pendingRequests, value: requests.filter(r => r.status === 'pending' || r.status === 'overdue').length, color: '#ef4444', icon: Clock }].map((stat, idx) => {
           const Icon = stat.icon;
           return (
             <div key={idx} style={{ background: t.cardBg, borderRadius: '14px', padding: '18px', border: `1px solid ${t.border}` }}>
@@ -238,8 +238,8 @@ function EvidenceCenterScreen() {
           return (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ padding: '10px 20px', background: isActive ? '#10b98120' : 'transparent', border: `1px solid ${isActive ? '#10b981' : t.border}`, borderRadius: '10px', color: isActive ? '#10b981' : t.textMuted, cursor: 'pointer', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Icon size={16} /> {tab.label}
-              {tab.id === 'requests' && evidenceRequests.filter(r => r.status === 'pending' || r.status === 'overdue').length > 0 && (
-                <span style={{ background: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '10px' }}>{evidenceRequests.filter(r => r.status === 'pending' || r.status === 'overdue').length}</span>
+              {tab.id === 'requests' && requests.filter(r => r.status === 'pending' || r.status === 'overdue').length > 0 && (
+                <span style={{ background: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '10px' }}>{requests.filter(r => r.status === 'pending' || r.status === 'overdue').length}</span>
               )}
             </button>
           );
@@ -379,7 +379,7 @@ function EvidenceCenterScreen() {
                 </tr>
               </thead>
               <tbody>
-                {evidenceRequests.map((request) => (
+                {requests.map((request) => (
                   <tr key={request.id} style={{ borderBottom: `1px solid ${t.border}` }}>
                     <td style={{ padding: '16px 20px' }}><div style={{ fontSize: '14px', fontWeight: 600, color: t.text }}>{request.title}</div></td>
                     <td style={{ padding: '16px 20px' }}><span style={{ padding: '4px 10px', background: '#8b5cf620', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color: '#8b5cf6' }}>{request.control}</span></td>
@@ -397,6 +397,103 @@ function EvidenceCenterScreen() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Request Evidence Modal */}
+      {showRequestModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
+          <div style={{ width: '500px', background: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: `1px solid ${t.border}`, paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#8b5cf6' }}>
+                <Send size={20} />
+                <h3 style={{ fontSize: '18px', fontWeight: 600 }}>{l.requestEvidence}</h3>
+              </div>
+              <button onClick={() => setShowRequestModal(false)} style={{ background: 'none', border: 'none', color: t.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
+            </div>
+            
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const title = e.target.title.value;
+              const control = e.target.control.value;
+              const assignee = e.target.assignee.value;
+              const department = e.target.department.value;
+              const dueDate = e.target.dueDate.value;
+              
+              if (!title || !assignee || !dueDate) {
+                alert(language === 'es' ? 'Por favor completa todos los campos' : 'Please fill all fields');
+                return;
+              }
+              
+              const magicId = Math.random().toString(36).substring(7);
+              const newRequest = {
+                id: Date.now(),
+                title,
+                control,
+                assignee,
+                department,
+                dueDate,
+                status: 'pending',
+                magicLink: `https://dani.app/upload/${magicId}`
+              };
+              
+              setRequests(prev => [newRequest, ...prev]);
+              setShowRequestModal(false);
+            }} style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'left' }}>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 500 }}>
+                  {language === 'es' ? 'Nombre del Documento / Evidencia' : 'Document / Evidence Name'}
+                </label>
+                <input name="title" placeholder="e.g. NDA Signed Logs" style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none' }} required />
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 500 }}>
+                    {language === 'es' ? 'Control ISO' : 'ISO Control'}
+                  </label>
+                  <select name="control" style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none' }}>
+                    <option value="A.5.15">A.5.15 (Access Control)</option>
+                    <option value="A.8.24">A.8.24 (Cryptography)</option>
+                    <option value="A.6.2">A.6.2 (HR Security)</option>
+                    <option value="A.8.13">A.8.13 (Backups)</option>
+                    <option value="A.8.8">A.8.8 (Vulnerability Mgmt)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 500 }}>
+                    {l.dueDate}
+                  </label>
+                  <input type="date" name="dueDate" style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none' }} required />
+                </div>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 500 }}>
+                    {language === 'es' ? 'Responsable (Asignar a)' : 'Assignee'}
+                  </label>
+                  <input name="assignee" placeholder="e.g. María López" style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none' }} required />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 500 }}>
+                    {language === 'es' ? 'Departamento' : 'Department'}
+                  </label>
+                  <input name="department" placeholder="e.g. HR" style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none' }} required />
+                </div>
+              </div>
+              
+              <div style={{ marginTop: '12px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowRequestModal(false)} style={{ padding: '10px 20px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '10px', color: t.textMuted, fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+                  {language === 'es' ? 'Cancelar' : 'Cancel'}
+                </button>
+                <button type="submit" style={{ padding: '10px 24px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)', border: 'none', borderRadius: '10px', color: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Send size={14} /> {l.sendRequest}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
