@@ -87,6 +87,8 @@ function AuditRoomScreen() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState(null);
+  const [aiResponse, setAiResponse] = useState(null);
+  const [isAiSearching, setIsAiSearching] = useState(false);
   const [selectedExportFormat, setSelectedExportFormat] = useState('zip');
   const [selectedClauses, setSelectedClauses] = useState([1, 2, 3, 4, 5, 6, 7, 8]);
   const [includeAnnexes, setIncludeAnnexes] = useState(true);
@@ -157,6 +159,29 @@ function AuditRoomScreen() {
 
   const filteredTrail = auditTrailEntries.filter(entry => trailFilter === 'all' || entry.action === trailFilter);
 
+  const handleAISearch = () => {
+    if (!searchQuery.trim()) {
+      alert(language === 'es' ? 'Por favor ingresa un término de búsqueda.' : 'Please enter a search query.');
+      return;
+    }
+    setIsAiSearching(true);
+    setAiResponse(null);
+    
+    import('../services/api').then(({ chatAPI }) => {
+      chatAPI.sendMessage(searchQuery).then(res => {
+        setIsAiSearching(false);
+        if (res.error) {
+          setAiResponse({ error: true, message: res.error });
+        } else {
+          setAiResponse({ error: false, text: res.reply || res.message });
+        }
+      }).catch(err => {
+        setIsAiSearching(false);
+        setAiResponse({ error: true, message: err.message });
+      });
+    });
+  };
+
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
       {/* Header */}
@@ -199,7 +224,7 @@ function AuditRoomScreen() {
             <Search size={18} color={t.textDim} />
             <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={l.semanticSearch} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontSize: '14px' }} />
           </div>
-          <button style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}><Sparkles size={14} /> {l.aiSearch}</button>
+          <button onClick={handleAISearch} style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}><Sparkles size={14} /> {l.aiSearch}</button>
         </div>
       </div>
 
@@ -386,6 +411,51 @@ function AuditRoomScreen() {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* AI Search Modal */}
+      {(isAiSearching || aiResponse) && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
+          <div style={{ width: '600px', maxHeight: '80vh', background: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', padding: '24px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: `1px solid ${t.border}`, paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981' }}>
+                <Sparkles size={20} />
+                <h3 style={{ fontSize: '18px', fontWeight: 600 }}>{language === 'es' ? 'Asistente de Auditoría IA' : 'AI Audit Assistant'}</h3>
+              </div>
+              <button onClick={() => { setIsAiSearching(false); setAiResponse(null); }} style={{ background: 'none', border: 'none', color: t.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
+            </div>
+            
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', textAlign: 'left' }}>
+              {isAiSearching ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '16px' }}>
+                  <RefreshCw size={36} color="#10b981" style={{ animation: 'spin 1s linear infinite' }} />
+                  <p style={{ fontSize: '14px', color: t.textDim, fontWeight: 500 }}>
+                    {language === 'es' ? 'Consultando RAG de evidencias y base de conocimiento...' : 'Consulting evidence RAG and knowledge base...'}
+                  </p>
+                </div>
+              ) : aiResponse.error ? (
+                <div style={{ color: '#ef4444', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '10px', fontSize: '14px' }}>
+                  <strong>Error:</strong> {aiResponse.message}
+                </div>
+              ) : (
+                <div style={{ fontSize: '14px', lineHeight: '1.6', color: t.text, whiteSpace: 'pre-line' }}>
+                  <p style={{ fontWeight: 600, color: '#10b981', marginBottom: '12px', fontSize: '15px' }}>
+                    {language === 'es' ? `Respuesta para: "${searchQuery}"` : `Answer for: "${searchQuery}"`}
+                  </p>
+                  <div style={{ padding: '16px', background: t.inputBg, borderRadius: '12px', border: `1px solid ${t.border}` }}>
+                    {aiResponse.text}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => { setIsAiSearching(false); setAiResponse(null); }} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>
+                {language === 'es' ? 'Entendido' : 'Got it'}
+              </button>
+            </div>
           </div>
         </div>
       )}
