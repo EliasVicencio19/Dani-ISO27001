@@ -105,7 +105,7 @@ async def get_recent_activity(
     """Últimas actividades recientes"""
     
     # Últimos riesgos creados
-    recent_risks_query = select(Risk).order_by(Risk.created_at.desc()).limit(limit)
+    recent_risks_query = select(Risk).order_by(Risk.created_at.desc() if hasattr(Risk, 'created_at') else Risk.id.desc()).limit(limit)
     recent_risks_result = await db.execute(recent_risks_query)
     recent_risks = recent_risks_result.scalars().all()
     
@@ -116,7 +116,7 @@ async def get_recent_activity(
             "action": "created",
             "title": risk.title,
             "level": risk.risk_level.value if risk.risk_level else "unknown",
-            "date": risk.created_at.isoformat() if risk.created_at else None
+            "date": risk.created_at.isoformat() if hasattr(risk, 'created_at') and risk.created_at else None
         })
     
     return {
