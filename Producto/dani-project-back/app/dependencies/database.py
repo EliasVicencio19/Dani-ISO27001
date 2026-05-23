@@ -10,6 +10,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ============================================
+# 📌 VECTOR SUPPORT (pgvector)
+# ============================================
+# Detectar si pgvector está soportado
+PGVECTOR_SUPPORTED = False  # Por defecto, deshabilitado para evitar errores
+
+# Intentar importar pgvector si está disponible
+try:
+    from pgvector.sqlalchemy import Vector
+    PGVECTOR_SUPPORTED = True
+    print("✅ pgvector soportado")
+except ImportError:
+    print("⚠️ pgvector no disponible, usando fallback")
+    
+    
+# ============================================
 # 📌 TIMESTAMP MIXIN
 # ============================================
 class TimestampMixin:
