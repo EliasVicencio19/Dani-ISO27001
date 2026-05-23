@@ -9,37 +9,40 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Usa PostgreSQL en lugar de SQLite
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://dani27001_user:HE6m4xe6cQyT02n3WsBXQEttHcaU5vGE@dpg-d81o031j2pic738ogi4g-a.frankfurt-postgres.render.com/dani27001")
+# ============================================
+# 📌 TIMESTAMP MIXIN
+# ============================================
+class TimestampMixin:
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-# Si no hay DATABASE_URL, error claro
+# ============================================
+# 📌 CONFIGURACIÓN DE BASE DE DATOS
+# ============================================
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+
 if not DATABASE_URL:
     raise ValueError("❌ DATABASE_URL no está configurada en el archivo .env")
 
-# Solo mostrar de qué tipo es
-if "sqlite" in DATABASE_URL:
-    print("🗄️ Conectando a SQLite local")
-elif "render.com" in DATABASE_URL:
-    print("☁️ Conectando a PostgreSQL en Render")
-else:
-    # Asegurar que usa asyncpg
-    if "postgresql://" in DATABASE_URL and "+asyncpg" not in DATABASE_URL:
-        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
-    
-    # Agregar SSL requirement si no está
-    if "?" not in DATABASE_URL:
-        DATABASE_URL += "?ssl=require"
-    elif "ssl=require" not in DATABASE_URL:
+# Convertir URL a formato async si es PostgreSQL
+if "postgresql://" in DATABASE_URL and "+asyncpg" not in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+    print("✅ Convertida URL a formato asyncpg")
+
+# Agregar SSL requirement si no está (para Render)
+if "postgresql" in DATABASE_URL and "ssl" not in DATABASE_URL:
+    if "?" in DATABASE_URL:
         DATABASE_URL += "&ssl=require"
-    
-    print(f"✅ Conectando a PostgreSQL en Render")
+    else:
+        DATABASE_URL += "?ssl=require"
 
-print(f"🔗 URL: {DATABASE_URL[:60]}...")
+print(f"🔗 Conectando a BD: {DATABASE_URL[:60]}...")
 
-# Crear engine (sin forzar SSL si no está en la URL)
+# Crear engine asíncrono
 engine = create_async_engine(
     DATABASE_URL,
-    echo=True,
+    echo=False,
     future=True,
     pool_pre_ping=True,
     pool_size=5,
