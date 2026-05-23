@@ -13,7 +13,7 @@ __all__ = [
     "User", "UserRole",
     "Risk", "RiskLevel", "RiskStatus", "RiskCategory", 
     "Evidence", "EvidenceType",
-    "EvidenceChunk",
+    #"EvidenceChunk",
     "RiskAssessment",
     "NormativeChunk"
 ]

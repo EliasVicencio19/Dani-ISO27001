@@ -1,4 +1,5 @@
 # app/models/evidence_chunk.py
+"""
 from sqlalchemy import Column, String, Text, ForeignKey, Integer, DateTime, func
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
@@ -26,3 +27,4 @@ class EvidenceChunk(Base):
     
     # Relationship to the main Evidence model
     evidence = relationship("Evidence")
+"""
