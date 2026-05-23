@@ -9,17 +9,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ============================================
-# 📌 TIMESTAMP MIXIN (agregar esto)
-# ============================================
-class TimestampMixin:
-    """Mixin para agregar timestamps a los modelos"""
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-# ✅ Leer URL del .env sin valor por defecto hardcodeado
-DATABASE_URL = os.getenv("DATABASE_URL", "")
+# Usa PostgreSQL en lugar de SQLite
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://dani27001_user:HE6m4xe6cQyT02n3WsBXQEttHcaU5vGE@dpg-d81o031j2pic738ogi4g-a.frankfurt-postgres.render.com/dani27001")
 
 # Si no hay DATABASE_URL, error claro
 if not DATABASE_URL:
@@ -31,7 +22,17 @@ if "sqlite" in DATABASE_URL:
 elif "render.com" in DATABASE_URL:
     print("☁️ Conectando a PostgreSQL en Render")
 else:
-    print("💻 Conectando a PostgreSQL local")
+    # Asegurar que usa asyncpg
+    if "postgresql://" in DATABASE_URL and "+asyncpg" not in DATABASE_URL:
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+    
+    # Agregar SSL requirement si no está
+    if "?" not in DATABASE_URL:
+        DATABASE_URL += "?ssl=require"
+    elif "ssl=require" not in DATABASE_URL:
+        DATABASE_URL += "&ssl=require"
+    
+    print(f"✅ Conectando a PostgreSQL en Render")
 
 print(f"🔗 URL: {DATABASE_URL[:60]}...")
 

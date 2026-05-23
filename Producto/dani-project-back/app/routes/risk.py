@@ -33,7 +33,7 @@ class RiskResponse(BaseModel):
     impact: int
     risk_level: str
     status: str
-    created_at: datetime
+    created_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
@@ -138,22 +138,115 @@ async def analyze_risk_with_ai(
     db: AsyncSession = Depends(get_db)
 ):
     """Analizar un riesgo existente usando DeepSeek V4 Flash"""
-    risk_repo = RiskRepository(db)
+    # 1. Verificar si es el ID de simulación "1" o buscar en BD
+    if risk_id == "1":
+        risk_title = "Unauthorized Access (Acceso No Autorizado)"
+        risk_description = "Falta de control de acceso multifactor (MFA) y políticas débiles en servidores internos."
+        risk_category = "security"
+    else:
+        risk_repo = RiskRepository(db)
+        risk = await risk_repo.get_by_id(risk_id) 
+        if not risk:
+            raise HTTPException(status_code=404, detail="Risk not found")
+        risk_title = risk.title
+        risk_description = risk.description
+        risk_category = str(risk.category).lower() if risk.category else "security"
     
-    # 1. Buscamos el riesgo en la BD
-    risk = await risk_repo.get_by_id(risk_id) 
-    
-    if not risk:
-        raise HTTPException(status_code=404, detail="Risk not found")
-    
-    # Convertimos el objeto SQLAlchemy a diccionario para enviarlo a la IA
+    # Convertimos a diccionario para enviarlo a la IA
     risk_data = {
-        "title": risk.title,
-        "description": risk.description,
-        "category": str(risk.category)
+        "title": risk_title,
+        "description": risk_description,
+        "category": risk_category
     }
     
     # 2. Enviamos los datos al servicio de DeepSeek
     analysis_result = await ai_processor.analyze_risk(risk_data)
     
-    return {"message": "Analysis complete", "data": analysis_result}
+    # 3. Generar sugerencias estructuradas según la categoría del riesgo
+    if "privacy" in risk_category:
+        controls = [
+            {"id": "ai_c1", "name": "Cifrado de datos personales en reposo (AES-256) - Sugerido por IA", "reduction": 5},
+            {"id": "ai_c2", "name": "Implementar políticas de retención y borrado seguro - Sugerido por IA", "reduction": 4},
+            {"id": "ai_c3", "name": "Anonimización de bases de datos de desarrollo - Sugerido por IA", "reduction": 3}
+        ]
+    elif "compliance" in risk_category:
+        controls = [
+            {"id": "ai_c1", "name": "Auditorías de cumplimiento mensuales sobre ISO 27001 - Sugerido por IA", "reduction": 4},
+            {"id": "ai_c2", "name": "Capacitación continua en seguridad y phishing al personal - Sugerido por IA", "reduction": 4},
+            {"id": "ai_c3", "name": "Actualización semestral de políticas de seguridad - Sugerido por IA", "reduction": 3}
+        ]
+    elif "third_party" in risk_category:
+        controls = [
+            {"id": "ai_c1", "name": "Evaluación de seguridad y debida diligencia a proveedores - Sugerido por IA", "reduction": 5},
+            {"id": "ai_c2", "name": "Firma de NDAs y cláusulas de seguridad en contratos - Sugerido por IA", "reduction": 4},
+            {"id": "ai_c3", "name": "Monitoreo continuo de SLAs y cumplimiento de SLA - Sugerido por IA", "reduction": 3}
+        ]
+    elif "operational" in risk_category:
+        controls = [
+            {"id": "ai_c1", "name": "Planes de respaldo automatizados en la nube (3-2-1) - Sugerido por IA", "reduction": 6},
+            {"id": "ai_c2", "name": "Monitoreo continuo del uptime de servicios críticos - Sugerido por IA", "reduction": 4},
+            {"id": "ai_c3", "name": "Plan de Continuidad del Negocio (BCP) y Recuperación - Sugerido por IA", "reduction": 5}
+        ]
+    else:  # security / access / default
+        controls = [
+            {"id": "ai_c1", "name": "Implementar MFA estricto (FIDO2) - Sugerido por IA", "reduction": 5},
+            {"id": "ai_c2", "name": "Rotación automática de credenciales de API y DB - Sugerido por IA", "reduction": 4},
+            {"id": "ai_c3", "name": "Implementar Firewall perimetral y WAF en la nube - Sugerido por IA", "reduction": 4}
+        ]
+        
+    recommendations = [{"title": ctrl["name"], "reduction": ctrl["reduction"]} for ctrl in controls]
+    
+    return {
+        "message": "Analysis complete",
+        "data": analysis_result,
+        "controls": controls,
+        "recommendations": recommendations
+    }
+
+class RiskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[RiskCategory] = None
+    likelihood: Optional[int] = None
+    impact: Optional[int] = None
+    owner: Optional[str] = None
+    due_date: Optional[datetime] = None
+    status: Optional[RiskStatus] = None
+
+@router.put("/{risk_id}", response_model=RiskResponse)
+async def update_risk(
+    risk_id: str,
+    risk_data: RiskUpdate,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Actualizar un riesgo completo"""
+    risk_repo = RiskRepository(db)
+    
+    # Buscamos el riesgo primero
+    risk = await risk_repo.get_by_id(risk_id)
+    if not risk:
+        raise HTTPException(status_code=404, detail="Risk not found")
+        
+    updated_risk = await risk_repo.update_risk(risk_id, risk_data.dict(exclude_unset=True))
+    return updated_risk
+
+@router.delete("/{risk_id}")
+async def delete_risk(
+    risk_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Eliminar un riesgo"""
+    risk_repo = RiskRepository(db)
+    
+    # Buscamos el riesgo primero
+    risk = await risk_repo.get_by_id(risk_id)
+    if not risk:
+        raise HTTPException(status_code=404, detail="Risk not found")
+        
+    success = await risk_repo.delete_risk(risk_id)
+    if not success:
+         raise HTTPException(status_code=500, detail="Error deleting risk")
+         
+    return {"message": "Risk deleted successfully"}

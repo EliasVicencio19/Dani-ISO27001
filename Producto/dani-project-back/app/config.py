@@ -40,6 +40,16 @@ class Settings(BaseSettings):
     def AI_BASE_URL(self):
         return "https://api.groq.com/openai/v1" if self.GROQ_API_KEY else "https://api.deepseek.com"
     
+    @property
+    def AI_MODEL(self):
+        if self.GROQ_API_KEY:
+            # Modelo recomendado exactamente por Max en Groq
+            return "meta-llama/llama-4-scout-17b-16e-instruct"
+        elif self.DEEPSEEK_API_KEY:
+            return "deepseek-chat"
+        else:
+            return "deepseek-chat"
+    
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://your-vercel-app.vercel.app"]
     

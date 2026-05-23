@@ -12,7 +12,7 @@ const ChatDANI = ({ isOpen, onClose }) => {
   // ==========================================
   const [chatQuery, setChatQuery] = useState('');
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: '👋 ¡Hola! Soy DANI, tu asistente de cumplimiento ISO 27001. Tengo 50 módulos expertos cargados. ¿Qué área deseas auditar hoy?' }
+    { role: 'assistant', content: '👋 ¡Hola! Soy DANI, tu asistente de cumplimiento ISO 27001 potenciado con RAG (Generación Aumentada por Recuperación).\n\nPuedes hacerme cualquier consulta abierta. Analizaré automáticamente los documentos y políticas que hayas subido en el Evidence Center para darte una evaluación de brechas (Gap Analysis) en tiempo real.' }
   ]);
   const [isThinking, setIsThinking] = useState(false);
 
@@ -138,7 +138,7 @@ const ChatDANI = ({ isOpen, onClose }) => {
             <Sparkles size={18} color="white" />
           </div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '14px', color: t.text }}>DANI IA Expert (50)</div>
+            <div style={{ fontWeight: 600, fontSize: '14px', color: t.text }}>DANI Asistente RAG</div>
             <div style={{ fontSize: '11px', color: '#10b981' }}>● En línea</div>
           </div>
         </div>
@@ -164,7 +164,7 @@ const ChatDANI = ({ isOpen, onClose }) => {
         {isThinking && (
           <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
             <div style={{ background: t.inputBg, padding: '12px 16px', borderRadius: '12px 12px 12px 4px', fontSize: '13px', color: t.textDim }}>
-              DANI está analizando el vector...
+              DANI está recuperando evidencias y analizando...
             </div>
           </div>
         )}
@@ -187,36 +187,6 @@ const ChatDANI = ({ isOpen, onClose }) => {
         }
       `}</style>
 
-      {/* LISTA DE 50 PROMPTS AUTOMATIZADOS CON MAP (DISEÑO MEJORADO) */}
-      <div 
-        className="dani-scrollbar"
-        style={{ 
-          padding: '0 8px', margin: '0 8px 8px 8px', display: 'flex', flexWrap: 'wrap', gap: '8px', 
-          maxHeight: '120px', overflowY: 'auto',
-          scrollbarWidth: 'thin', scrollbarColor: 'rgba(16, 185, 129, 0.5) transparent'
-        }}>
-        {systemPrompts.map((prompt) => {
-          const PromptIcon = prompt.icon;
-          return (
-            <button
-              key={prompt.id}
-              onClick={() => handleSendMessage(prompt.text)}
-              disabled={isThinking}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
-                background: darkMode ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)',
-                border: `1px solid rgba(16, 185, 129, 0.2)`, borderRadius: '20px',
-                color: '#10b981', fontSize: '11px', fontWeight: 600, cursor: isThinking ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <PromptIcon size={12} />
-              {prompt.label}
-            </button>
-          );
-        })}
-      </div>
-
       {/* Input */}
       <div style={{ padding: '16px', borderTop: `1px solid ${t.border}` }}>
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -224,7 +194,7 @@ const ChatDANI = ({ isOpen, onClose }) => {
             value={chatQuery} 
             onChange={(e) => setChatQuery(e.target.value)} 
             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Pregunta sobre ISO 27001..." 
+            placeholder="Pregunta sobre tus evidencias e ISO 27001..." 
             style={{ 
               flex: 1, padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, 
               borderRadius: '12px', color: t.text, fontSize: '13px', outline: 'none' 

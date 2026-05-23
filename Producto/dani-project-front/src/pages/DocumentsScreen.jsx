@@ -99,19 +99,37 @@ function DocumentsScreen() {
     setChatQuery('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      const aiResponse = {
-        role: 'assistant',
-        content: language === 'es' 
-          ? `Según la Política de Seguridad (v2.1), encontré información sobre "${message.substring(0, 50)}..."`
-          : language === 'pt'
-          ? `De acordo com a Política de Segurança (v2.1), encontrei informações sobre "${message.substring(0, 50)}..."`
-          : `Based on the Information Security Policy (v2.1), I found information about "${message.substring(0, 50)}..."`,
-        sources: ['Information Security Policy', 'Access Control Policy']
-      };
-      setChatMessages(prev => [...prev, aiResponse]);
-      setIsTyping(false);
-    }, 1500);
+    import('../services/api').then(({ chatAPI }) => {
+      chatAPI.sendMessage(message).then(res => {
+        setIsTyping(false);
+        if (res.error) {
+          const aiResponse = {
+            role: 'assistant',
+            content: language === 'es'
+              ? `Lo siento, ocurrió un error al consultar a Dani: ${res.error}`
+              : `Sorry, an error occurred while consulting Dani: ${res.error}`,
+            sources: []
+          };
+          setChatMessages(prev => [...prev, aiResponse]);
+        } else {
+          const replyText = res.reply || res.message || "";
+          const aiResponse = {
+            role: 'assistant',
+            content: replyText,
+            sources: ['Information Security Policy', 'Access Control Policy']
+          };
+          setChatMessages(prev => [...prev, aiResponse]);
+        }
+      }).catch(err => {
+        setIsTyping(false);
+        const aiResponse = {
+          role: 'assistant',
+          content: `Error: ${err.message}`,
+          sources: []
+        };
+        setChatMessages(prev => [...prev, aiResponse]);
+      });
+    });
   };
 
   const getStatusColor = (s) => s === 'approved' ? '#10b981' : s === 'review' ? '#f59e0b' : '#64748b';

@@ -22,6 +22,25 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 Starting DANI27001 Backend...")
+    
+    # 1. Intentar verificar/crear la extensión pgvector en una conexión independiente
+    async with engine.connect() as conn:
+        from app.dependencies.database import set_pgvector_supported
+        try:
+            from sqlalchemy import text
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+            await conn.commit()
+            logger.info("✅ pgvector extension verified/created")
+            set_pgvector_supported(True)
+        except Exception as ext_err:
+            logger.warning(f"⚠️ Warning: No se pudo inicializar la extensión pgvector (se usará fallback FLOAT[]): {ext_err}")
+            set_pgvector_supported(False)
+            try:
+                await conn.rollback()
+            except Exception:
+                pass
+                
+    # 2. Crear/Verificar tablas en una transacción limpia y separada
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         logger.info("✅ Database tables created/verified")

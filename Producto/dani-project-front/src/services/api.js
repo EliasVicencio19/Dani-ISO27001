@@ -5,59 +5,85 @@
 // 🔥 URL BASE (SOLO CAMBIA ESTO SEGÚN ENTORNO)
 // ============================================
 // Para PRODUCCIÓN (Vercel):
-export const API_URL = 'https://dani-iso27001-backend.onrender.com';
+// export const API_URL = 'https://dani-iso27001-backend.onrender.com';
 
 // Para DESARROLLO LOCAL (comenta la de arriba y descomenta esta):
-// export const API_URL = 'http://localhost:8000';
+export const API_URL = 'http://localhost:8000';
 
 // ============================================
 // 👤 USER API
 // ============================================
 export const userAPI = {
   getUsers: async (token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/users`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
     });
     return response.json();
+  },
+  getAll: async (token) => {
+    return userAPI.getUsers(token);
   },
   
   getUserById: async (userId, token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/users/${userId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
     });
     return response.json();
   },
+  getOne: async (userId, token) => {
+    return userAPI.getUserById(userId, token);
+  },
   
   createUser: async (userData, token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
       },
       body: JSON.stringify(userData)
     });
     return response.json();
   },
+  create: async (userData, token) => {
+    return userAPI.createUser(userData, token);
+  },
   
   updateUser: async (userId, userData, token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/users/${userId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
       },
       body: JSON.stringify(userData)
     });
     return response.json();
   },
+  update: async (userId, userData, token) => {
+    return userAPI.updateUser(userId, userData, token);
+  },
   
   deleteUser: async (userId, token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/users/${userId}`, {
       method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
     });
     return response.json();
+  },
+  delete: async (userId, token) => {
+    return userAPI.deleteUser(userId, token);
   }
 };
 
@@ -65,13 +91,14 @@ export const userAPI = {
 // 📌 CHAT API
 // ============================================
 export const chatAPI = {
-  sendMessage: async (message, token) => {
+  sendMessage: async (message, token = null) => {
     try {
+      const resolvedToken = token || localStorage.getItem('token');
       const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
         },
         body: JSON.stringify({ message })
       });
@@ -111,41 +138,60 @@ export const documentsAPI = {
 // 📊 COMPLIANCE API
 // ============================================
 export const complianceAPI = {
-  getControls: async (token, category = null) => {
-    const url = category 
-      ? `${API_URL}/api/compliance/controls?category=${category}`
+  getControls: async (token = null, category = null) => {
+    let activeToken = token;
+    let activeCategory = category;
+    
+    // Si el primer parámetro no parece ser un JWT token (no tiene puntos) y es una categoría
+    if (typeof token === 'string' && token && !token.includes('.')) {
+      activeCategory = token;
+      activeToken = null;
+    }
+    
+    const resolvedToken = activeToken || localStorage.getItem('token');
+    
+    const url = activeCategory 
+      ? `${API_URL}/api/compliance/controls?category=${activeCategory}`
       : `${API_URL}/api/compliance/controls`;
+      
     const response = await fetch(url, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
+      }
     });
     return response.json();
   },
   
-  getStatistics: async (token) => {
+  getStatistics: async (token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/compliance/statistics`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
+      }
     });
     return response.json();
   },
   
-  assessControl: async (controlId, evidence, token) => {
+  assessControl: async (controlId, evidence, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/compliance/assess/${controlId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
       },
       body: JSON.stringify(evidence)
     });
     return response.json();
   },
   
-  fullAssessment: async (organizationData, token) => {
+  fullAssessment: async (organizationData, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/compliance/full-assessment`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
       },
       body: JSON.stringify(organizationData)
     });
@@ -212,6 +258,20 @@ export const evidenceAPI = {
       body: formData
     });
     return response.json();
+  },
+
+  exportZip: async (token) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/evidence/export/zip`, {
+      headers: { 
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Error al exportar las evidencias en ZIP');
+    }
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
   }
 };
 
@@ -220,18 +280,22 @@ export const evidenceAPI = {
 // ============================================
 export const riskAPI = {
   getAll: async (token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/risks`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
     });
     return response.json();
   },
   
   create: async (riskData, token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/risks`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
       },
       body: JSON.stringify(riskData)
     });
@@ -239,8 +303,23 @@ export const riskAPI = {
   },
   
   getStatistics: async (token) => {
+    const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/risks/statistics`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
+    });
+    return response.json();
+  },
+
+  analyzeWithAI: async (riskId, token) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/risks/${riskId}/analyze`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
     });
     return response.json();
   }

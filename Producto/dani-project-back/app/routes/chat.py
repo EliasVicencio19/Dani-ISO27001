@@ -1,21 +1,80 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-# Usamos el servicio oficial del backend que ya tiene configurado DeepSeek
-from app.services.ai_service import AIService
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
-# Declaramos el router apuntando exactamente a lo que espera React
+from app.dependencies.database import get_db
+from app.services.ai_service import AIService
+from app.services.embedding_service import EmbeddingService
+from app.models.evidence_chunk import EvidenceChunk
+from app.models.normative_chunk import NormativeChunk
+
 router = APIRouter(prefix="/api/chat", tags=["Chat IA"])
 ai_service = AIService()
+embedding_service = EmbeddingService()
 
-# Definimos el esquema exacto que envía tu archivo api.js de React
 class ChatRequest(BaseModel):
     message: str
 
 @router.post("/")
-async def chat_endpoint(request: ChatRequest):
-    """Recibe el mensaje de React y devuelve la respuesta de DANI usando AIService"""
-    # Llamamos a la función chat() de Elías que ya valida las llaves de DeepSeek
-    reply = await ai_service.chat(request.message)
+async def chat_endpoint(request: ChatRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Recibe el mensaje de React, busca fragmentos tanto en las evidencias subidas 
+    como en la base normativa oficial (ISO 27001 / ISO 27002), e inyecta ambos como contexto a DANI.
+    """
+    context = ""
+    context_blocks = []
     
-    # Devolvemos la propiedad 'reply' que React mapea en tu ChatDANI.jsx
+    try:
+        # 1. Generar embedding de 384 dimensiones para la consulta
+        query_vector = embedding_service.generate_single_embedding(request.message)
+        
+        # 2. Consultar similitud de coseno en pgvector - Evidencias del cliente
+        try:
+            ev_stmt = (
+                select(EvidenceChunk)
+                .options(selectinload(EvidenceChunk.evidence))
+                .order_by(EvidenceChunk.embedding.cosine_distance(query_vector))
+                .limit(3)
+            )
+            ev_result = await db.execute(ev_stmt)
+            ev_chunks = ev_result.scalars().all()
+            for chunk in ev_chunks:
+                control_ref = chunk.evidence.evidence_metadata.get("control", "General") if chunk.evidence else "General"
+                context_blocks.append(
+                    f"--- EVIDENCIA INTERNA DE LA ORGANIZACIÓN (Control: {control_ref}) ---\n"
+                    f"Documento de evidencia: {chunk.evidence.title if chunk.evidence else 'Sin título'}\n"
+                    f"Texto extraído: {chunk.content}"
+                )
+        except Exception as ev_err:
+            print(f"⚠️ Error al consultar EvidenceChunk en RAG: {ev_err}")
+
+        # 3. Consultar similitud de coseno en pgvector - Base Normativa ISO Oficial
+        try:
+            norm_stmt = (
+                select(NormativeChunk)
+                .order_by(NormativeChunk.embedding.cosine_distance(query_vector))
+                .limit(3)
+            )
+            norm_result = await db.execute(norm_stmt)
+            norm_chunks = norm_result.scalars().all()
+            for chunk in norm_chunks:
+                context_blocks.append(
+                    f"--- NORMATIVA OFICIAL ({chunk.document_name} | Cláusula: {chunk.clause}) ---\n"
+                    f"Requisito/Guía: {chunk.content}"
+                )
+        except Exception as norm_err:
+            print(f"⚠️ Error al consultar NormativeChunk en RAG: {norm_err}")
+            
+        if context_blocks:
+            context = "\n\n".join(context_blocks)
+            print(f"🔍 RAG: Contexto combinado inyectado con éxito ({len(context_blocks)} fragmentos).")
+            
+    except Exception as rag_err:
+        print(f"⚠️ Error general al recuperar contexto RAG: {rag_err}")
+
+    # 4. Enviar a la IA (DeepSeek) enriqueciendo el prompt con todo el contexto recuperado
+    reply = await ai_service.chat(request.message, context=context if context else None)
+    
     return {"reply": reply}
