@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from app.dependencies.database import get_db
 from app.services.ai_service import AIService
 from app.services.embedding_service import EmbeddingService
-from app.models.evidence_chunk import EvidenceChunk
+#from app.models.evidence_chunk import EvidenceChunk
 from app.models.normative_chunk import NormativeChunk
 
 router = APIRouter(prefix="/api/chat", tags=["Chat IA"])
