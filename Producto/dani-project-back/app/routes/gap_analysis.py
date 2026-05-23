@@ -1,0 +1,140 @@
+# app/routes/gap_analysis.py
+from fastapi import APIRouter, Depends, HTTPException
+from typing import Dict, Any, List
+from datetime import datetime
+
+from app.dependencies.auth import get_current_user
+from app.dependencies.database import get_db
+from app.services.gap_analyzer import GapAnalyzer
+from app.models.gap_analysis import GapAnalysis, RemediationAction, ControlImplementation
+
+router = APIRouter(prefix="/api/gap-analysis", tags=["Gap Analysis"])
+
+@router.get("/full")
+async def get_full_gap_analysis(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_db)
+) -> Dict[str, Any]:
+    """Obtener análisis de brecha completo"""
+    analyzer = GapAnalyzer(db)
+    result = await analyzer.generate_complete_gap_analysis()
+    return result
+
+@router.get("/controls")
+async def get_control_gaps(
+    priority: str = None,
+    category: str = None,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_db)
+) -> Dict:
+    """Obtener brechas de controles ISO"""
+    analyzer = GapAnalyzer(db)
+    result = await analyzer._analyze_controls()
+    
+    if priority:
+        result["by_priority"]["filtered"] = result["by_priority"].get(priority, [])
+    if category:
+        result["by_category"]["filtered"] = result["by_category"].get(category, {})
+    
+    return result
+
+@router.get("/maturity")
+async def get_maturity_matrix(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_db)
+) -> Dict:
+    """Obtener matriz de madurez"""
+    analyzer = GapAnalyzer(db)
+    result = await analyzer._calculate_maturity()
+    return result
+
+@router.get("/remediation-plan")
+async def get_remediation_plan(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_db)
+) -> Dict:
+    """Obtener plan de remediación"""
+    analyzer = GapAnalyzer(db)
+    result = await analyzer._create_remediation_plan()
+    return result
+
+@router.get("/kpi-dashboard")
+async def get_kpi_dashboard(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_db)
+) -> Dict:
+    """Obtener dashboard de KPIs"""
+    analyzer = GapAnalyzer(db)
+    result = await analyzer._generate_kpi_dashboard()
+    return result
+
+@router.get("/score")
+async def get_compliance_score(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_db)
+) -> Dict:
+    """Obtener score de cumplimiento"""
+    analyzer = GapAnalyzer(db)
+    result = await analyzer._calculate_overall_score()
+    return result
+
+@router.post("/remediation-actions/{gap_id}")
+async def create_remediation_action(
+    gap_id: str,
+    action_data: Dict[str, Any],
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_db)
+):
+    """Crear acción de remediación para una brecha"""
+    # Buscar el gap
+    result = await db.execute(select(GapAnalysis).where(GapAnalysis.id == gap_id))
+    gap = result.scalar_one_or_none()
+    
+    if not gap:
+        raise HTTPException(status_code=404, detail="Gap no encontrado")
+    
+    # Crear acción
+    action = RemediationAction(
+        gap_id=gap_id,
+        title=action_data.get("title"),
+        description=action_data.get("description"),
+        priority=action_data.get("priority", "medium"),
+        estimated_hours=action_data.get("estimated_hours"),
+        assigned_to=action_data.get("assigned_to"),
+        due_date=datetime.fromisoformat(action_data["due_date"]) if action_data.get("due_date") else None
+    )
+    
+    db.add(action)
+    await db.commit()
+    await db.refresh(action)
+    
+    return {"message": "Acción creada", "action": action}
+
+@router.post("/kpi/update")
+async def update_kpi(
+    kpi_id: str,
+    current_value: float,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_db)
+):
+    """Actualizar valor de un KPI"""
+    result = await db.execute(select(KPI).where(KPI.id == kpi_id))
+    kpi = result.scalar_one_or_none()
+    
+    if not kpi:
+        raise HTTPException(status_code=404, detail="KPI no encontrado")
+    
+    kpi.current_value = current_value
+    kpi.last_updated = datetime.utcnow()
+    
+    # Calcular status
+    if current_value >= kpi.target_value:
+        kpi.status = "on_track"
+    elif current_value >= kpi.target_value * 0.7:
+        kpi.status = "at_risk"
+    else:
+        kpi.status = "behind"
+    
+    await db.commit()
+    
+    return {"message": "KPI actualizado", "kpi": kpi}

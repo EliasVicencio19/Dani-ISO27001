@@ -305,4 +305,42 @@ const api = {
   endpoints
 };
 
+// services/api.js - Agregar estas funciones
+
+// Obtener análisis completo
+export const getFullGapAnalysis = async () => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/api/gap-analysis/full`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  return response.json();
+};
+
+// Obtener plan de remediación
+export const getRemediationPlan = async () => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/api/gap-analysis/remediation-plan`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  return response.json();
+};
+
+// Obtener dashboard de KPIs
+export const getKPIDashboard = async () => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/api/gap-analysis/kpi-dashboard`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  return response.json();
+};
+
+// Obtener score de cumplimiento
+export const getComplianceScore = async () => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/api/gap-analysis/score`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  return response.json();
+};
+
 export default api;

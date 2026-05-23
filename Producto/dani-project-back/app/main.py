@@ -6,6 +6,7 @@ import logging
 import uuid
 from datetime import datetime
 from app.routes import chat
+from app.routes import gap_analysis
 
 from app.config import settings
 from app.dependencies.database import engine, Base, AsyncSessionLocal
@@ -86,7 +87,8 @@ app.include_router(risk.router)
 app.include_router(evidence.router)
 app.include_router(documents.router)
 app.include_router(compliance.router)
-app.include_router(chat.router)          
+app.include_router(chat.router)  
+app.include_router(gap_analysis.router)        
 
 @app.get("/")
 async def root():

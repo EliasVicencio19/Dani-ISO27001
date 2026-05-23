@@ -1,0 +1,101 @@
+// src/services/gapAnalysisAPI.js
+import { API_URL } from './api';
+
+const getToken = () => localStorage.getItem('token');
+
+// Headers comunes para requests autenticados
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${getToken()}`
+});
+
+// Obtener análisis completo
+export const getFullGapAnalysis = async () => {
+  const response = await fetch(`${API_URL}/api/gap-analysis/full`, {
+    method: 'GET',
+    headers: authHeaders()
+  });
+  
+  if (!response.ok) {
+    throw new Error('Error al obtener el análisis de brechas');
+  }
+  
+  return response.json();
+};
+
+// Obtener solo controles
+export const getControlGaps = async (priority = null, category = null) => {
+  let url = `${API_URL}/api/gap-analysis/controls`;
+  const params = new URLSearchParams();
+  if (priority) params.append('priority', priority);
+  if (category) params.append('category', category);
+  if (params.toString()) url += `?${params.toString()}`;
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: authHeaders()
+  });
+  
+  return response.json();
+};
+
+// Obtener matriz de madurez
+export const getMaturityMatrix = async () => {
+  const response = await fetch(`${API_URL}/api/gap-analysis/maturity`, {
+    method: 'GET',
+    headers: authHeaders()
+  });
+  
+  return response.json();
+};
+
+// Obtener plan de remediación
+export const getRemediationPlan = async () => {
+  const response = await fetch(`${API_URL}/api/gap-analysis/remediation-plan`, {
+    method: 'GET',
+    headers: authHeaders()
+  });
+  
+  return response.json();
+};
+
+// Obtener dashboard de KPIs
+export const getKPIDashboard = async () => {
+  const response = await fetch(`${API_URL}/api/gap-analysis/kpi-dashboard`, {
+    method: 'GET',
+    headers: authHeaders()
+  });
+  
+  return response.json();
+};
+
+// Obtener score de cumplimiento
+export const getComplianceScore = async () => {
+  const response = await fetch(`${API_URL}/api/gap-analysis/score`, {
+    method: 'GET',
+    headers: authHeaders()
+  });
+  
+  return response.json();
+};
+
+// Actualizar KPI
+export const updateKPI = async (kpiId, currentValue) => {
+  const response = await fetch(`${API_URL}/api/gap-analysis/kpi/update?kpi_id=${kpiId}&current_value=${currentValue}`, {
+    method: 'POST',
+    headers: authHeaders()
+  });
+  
+  return response.json();
+};
+
+// Crear acción de remediación
+export const createRemediationAction = async (gapId, actionData) => {
+  const response = await fetch(`${API_URL}/api/gap-analysis/remediation-actions/${gapId}`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(actionData)
+  });
+  
+  return response.json();
+};

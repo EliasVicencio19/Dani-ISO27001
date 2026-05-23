@@ -1,37 +1,44 @@
 # app/dependencies/database.py
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy import Column, String, DateTime
+from datetime import datetime
+import uuid
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Usa PostgreSQL en lugar de SQLite
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://dani27001_user:HE6m4xe6cQyT02n3WsBXQEttHcaU5vGE@dpg-d81o031j2pic738ogi4g-a.frankfurt-postgres.render.com/dani27001")
+# ============================================
+# 📌 TIMESTAMP MIXIN (agregar esto)
+# ============================================
+class TimestampMixin:
+    """Mixin para agregar timestamps a los modelos"""
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-# Si no hay DATABASE_URL, usar SQLite local (para desarrollo)
+# ✅ Leer URL del .env sin valor por defecto hardcodeado
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+
+# Si no hay DATABASE_URL, error claro
 if not DATABASE_URL:
-    DATABASE_URL = "sqlite+aiosqlite:///./dani27001.db"
-    print("⚠️ Usando SQLite local (modo desarrollo)")
+    raise ValueError("❌ DATABASE_URL no está configurada en el archivo .env")
+
+# Solo mostrar de qué tipo es
+if "sqlite" in DATABASE_URL:
+    print("🗄️ Conectando a SQLite local")
+elif "render.com" in DATABASE_URL:
+    print("☁️ Conectando a PostgreSQL en Render")
 else:
-    # Asegurar que usa asyncpg
-    if "postgresql://" in DATABASE_URL and "+asyncpg" not in DATABASE_URL:
-        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
-    
-    # Agregar SSL requirement si no está
-    if "?" not in DATABASE_URL:
-        DATABASE_URL += "?ssl=require"
-    elif "ssl=require" not in DATABASE_URL:
-        DATABASE_URL += "&ssl=require"
-    
-    print(f"✅ Conectando a PostgreSQL en Render")
+    print("💻 Conectando a PostgreSQL local")
 
-print(f"🔗 URL: {DATABASE_URL[:50]}...")  # Debug (oculta la contraseña parcialmente)
+print(f"🔗 URL: {DATABASE_URL[:60]}...")
 
-# Crear engine para PostgreSQL
+# Crear engine (sin forzar SSL si no está en la URL)
 engine = create_async_engine(
     DATABASE_URL,
-    echo=True,  # Muestra SQL en consola (útil para debugging)
+    echo=True,
     future=True,
     pool_pre_ping=True,
     pool_size=5,
@@ -46,7 +53,6 @@ AsyncSessionLocal = sessionmaker(
 
 Base = declarative_base()
 
-# Dependencia para obtener la sesión
 async def get_db():
     async with AsyncSessionLocal() as session:
         try:
