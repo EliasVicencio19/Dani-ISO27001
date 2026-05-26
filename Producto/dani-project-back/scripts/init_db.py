@@ -28,6 +28,8 @@ async def init_database():
     engine = create_async_engine(DATABASE_URL, echo=True)
     
     async with engine.begin() as conn:
+        from sqlalchemy import text
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
         await conn.run_sync(Base.metadata.create_all)
         print("✅ Todas las tablas fueron creadas exitosamente")
     

@@ -21,11 +21,12 @@ logger = logging.getLogger(__name__)
 # app/main.py - Corregido
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    logger.info("🚀 Starting DANI27001 Backend...")
+    # Initialize DB tables
     async with engine.begin() as conn:
+        from sqlalchemy import text
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
         await conn.run_sync(Base.metadata.create_all)
-        logger.info("✅ Database tables created/verified")
+    logger.info("✅ Database tables created/verified")
     
     # Crear usuario admin por defecto
     from app.services.auth_service import AuthService
