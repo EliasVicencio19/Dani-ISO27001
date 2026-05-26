@@ -114,19 +114,23 @@ export const chatAPI = {
 // 📄 DOCUMENTOS API
 // ============================================
 export const documentsAPI = {
-  getAll: async (token) => {
+  getAll: async (token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/documents`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
+      }
     });
     return response.json();
   },
   
-  generate: async (docType, data, token) => {
+  generate: async (docType, data, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/documents/generate/${docType}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
       },
       body: JSON.stringify(data)
     });
