@@ -42,7 +42,7 @@ const DocGeneratorScreen = () => {
         chapter_number: selectedChapter.number 
       };
       
-      const response = await documentsAPI.generateDocument(`chapter_${selectedChapter.id}`, promptData);
+      const response = await documentsAPI.generate(`chapter_${selectedChapter.id}`, promptData);
       const text = response.content || response.text || response.generated_text;
       
       if (!text) throw new Error("La API no devolvió contenido de texto.");
