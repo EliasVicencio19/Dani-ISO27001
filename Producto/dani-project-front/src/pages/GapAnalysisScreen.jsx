@@ -290,7 +290,7 @@ function GapAnalysisScreen() {
         const data = await complianceAPI.getControls();
         if (data.controls || data) {
           const controlsData = data.controls || data;
-          const formattedControls = controlsData.slice(0, 7).map(c => ({
+          const formattedControls = controlsData.slice().map(c => ({
             id: c.id || c.control_id,
             name: c.description || c.title,
             category: c.category || 'Organizational',
