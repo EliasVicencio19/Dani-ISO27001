@@ -8,6 +8,8 @@ from sqlalchemy import select
 from app.dependencies.database import AsyncSessionLocal, get_db
 from app.models.iso_controls import ISOCControl
 
+from sqlalchemy.ext.asyncio import AsyncSession  # <--- Agrega esta línea
+
 from app.services.iso_compliance_analyzer import ISOComplianceAnalyzer
 from app.dependencies.auth import get_current_user
 
