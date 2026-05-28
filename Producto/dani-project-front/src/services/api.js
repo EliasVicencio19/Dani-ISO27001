@@ -2,13 +2,11 @@
 // Configuración centralizada de la API
 
 // ============================================
-// 🔥 URL BASE (SOLO CAMBIA ESTO SEGÚN ENTORNO)
+// 🔥 URL BASE AUTOMÁTICA
 // ============================================
-// Para PRODUCCIÓN (Vercel):
-// export const API_URL = 'https://dani-iso27001-backend.onrender.com';
-
-// Para DESARROLLO LOCAL (comenta la de arriba y descomenta esta):
-export const API_URL = 'http://localhost:8000';
+export const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8000'
+  : 'https://dani-iso27001-backend.onrender.com';
 
 // ============================================
 // 👤 USER API
