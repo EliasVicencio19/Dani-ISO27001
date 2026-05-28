@@ -5,7 +5,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 from sqlalchemy import select
-from app.dependencies.database import AsyncSessionLocal
+from app.dependencies.database import AsyncSessionLocal, get_db
 from app.models.iso_controls import ISOCControl
 
 from app.services.iso_compliance_analyzer import ISOComplianceAnalyzer
@@ -30,7 +30,8 @@ class FullAssessmentRequest(BaseModel):
 @router.get("/controls")
 async def get_all_controls(
     category: Optional[str] = Query(None),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Retorna los controles. Si la tabla de Neon está vacía, consume del analizador JSON"""
     if category:
