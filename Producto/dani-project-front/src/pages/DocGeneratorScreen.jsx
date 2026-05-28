@@ -42,7 +42,7 @@ const DocGeneratorScreen = () => {
         chapter_number: selectedChapter.number 
       };
       
-      const response = await documentsAPI.generateDocument(`chapter_${selectedChapter.id}`, promptData);
+      const response = await documentsAPI.generate(`chapter_${selectedChapter.id}`, promptData);
       const text = response.content || response.text || response.generated_text;
       
       if (!text) throw new Error("La API no devolvió contenido de texto.");
@@ -52,7 +52,7 @@ const DocGeneratorScreen = () => {
 
     } catch (error) {
       console.error("Error conectando con la API de IA:", error);
-      const fallbackText = `# ${selectedChapter.number}. ${selectedChapter.title}\n\n## Propósito\nEste capítulo establece los requisitos para mejora dentro del Sistema de Gestión de Seguridad de la Información (SGSI).\n\n## Alcance\nEsta documentación aplica a todo el personal, procesos y sistemas dentro del alcance del SGSI.\n\n## Requisitos\n\n### ${selectedChapter.number}.1 Mejora continua\nLa organización debe determinar las cuestiones necesarias para el correcto funcionamiento de su sistema.\n\n### ${selectedChapter.number}.2 No conformidades\nSi ocurre un problema, se debe registrar en el inventario de eventos.`;
+      const fallbackText = `❌ **ERROR AL GENERAR EL DOCUMENTO**\n\nNo se pudo conectar con la IA o el Backend.\n\n**Detalle del error:**\n${error.message}\n\nPor favor, verifica la consola del navegador (F12) o la terminal del backend para más detalles.`;
       
       setGeneratedContent(prev => ({ ...prev, [selectedChapter.id]: fallbackText }));
       setDocumentContent(prev => ({ ...prev, [selectedChapter.id]: fallbackText }));

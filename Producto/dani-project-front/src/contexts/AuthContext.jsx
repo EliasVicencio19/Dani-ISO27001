@@ -1,10 +1,8 @@
 // Producto/dani-project-front/src/contexts/AuthContext.jsx
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { API_URL } from '../services/api';
 
-// ✅ Usar REACT_APP_API_URL para CRA, no VITE_API_URL
-const API_URL = process.env.REACT_APP_API_URL || 'https://dani-iso27001-backend.onrender.com';
-
-console.log('🔍 API_URL:', API_URL);
+console.log('🔍 API_URL GLOBAL:', API_URL);
 
 const AuthContext = createContext(null);
 

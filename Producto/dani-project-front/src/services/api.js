@@ -2,13 +2,11 @@
 // Configuración centralizada de la API
 
 // ============================================
-// 🔥 URL BASE (SOLO CAMBIA ESTO SEGÚN ENTORNO)
+// 🔥 URL BASE AUTOMÁTICA
 // ============================================
-// Para PRODUCCIÓN (Vercel):
-// export const API_URL = 'https://dani-iso27001-backend.onrender.com';
-
-// Para DESARROLLO LOCAL (comenta la de arriba y descomenta esta):
-export const API_URL = 'http://localhost:8000';
+export const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8000'
+  : 'https://dani-iso27001-backend.onrender.com';
 
 // ============================================
 // 👤 USER API
@@ -114,19 +112,23 @@ export const chatAPI = {
 // 📄 DOCUMENTOS API
 // ============================================
 export const documentsAPI = {
-  getAll: async (token) => {
+  getAll: async (token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/documents`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
+      }
     });
     return response.json();
   },
   
-  generate: async (docType, data, token) => {
+  generate: async (docType, data, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/documents/generate/${docType}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
       },
       body: JSON.stringify(data)
     });
