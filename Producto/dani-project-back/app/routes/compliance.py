@@ -33,36 +33,33 @@ class FullAssessmentRequest(BaseModel):
 async def get_all_controls(
     category: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db)  # ✅ esta es la sesión
 ):
-    """Retorna los controles. Si la tabla de Neon está vacía, consume del analizador JSON"""
+    """Retorna los controles."""
     if category:
         controls = analyzer.get_controls_by_category(category)
         return {"category": category, "total": len(controls), "controls": controls}
-        
-    # Intentamos traer datos dinámicos de PostgreSQL primero
-    async with AsyncSessionLocal() as session:
-        stmt = select(ISOCControl)
-        result = await session.execute(stmt)
-        db_controls = result.scalars().all()
-        
-        if db_controls:
-            # Si ya hay datos en Neon.tech, los mapeamos estructurados para React
-            return {
-                "controls": [
-                    {
-                        "id": c.control_id,
-                        "name": c.title,
-                        "description": c.description,
-                        "category": c.category,
-                        "applicable": c.applies,
-                        "status": c.status.lower() if c.status else "notimplemented",
-                        "justification": c.justification
-                    } for c in db_controls
-                ]
-            }
-            
-    # Si la base de datos física está virgen, usamos el archivo parser de Elías como respaldo
+    
+    # ✅ Usar la sesión inyectada, no crear una nueva
+    stmt = select(ISOCControl)
+    result = await db.execute(stmt)
+    db_controls = result.scalars().all()
+    
+    if db_controls:
+        return {
+            "controls": [
+                {
+                    "id": c.control_id,
+                    "name": c.title,
+                    "description": c.description,
+                    "category": c.category,
+                    "applicable": c.applies,
+                    "status": c.status.lower() if c.status else "notimplemented",
+                    "justification": c.justification
+                } for c in db_controls
+            ]
+        }
+    
     return analyzer.get_all_controls()
 
 @router.get("/statistics")
