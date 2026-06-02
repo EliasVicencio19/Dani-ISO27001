@@ -140,28 +140,18 @@ export const documentsAPI = {
 // 📊 COMPLIANCE API
 // ============================================
 export const complianceAPI = {
-  getControls: async (token = null, category = null) => {
-    let activeToken = token;
-    let activeCategory = category;
-    
-    // Si el primer parámetro no parece ser un JWT token (no tiene puntos) y es una categoría
-    if (typeof token === 'string' && token && !token.includes('.')) {
-      activeCategory = token;
-      activeToken = null;
-    }
-    
-    const resolvedToken = activeToken || localStorage.getItem('token');
-    
-    const url = activeCategory 
-      ? `${API_URL}/api/compliance/controls?category=${activeCategory}`
+  getControls: async (token, category = null) => {
+    const url = category 
+      ? `${API_URL}/api/compliance/controls?category=${category}`
       : `${API_URL}/api/compliance/controls`;
-      
     const response = await fetch(url, {
       headers: { 
-        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
     });
     return response.json();
+    
   },
   
   getStatistics: async (token = null) => {

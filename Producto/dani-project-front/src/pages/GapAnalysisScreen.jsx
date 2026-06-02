@@ -1,8 +1,8 @@
 // src/pages/GapAnalysisScreen.jsx
 import React, { useState, useContext, useEffect } from 'react';
-import { 
+import {
   Building2, Target, Users, Lock, Sparkles, Eye,
-  ChevronLeft, ChevronRight, Download, FolderUp, CheckCircle2, 
+  ChevronLeft, ChevronRight, Download, FolderUp, CheckCircle2,
   AlertCircle, Activity, Shield, Edit3, FileCheck, Globe
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
@@ -10,7 +10,7 @@ import { complianceAPI } from '../services/api';
 
 function GapAnalysisScreen() {
   const { theme: t, language, setLanguage } = useContext(ThemeContext);
-  
+
   // ==========================================
   // TRADUCCIONES COMPLETAS
   // ==========================================
@@ -199,7 +199,7 @@ function GapAnalysisScreen() {
       partially: 'Parcialmente'
     }
   };
-  
+
   const tText = translations[language] || translations.en;
 
   // ==========================================
@@ -210,100 +210,100 @@ function GapAnalysisScreen() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [controls, setControls] = useState([
-  { id: '5.1', name: 'Políticas de seguridad de la información', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Requerido para el marco SGSI' },
-  { id: '5.2', name: 'Funciones de seguridad de la información', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Obligatorio para gobernanza' },
-  { id: '5.3', name: 'Separación de funciones', category: 'Organizational', applicable: true, status: 'planned', justification: 'En proceso de implementación' },
-  { id: '5.4', name: 'Responsabilidades de gestión', category: 'Organizational', applicable: true, status: 'planned', justification: 'Pendiente de asignación' },
-  { id: '5.5', name: 'Contacto con las autoridades', category: 'Organizational', applicable: true, status: 'notImplemented', justification: 'Por definir' },
-  { id: '5.6', name: 'Contacto con grupos de interés', category: 'Organizational', applicable: true, status: 'notImplemented', justification: 'Por definir' },
-  { id: '5.7', name: 'Inteligencia de amenazas', category: 'Organizational', applicable: true, status: 'notImplemented', justification: 'Por implementar' },
-  { id: '5.8', name: 'Seguridad en gestión de proyectos', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.9', name: 'Inventario de activos', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.10', name: 'Uso aceptable de la información', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.11', name: 'Devolución de activos', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado' },
-  { id: '5.12', name: 'Clasificación de la información', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado' },
-  { id: '5.13', name: 'Etiquetado de la información', category: 'Organizational', applicable: true, status: 'notImplemented', justification: 'Pendiente' },
-  { id: '5.14', name: 'Transferencia de información', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.15', name: 'Control de acceso', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.16', name: 'Gestión de identidades', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado Q1 2026' },
-  { id: '5.17', name: 'Información de autenticación', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.18', name: 'Derechos de acceso', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.19', name: 'Seguridad en proveedores', category: 'Organizational', applicable: true, status: 'planned', justification: 'En evaluación' },
-  { id: '5.20', name: 'Acuerdos con proveedores', category: 'Organizational', applicable: true, status: 'planned', justification: 'En desarrollo' },
-  { id: '5.21', name: 'Cadena de suministro TIC', category: 'Organizational', applicable: false, status: 'notImplemented', justification: 'No aplica' },
-  { id: '5.22', name: 'Monitoreo de proveedores', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado' },
-  { id: '5.23', name: 'Servicios en la nube', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.24', name: 'Planificación de incidentes', category: 'Organizational', applicable: true, status: 'planned', justification: 'En desarrollo' },
-  { id: '5.25', name: 'Evaluación de eventos', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.26', name: 'Respuesta a incidentes', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.27', name: 'Aprendizaje de incidentes', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado' },
-  { id: '5.28', name: 'Obtención de pruebas', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado' },
-  { id: '5.29', name: 'Seguridad durante interrupciones', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado' },
-  { id: '5.30', name: 'Preparación TIC', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.31', name: 'Requisitos legales', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.32', name: 'Propiedad intelectual', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.33', name: 'Protección de registros', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.34', name: 'Privacidad y PII', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.35', name: 'Revisión independiente', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado' },
-  { id: '5.36', name: 'Cumplimiento de políticas', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '5.37', name: 'Procedimientos operativos', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '6.1', name: 'Verificación de antecedentes', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '6.2', name: 'Términos de empleo', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '6.3', name: 'Concienciación y capacitación', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '6.4', name: 'Proceso disciplinario', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '6.5', name: 'Responsabilidades post-empleo', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '6.6', name: 'Acuerdos de confidencialidad', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '6.7', name: 'Trabajo remoto', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '6.8', name: 'Reporte de eventos', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '7.1', name: 'Perímetros de seguridad física', category: 'Physical', applicable: false, status: 'notImplemented', justification: 'Cloud - No aplica' },
-  { id: '7.2', name: 'Control de entrada físico', category: 'Physical', applicable: false, status: 'notImplemented', justification: 'Cloud - No aplica' },
-  { id: '7.3', name: 'Seguridad de oficinas', category: 'Physical', applicable: false, status: 'notImplemented', justification: 'Cloud - No aplica' },
-  { id: '7.4', name: 'Monitoreo de seguridad física', category: 'Physical', applicable: false, status: 'notImplemented', justification: 'Cloud - No aplica' },
-  { id: '7.5', name: 'Protección contra amenazas físicas', category: 'Physical', applicable: false, status: 'notImplemented', justification: 'Cloud - No aplica' },
-  { id: '7.6', name: 'Trabajo en áreas seguras', category: 'Physical', applicable: false, status: 'notImplemented', justification: 'Cloud - No aplica' },
-  { id: '7.7', name: 'Escritorio y pantalla limpia', category: 'Physical', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '7.8', name: 'Ubicación de equipos', category: 'Physical', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '7.9', name: 'Seguridad de activos externos', category: 'Physical', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '7.10', name: 'Medios de almacenamiento', category: 'Physical', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '7.11', name: 'Servicios de soporte', category: 'Physical', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '7.12', name: 'Seguridad del cableado', category: 'Physical', applicable: false, status: 'notImplemented', justification: 'Cloud - No aplica' },
-  { id: '7.13', name: 'Mantenimiento de equipos', category: 'Physical', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '7.14', name: 'Eliminación segura', category: 'Physical', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.1', name: 'Dispositivos de punto final', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.2', name: 'Accesos privilegiados', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.3', name: 'Restricción de acceso', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.4', name: 'Acceso al código fuente', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.5', name: 'Autenticación segura', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.6', name: 'Gestión de capacidad', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.7', name: 'Protección contra malware', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.8', name: 'Gestión de vulnerabilidades', category: 'Technological', applicable: true, status: 'planned', justification: 'Planificado' },
-  { id: '8.9', name: 'Gestión de configuración', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.10', name: 'Eliminación de información', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.11', name: 'Enmascaramiento de datos', category: 'Technological', applicable: false, status: 'notImplemented', justification: 'No necesario' },
-  { id: '8.12', name: 'Prevención de fuga datos', category: 'Technological', applicable: true, status: 'planned', justification: 'Planificado' },
-  { id: '8.13', name: 'Copia de seguridad', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.14', name: 'Redundancia', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.15', name: 'Registro', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.16', name: 'Monitoreo de actividades', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.17', name: 'Sincronización de relojes', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.18', name: 'Programas privilegiados', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.19', name: 'Instalación de software', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.20', name: 'Seguridad de redes', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.21', name: 'Seguridad servicios red', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.22', name: 'Segregación de redes', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.23', name: 'Filtrado web', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.24', name: 'Criptografía', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.25', name: 'Desarrollo seguro', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.26', name: 'Requisitos aplicaciones', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.27', name: 'Arquitectura segura', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.28', name: 'Codificación segura', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.29', name: 'Pruebas de seguridad', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.30', name: 'Desarrollo externalizado', category: 'Technological', applicable: false, status: 'notImplemented', justification: 'No aplica' },
-  { id: '8.31', name: 'Separación de entornos', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.32', name: 'Gestión de cambios', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.33', name: 'Información de pruebas', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
-  { id: '8.34', name: 'Protección auditorías', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' }
-]);
+    { id: '5.1', name: 'Políticas de seguridad de la información', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Requerido para el marco SGSI' },
+    { id: '5.2', name: 'Funciones de seguridad de la información', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Obligatorio para gobernanza' },
+    { id: '5.3', name: 'Separación de funciones', category: 'Organizational', applicable: true, status: 'planned', justification: 'En proceso de implementación' },
+    { id: '5.4', name: 'Responsabilidades de gestión', category: 'Organizational', applicable: true, status: 'planned', justification: 'Pendiente de asignación' },
+    { id: '5.5', name: 'Contacto con las autoridades', category: 'Organizational', applicable: true, status: 'notImplemented', justification: 'Por definir' },
+    { id: '5.6', name: 'Contacto con grupos de interés', category: 'Organizational', applicable: true, status: 'notImplemented', justification: 'Por definir' },
+    { id: '5.7', name: 'Inteligencia de amenazas', category: 'Organizational', applicable: true, status: 'notImplemented', justification: 'Por implementar' },
+    { id: '5.8', name: 'Seguridad en gestión de proyectos', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.9', name: 'Inventario de activos', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.10', name: 'Uso aceptable de la información', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.11', name: 'Devolución de activos', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado' },
+    { id: '5.12', name: 'Clasificación de la información', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado' },
+    { id: '5.13', name: 'Etiquetado de la información', category: 'Organizational', applicable: true, status: 'notImplemented', justification: 'Pendiente' },
+    { id: '5.14', name: 'Transferencia de información', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.15', name: 'Control de acceso', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.16', name: 'Gestión de identidades', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado Q1 2026' },
+    { id: '5.17', name: 'Información de autenticación', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.18', name: 'Derechos de acceso', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.19', name: 'Seguridad en proveedores', category: 'Organizational', applicable: true, status: 'planned', justification: 'En evaluación' },
+    { id: '5.20', name: 'Acuerdos con proveedores', category: 'Organizational', applicable: true, status: 'planned', justification: 'En desarrollo' },
+    { id: '5.21', name: 'Cadena de suministro TIC', category: 'Organizational', applicable: false, status: 'notImplemented', justification: 'No aplica' },
+    { id: '5.22', name: 'Monitoreo de proveedores', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado' },
+    { id: '5.23', name: 'Servicios en la nube', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.24', name: 'Planificación de incidentes', category: 'Organizational', applicable: true, status: 'planned', justification: 'En desarrollo' },
+    { id: '5.25', name: 'Evaluación de eventos', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.26', name: 'Respuesta a incidentes', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.27', name: 'Aprendizaje de incidentes', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado' },
+    { id: '5.28', name: 'Obtención de pruebas', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado' },
+    { id: '5.29', name: 'Seguridad durante interrupciones', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado' },
+    { id: '5.30', name: 'Preparación TIC', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.31', name: 'Requisitos legales', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.32', name: 'Propiedad intelectual', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.33', name: 'Protección de registros', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.34', name: 'Privacidad y PII', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.35', name: 'Revisión independiente', category: 'Organizational', applicable: true, status: 'planned', justification: 'Planificado' },
+    { id: '5.36', name: 'Cumplimiento de políticas', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '5.37', name: 'Procedimientos operativos', category: 'Organizational', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '6.1', name: 'Verificación de antecedentes', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '6.2', name: 'Términos de empleo', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '6.3', name: 'Concienciación y capacitación', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '6.4', name: 'Proceso disciplinario', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '6.5', name: 'Responsabilidades post-empleo', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '6.6', name: 'Acuerdos de confidencialidad', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '6.7', name: 'Trabajo remoto', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '6.8', name: 'Reporte de eventos', category: 'People', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '7.1', name: 'Perímetros de seguridad física', category: 'Physical', applicable: false, status: 'notImplemented', justification: 'Cloud - No aplica' },
+    { id: '7.2', name: 'Control de entrada físico', category: 'Physical', applicable: false, status: 'notImplemented', justification: 'Cloud - No aplica' },
+    { id: '7.3', name: 'Seguridad de oficinas', category: 'Physical', applicable: false, status: 'notImplemented', justification: 'Cloud - No aplica' },
+    { id: '7.4', name: 'Monitoreo de seguridad física', category: 'Physical', applicable: false, status: 'notImplemented', justification: 'Cloud - No aplica' },
+    { id: '7.5', name: 'Protección contra amenazas físicas', category: 'Physical', applicable: false, status: 'notImplemented', justification: 'Cloud - No aplica' },
+    { id: '7.6', name: 'Trabajo en áreas seguras', category: 'Physical', applicable: false, status: 'notImplemented', justification: 'Cloud - No aplica' },
+    { id: '7.7', name: 'Escritorio y pantalla limpia', category: 'Physical', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '7.8', name: 'Ubicación de equipos', category: 'Physical', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '7.9', name: 'Seguridad de activos externos', category: 'Physical', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '7.10', name: 'Medios de almacenamiento', category: 'Physical', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '7.11', name: 'Servicios de soporte', category: 'Physical', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '7.12', name: 'Seguridad del cableado', category: 'Physical', applicable: false, status: 'notImplemented', justification: 'Cloud - No aplica' },
+    { id: '7.13', name: 'Mantenimiento de equipos', category: 'Physical', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '7.14', name: 'Eliminación segura', category: 'Physical', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.1', name: 'Dispositivos de punto final', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.2', name: 'Accesos privilegiados', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.3', name: 'Restricción de acceso', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.4', name: 'Acceso al código fuente', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.5', name: 'Autenticación segura', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.6', name: 'Gestión de capacidad', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.7', name: 'Protección contra malware', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.8', name: 'Gestión de vulnerabilidades', category: 'Technological', applicable: true, status: 'planned', justification: 'Planificado' },
+    { id: '8.9', name: 'Gestión de configuración', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.10', name: 'Eliminación de información', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.11', name: 'Enmascaramiento de datos', category: 'Technological', applicable: false, status: 'notImplemented', justification: 'No necesario' },
+    { id: '8.12', name: 'Prevención de fuga datos', category: 'Technological', applicable: true, status: 'planned', justification: 'Planificado' },
+    { id: '8.13', name: 'Copia de seguridad', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.14', name: 'Redundancia', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.15', name: 'Registro', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.16', name: 'Monitoreo de actividades', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.17', name: 'Sincronización de relojes', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.18', name: 'Programas privilegiados', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.19', name: 'Instalación de software', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.20', name: 'Seguridad de redes', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.21', name: 'Seguridad servicios red', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.22', name: 'Segregación de redes', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.23', name: 'Filtrado web', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.24', name: 'Criptografía', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.25', name: 'Desarrollo seguro', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.26', name: 'Requisitos aplicaciones', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.27', name: 'Arquitectura segura', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.28', name: 'Codificación segura', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.29', name: 'Pruebas de seguridad', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.30', name: 'Desarrollo externalizado', category: 'Technological', applicable: false, status: 'notImplemented', justification: 'No aplica' },
+    { id: '8.31', name: 'Separación de entornos', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.32', name: 'Gestión de cambios', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.33', name: 'Información de pruebas', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' },
+    { id: '8.34', name: 'Protección auditorías', category: 'Technological', applicable: true, status: 'implemented', justification: 'Implementado' }
+  ]);
   const [isSaving, setIsSaving] = useState(false);
   const [filterApplicable, setFilterApplicable] = useState('all');
   const [showJustificationModal, setShowJustificationModal] = useState(null);
@@ -313,7 +313,7 @@ function GapAnalysisScreen() {
   // DATOS DE LAS FASES
   // ==========================================
   const phases = [
-    { 
+    {
       id: 'context', name: tText.contextLeadership, clause: tText.clauses45, icon: Building2, color: '#3b82f6',
       questions: [
         { id: 'q1', title: tText.q1Title, question: tText.q1Question, options: [tText.yes, tText.no], critical: true },
@@ -321,20 +321,20 @@ function GapAnalysisScreen() {
         { id: 'q3', title: tText.q3Title, question: tText.q3Question, options: [tText.yes, tText.no], critical: true }
       ]
     },
-    { 
+    {
       id: 'planning', name: tText.planningRisk, clause: tText.clause6, icon: Target, color: '#10b981',
       questions: [
         { id: 'q4', title: tText.q4Title, question: tText.q4Question, options: [tText.yes, tText.no], critical: true },
         { id: 'q5', title: tText.q5Title, question: tText.q5Question, options: [tText.yes, tText.partially, tText.no], critical: true }
       ]
     },
-    { 
+    {
       id: 'support', name: tText.supportOps, clause: tText.clauses78, icon: Users, color: '#f59e0b',
       questions: [
         { id: 'q6', title: tText.q6Title, question: tText.q6Question, options: [tText.yes, tText.partially, tText.no], critical: false }
       ]
     },
-    { 
+    {
       id: 'annex', name: tText.annexA, clause: tText.annexAtext, icon: Lock, color: '#a855f7',
       questions: [
         { id: 'q7', title: tText.q7Title, question: tText.q7Question, options: [tText.yes, tText.partially, tText.no], critical: true },
@@ -354,7 +354,7 @@ function GapAnalysisScreen() {
     phases[0].questions[1].question = tText.q2Question;
     phases[0].questions[2].title = tText.q3Title;
     phases[0].questions[2].question = tText.q3Question;
-    
+
     phases[1].name = tText.planningRisk;
     phases[1].clause = tText.clause6;
     phases[1].questions[0].title = tText.q4Title;
@@ -362,13 +362,13 @@ function GapAnalysisScreen() {
     phases[1].questions[1].title = tText.q5Title;
     phases[1].questions[1].question = tText.q5Question;
     phases[1].questions[1].options = [tText.yes, tText.partially, tText.no];
-    
+
     phases[2].name = tText.supportOps;
     phases[2].clause = tText.clauses78;
     phases[2].questions[0].title = tText.q6Title;
     phases[2].questions[0].question = tText.q6Question;
     phases[2].questions[0].options = [tText.yes, tText.partially, tText.no];
-    
+
     phases[3].name = tText.annexA;
     phases[3].clause = tText.annexAtext;
     phases[3].questions[0].title = tText.q7Title;
@@ -381,18 +381,22 @@ function GapAnalysisScreen() {
   useEffect(() => {
     const loadISOControls = async () => {
       try {
-        const data = await complianceAPI.getControls();
-        if (data.controls || data) {
-          const controlsData = data.controls || data;
-          const formattedControls = controlsData.slice().map(c => ({
-            id: c.id || c.control_id,
-            name: c.description || c.title,
+        const token = localStorage.getItem('token');
+        console.log('Token usado:', token);
+        const data = await complianceAPI.getControls(token);
+        console.log('Datos recibidos:', data);
+
+        if (data.controls) {
+          const formattedControls = data.controls.map(c => ({
+            id: c.id,
+            name: c.name,
             category: c.category || 'Organizational',
-            applicable: c.applies !== undefined ? c.applies : true,
-            status: c.status === 'Implementado' ? 'implemented' : (c.status === 'Planificado' ? 'planned' : 'notImplemented'),
+            applicable: c.applicable !== undefined ? c.applicable : true,
+            status: c.status === 'implemented' ? 'implemented' : (c.status === 'planned' ? 'planned' : 'notImplemented'),
             justification: c.justification || ''
           }));
           setControls(formattedControls);
+          console.log('✅ Controles cargados desde BD:', formattedControls.length);
         }
       } catch (error) {
         console.error("Error loading ISO controls:", error);
@@ -426,13 +430,13 @@ function GapAnalysisScreen() {
       }
     }, 300);
   };
-  
-  const goToNext = () => { 
+
+  const goToNext = () => {
     if (currentQuestion < currentPhaseData.questions.length - 1) setCurrentQuestion(currentQuestion + 1);
     else if (currentPhase < phases.length - 1) { setCurrentPhase(currentPhase + 1); setCurrentQuestion(0); }
   };
-  
-  const goToPrev = () => { 
+
+  const goToPrev = () => {
     if (currentQuestion > 0) setCurrentQuestion(currentQuestion - 1);
     else if (currentPhase > 0) { setCurrentPhase(currentPhase - 1); setCurrentQuestion(phases[currentPhase - 1].questions.length - 1); }
   };
@@ -510,7 +514,7 @@ function GapAnalysisScreen() {
               <th style={{ padding: '14px 20px', textAlign: 'center', fontSize: '12px', fontWeight: 600, color: t.textDim, width: '120px' }}>{tText.applicable}?</th>
               <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim, width: '140px' }}>{tText.status}</th>
               <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim }}>{tText.justification}</th>
-            /</tr>
+              /</tr>
           </thead>
           <tbody>
             {filteredControls.map((control) => (
@@ -567,17 +571,17 @@ function GapAnalysisScreen() {
   // ==========================================
   return (
     <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
-      
+
       {/* Header con título y botones alineados a la derecha */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', flexWrap: 'wrap', gap: '16px' }}>
-        
+
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '12px' }}>
             {tText.gapAnalysis}
           </h1>
           <p style={{ color: t.textDim, fontSize: '14px', marginTop: '4px' }}>{tText.completeAssessment}</p>
         </div>
-        
+
         {/* Botones a la derecha */}
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => setActiveMainTab('assessment')} style={{ padding: '8px 20px', borderRadius: '6px', background: activeMainTab === 'assessment' ? '#3b82f6' : 'transparent', border: activeMainTab === 'assessment' ? 'none' : `1px solid ${t.border}`, color: activeMainTab === 'assessment' ? 'white' : t.text, fontWeight: 500, fontSize: '13px', cursor: 'pointer' }}>
@@ -592,7 +596,7 @@ function GapAnalysisScreen() {
           <button onClick={handleSaveProgress} disabled={isSaving} style={{ padding: '8px 16px', borderRadius: '6px', background: '#10b981', border: 'none', color: 'white', fontWeight: 500, fontSize: '13px', cursor: isSaving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Download size={14} /> {isSaving ? tText.saving : tText.saveProgress}
           </button>
-          
+
         </div>
       </div>
 
@@ -612,7 +616,7 @@ function GapAnalysisScreen() {
 
           {/* Grid principal del wizard */}
           <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 320px', gap: '24px' }}>
-            
+
             {/* Columna izquierda - FASES */}
             <div>
               <h3 style={{ fontSize: '11px', color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px', paddingLeft: '8px' }}>{tText.phases}</h3>
