@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { 
   Download, Building2, Users, Target, HelpCircle, Zap, Search, RefreshCw,
   Wand2, GitBranch, Edit2, Eye, UserCheck, CheckCircle, Send, 
@@ -18,6 +18,29 @@ const DocGeneratorScreen = () => {
   const [generatedContent, setGeneratedContent] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [documentContent, setDocumentContent] = useState({});
+  const [documentStatus, setDocumentStatus] = useState({});
+  const [isLoadingDoc, setIsLoadingDoc] = useState(false);
+
+  useEffect(() => {
+    if (selectedChapter) {
+      const loadDocument = async () => {
+        setIsLoadingDoc(true);
+        try {
+          const res = await documentsAPI.getDocument(`chapter_${selectedChapter.id}`);
+          if (res && res.content) {
+            setGeneratedContent(prev => ({ ...prev, [selectedChapter.id]: res.content }));
+            setDocumentContent(prev => ({ ...prev, [selectedChapter.id]: res.content }));
+            setDocumentStatus(prev => ({ ...prev, [selectedChapter.id]: res.status }));
+          }
+        } catch (error) {
+          console.log("No existing document found or error fetching", error);
+        } finally {
+          setIsLoadingDoc(false);
+        }
+      };
+      loadDocument();
+    }
+  }, [selectedChapter]);
 
   const chapters = [
     { id: 4, number: '4', title: 'Contexto de la Organización', sections: '4 sections', icon: Building2, color: '#3b82f6' },
@@ -49,6 +72,13 @@ const DocGeneratorScreen = () => {
 
       setGeneratedContent(prev => ({ ...prev, [selectedChapter.id]: text }));
       setDocumentContent(prev => ({ ...prev, [selectedChapter.id]: text }));
+
+      try {
+        await documentsAPI.saveDocument(`chapter_${selectedChapter.id}`, selectedChapter.title, text);
+        setDocumentStatus(prev => ({ ...prev, [selectedChapter.id]: 'draft' }));
+      } catch (saveError) {
+        console.error("Error saving to DB:", saveError);
+      }
 
     } catch (error) {
       console.error("Error conectando con la API de IA:", error);
@@ -116,6 +146,24 @@ const DocGeneratorScreen = () => {
       if (line.trim() === '') return <div key={idx} style={{ height: '12px' }} />;
       return <p key={idx} style={{ color: t.textDim, lineHeight: '1.6', fontSize: '14px' }}>{line}</p>;
     });
+  };
+
+  const advanceWorkflow = async () => {
+    if (!selectedChapter) return;
+    const currentStatus = documentStatus[selectedChapter.id] || 'draft';
+    let nextStatus = 'review';
+    if (currentStatus === 'review') nextStatus = 'approved';
+    if (currentStatus === 'approved') nextStatus = 'published';
+    if (currentStatus === 'published') return;
+    
+    try {
+      await documentsAPI.updateStatus(`chapter_${selectedChapter.id}`, nextStatus);
+      setDocumentStatus(prev => ({ ...prev, [selectedChapter.id]: nextStatus }));
+      alert(`El documento ha avanzado al estado: ${nextStatus.toUpperCase()}`);
+    } catch (err) {
+      console.error("Error updating status:", err);
+      alert("Error al actualizar el estado del documento.");
+    }
   };
 
   return (
@@ -237,24 +285,37 @@ const DocGeneratorScreen = () => {
                 </div>
                 
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: t.inputBg, border: `2px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Edit2 size={16} color={t.textDim} /></div>
-                    <span style={{ fontSize: '11px', color: t.textDim, fontWeight: 500 }}>Borrador</span>
-                  </div>
-                  <div style={{ width: '40px', height: '1px', background: t.border, margin: '0 10px', alignSelf: 'flex-start', marginTop: '18px' }} />
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', opacity: 0.4 }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'transparent', border: `2px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Eye size={16} color={t.textDim} /></div>
-                    <span style={{ fontSize: '11px', color: t.textDim, fontWeight: 500 }}>Revisión</span>
-                  </div>
-                  <div style={{ width: '40px', height: '1px', background: t.border, margin: '0 10px', alignSelf: 'flex-start', marginTop: '18px', opacity: 0.4 }} />
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', opacity: 0.4 }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'transparent', border: `2px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><UserCheck size={16} color={t.textDim} /></div>
-                    <span style={{ fontSize: '11px', color: t.textDim, fontWeight: 500 }}>Aprobado</span>
-                  </div>
+                  {(() => {
+                    const currentStatus = documentStatus[selectedChapter.id] || 'draft';
+                    const isReview = currentStatus === 'review' || currentStatus === 'approved' || currentStatus === 'published';
+                    const isApproved = currentStatus === 'approved' || currentStatus === 'published';
+                    
+                    return (
+                      <>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#3b82f6', border: `2px solid #3b82f6`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Edit2 size={16} color="white" /></div>
+                          <span style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 600 }}>Borrador</span>
+                        </div>
+                        <div style={{ width: '40px', height: '2px', background: isReview ? '#f59e0b' : t.border, margin: '0 10px', alignSelf: 'flex-start', marginTop: '18px', transition: 'all 0.3s ease' }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', opacity: isReview ? 1 : 0.4, transition: 'all 0.3s ease' }}>
+                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: isReview ? '#f59e0b' : 'transparent', border: `2px solid ${isReview ? '#f59e0b' : t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Eye size={16} color={isReview ? 'white' : t.textDim} /></div>
+                          <span style={{ fontSize: '11px', color: isReview ? '#f59e0b' : t.textDim, fontWeight: isReview ? 600 : 500 }}>Revisión</span>
+                        </div>
+                        <div style={{ width: '40px', height: '2px', background: isApproved ? '#10b981' : t.border, margin: '0 10px', alignSelf: 'flex-start', marginTop: '18px', opacity: isReview ? 1 : 0.4, transition: 'all 0.3s ease' }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', opacity: isApproved ? 1 : 0.4, transition: 'all 0.3s ease' }}>
+                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: isApproved ? '#10b981' : 'transparent', border: `2px solid ${isApproved ? '#10b981' : t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><UserCheck size={16} color={isApproved ? 'white' : t.textDim} /></div>
+                          <span style={{ fontSize: '11px', color: isApproved ? '#10b981' : t.textDim, fontWeight: isApproved ? 600 : 500 }}>Aprobado</span>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
-                <button style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-                  <Send size={16} /> Enviar a Revisión
+                <button onClick={advanceWorkflow} disabled={documentStatus[selectedChapter.id] === 'published'} style={{ padding: '10px 20px', background: documentStatus[selectedChapter.id] === 'published' ? t.hoverBg : '#10b981', border: 'none', borderRadius: '8px', color: documentStatus[selectedChapter.id] === 'published' ? t.textDim : 'white', fontWeight: 600, cursor: documentStatus[selectedChapter.id] === 'published' ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', transition: 'all 0.2s ease' }}>
+                  <Send size={16} /> 
+                  {documentStatus[selectedChapter.id] === 'draft' || !documentStatus[selectedChapter.id] ? 'Enviar a Revisión' : 
+                   documentStatus[selectedChapter.id] === 'review' ? 'Aprobar Documento' : 
+                   documentStatus[selectedChapter.id] === 'approved' ? 'Publicar' : 'Publicado'}
                 </button>
               </div>
 
