@@ -8,6 +8,7 @@ from app.models.evidence_chunk import EvidenceChunk
 from app.models.assessment import RiskAssessment
 from app.models.prompt import AIPrompt
 from app.models.normative_chunk import NormativeChunk
+from app.models.document import Document, DocumentStatus
 
 __all__ = [
     "User", "UserRole",
@@ -15,5 +16,6 @@ __all__ = [
     "Evidence", "EvidenceType",
     "EvidenceChunk",
     "RiskAssessment",
-    "NormativeChunk"
+    "NormativeChunk",
+    "Document", "DocumentStatus"
 ]

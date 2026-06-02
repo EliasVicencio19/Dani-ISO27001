@@ -4,6 +4,11 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.dependencies.auth import get_current_user
+from app.dependencies.database import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from app.models.document import Document, DocumentStatus
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/documents", tags=["Documents"])
 
@@ -69,3 +74,99 @@ IMPORTANTE: Escribe al menos 800 palabras. El tono debe ser altamente corporativ
         "message": f"Documento {doc_type} generado",
         "content": content
     }
+
+class DocumentCreate(BaseModel):
+    chapter_id: str
+    title: str
+    content: str
+
+class DocumentStatusUpdate(BaseModel):
+    status: str
+
+@router.get("/{chapter_id}")
+async def get_document(
+    chapter_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    result = await db.execute(select(Document).filter(Document.chapter_id == chapter_id))
+    document = result.scalar_one_or_none()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return {
+        "id": document.id,
+        "chapter_id": document.chapter_id,
+        "title": document.title,
+        "content": document.content,
+        "status": document.status.value,
+        "version": document.version,
+        "created_at": document.created_at,
+        "updated_at": document.updated_at
+    }
+
+@router.post("/")
+async def save_document(
+    data: DocumentCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    result = await db.execute(select(Document).filter(Document.chapter_id == data.chapter_id))
+    document = result.scalar_one_or_none()
+    
+    if document:
+        document.content = data.content
+        document.title = data.title
+    else:
+        document = Document(
+            chapter_id=data.chapter_id,
+            title=data.title,
+            content=data.content,
+            status=DocumentStatus.DRAFT,
+            version="v1.0"
+        )
+        db.add(document)
+        
+    await db.commit()
+    await db.refresh(document)
+    
+    return {"message": "Document saved successfully", "id": document.id, "status": document.status.value}
+
+@router.put("/{chapter_id}/status")
+async def update_document_status(
+    chapter_id: str,
+    data: DocumentStatusUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    result = await db.execute(select(Document).filter(Document.chapter_id == chapter_id))
+    document = result.scalar_one_or_none()
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    try:
+        new_status = DocumentStatus(data.status.lower())
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid status")
+        
+    # RBAC: Solo admin, auditor o manager pueden aprobar o publicar
+    if new_status in [DocumentStatus.APPROVED, DocumentStatus.PUBLISHED]:
+        user_role = current_user.get("role", "")
+        if user_role not in ["admin", "auditor", "manager"]:
+            raise HTTPException(
+                status_code=403, 
+                detail="Solo administradores, auditores o gerentes pueden aprobar o publicar documentos"
+            )
+            
+    document.status = new_status
+    
+    # Bump version automatically when published
+    if new_status == DocumentStatus.PUBLISHED:
+        parts = document.version.strip("v").split(".")
+        if len(parts) == 2:
+            document.version = f"v{int(parts[0])+1}.0"
+            
+    await db.commit()
+    await db.refresh(document)
+    
+    return {"message": f"Status updated to {document.status.value}", "version": document.version}

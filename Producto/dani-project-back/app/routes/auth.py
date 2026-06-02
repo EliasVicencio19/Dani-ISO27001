@@ -28,6 +28,8 @@ class RegisterRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    role: str = "employee"
+    name: str = ""
 
 # --- 2. RUTAS DE AUTENTICACIÓN ---
 
@@ -121,7 +123,11 @@ async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
         data={"sub": user.email, "role": user.role.value if hasattr(user.role, 'value') else str(user.role)}
     )
     
-    return TokenResponse(access_token=access_token)
+    return TokenResponse(
+        access_token=access_token,
+        role=user.role.value if hasattr(user.role, 'value') else str(user.role),
+        name=user.full_name
+    )
 
 @router.post("/verify")
 async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):

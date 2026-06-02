@@ -133,6 +133,42 @@ export const documentsAPI = {
       body: JSON.stringify(data)
     });
     return response.json();
+  },
+  
+  getDocument: async (chapterId, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/documents/${chapterId}`, {
+      headers: { 
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
+      }
+    });
+    return response.json();
+  },
+  
+  saveDocument: async (chapterId, title, content, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/documents/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
+      },
+      body: JSON.stringify({ chapter_id: chapterId, title, content })
+    });
+    return response.json();
+  },
+  
+  updateStatus: async (chapterId, status, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/documents/${chapterId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
+      },
+      body: JSON.stringify({ status })
+    });
+    return response.json();
   }
 };
 
