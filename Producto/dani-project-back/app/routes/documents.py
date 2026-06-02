@@ -149,6 +149,15 @@ async def update_document_status(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid status")
         
+    # RBAC: Solo admin, auditor o manager pueden aprobar o publicar
+    if new_status in [DocumentStatus.APPROVED, DocumentStatus.PUBLISHED]:
+        user_role = current_user.get("role", "")
+        if user_role not in ["admin", "auditor", "manager"]:
+            raise HTTPException(
+                status_code=403, 
+                detail="Solo administradores, auditores o gerentes pueden aprobar o publicar documentos"
+            )
+            
     document.status = new_status
     
     # Bump version automatically when published

@@ -10,9 +10,13 @@ import { documentsAPI } from '../services/api';
 
 // NUEVO: Importamos la librería para crear PDFs profesionales
 import html2pdf from 'html2pdf.js';
+import { useAuth } from '../contexts/AuthContext';
 
 const DocGeneratorScreen = () => {
   const { theme: t, darkMode } = useContext(ThemeContext);
+  const { user } = useAuth();
+  
+  const canApprove = user && ['admin', 'manager', 'auditor'].includes(user?.role);
 
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [generatedContent, setGeneratedContent] = useState({});
@@ -151,6 +155,12 @@ const DocGeneratorScreen = () => {
   const advanceWorkflow = async () => {
     if (!selectedChapter) return;
     const currentStatus = documentStatus[selectedChapter.id] || 'draft';
+    
+    if ((currentStatus === 'review' || currentStatus === 'approved') && !canApprove) {
+      alert("No tienes permisos suficientes para aprobar o publicar documentos.");
+      return;
+    }
+    
     let nextStatus = 'review';
     if (currentStatus === 'review') nextStatus = 'approved';
     if (currentStatus === 'approved') nextStatus = 'published';
@@ -311,12 +321,46 @@ const DocGeneratorScreen = () => {
                   })()}
                 </div>
 
-                <button onClick={advanceWorkflow} disabled={documentStatus[selectedChapter.id] === 'published'} style={{ padding: '10px 20px', background: documentStatus[selectedChapter.id] === 'published' ? t.hoverBg : '#10b981', border: 'none', borderRadius: '8px', color: documentStatus[selectedChapter.id] === 'published' ? t.textDim : 'white', fontWeight: 600, cursor: documentStatus[selectedChapter.id] === 'published' ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', transition: 'all 0.2s ease' }}>
-                  <Send size={16} /> 
-                  {documentStatus[selectedChapter.id] === 'draft' || !documentStatus[selectedChapter.id] ? 'Enviar a Revisión' : 
-                   documentStatus[selectedChapter.id] === 'review' ? 'Aprobar Documento' : 
-                   documentStatus[selectedChapter.id] === 'approved' ? 'Publicar' : 'Publicado'}
-                </button>
+                {(() => {
+                  const currentStatus = documentStatus[selectedChapter.id] || 'draft';
+                  const isDraft = currentStatus === 'draft';
+                  const isReview = currentStatus === 'review';
+                  const isApproved = currentStatus === 'approved';
+                  const isPublished = currentStatus === 'published';
+                  
+                  let btnText = 'Enviar a Revisión';
+                  let isDisabled = isPublished;
+                  let btnBg = isPublished ? t.hoverBg : '#10b981';
+                  let btnColor = isPublished ? t.textDim : 'white';
+                  
+                  if (isReview) {
+                    if (canApprove) {
+                      btnText = 'Aprobar Documento';
+                    } else {
+                      btnText = 'Esperando Aprobación';
+                      isDisabled = true;
+                      btnBg = t.hoverBg;
+                      btnColor = t.textDim;
+                    }
+                  } else if (isApproved) {
+                    if (canApprove) {
+                      btnText = 'Publicar';
+                    } else {
+                      btnText = 'Esperando Publicación';
+                      isDisabled = true;
+                      btnBg = t.hoverBg;
+                      btnColor = t.textDim;
+                    }
+                  } else if (isPublished) {
+                    btnText = 'Publicado';
+                  }
+
+                  return (
+                    <button onClick={advanceWorkflow} disabled={isDisabled} style={{ padding: '10px 20px', background: btnBg, border: 'none', borderRadius: '8px', color: btnColor, fontWeight: 600, cursor: isDisabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', transition: 'all 0.2s ease' }}>
+                      <Send size={16} /> {btnText}
+                    </button>
+                  );
+                })()}
               </div>
 
               <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

@@ -49,6 +49,7 @@ export function AuthProvider({ children }) {
           const userData = {
             email: email,
             name: data.name || name,
+            role: data.role || 'employee',
             token: data.access_token
           };
           setUser(userData);
