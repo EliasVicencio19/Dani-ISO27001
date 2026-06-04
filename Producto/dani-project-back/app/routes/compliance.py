@@ -112,3 +112,67 @@ async def full_assessment(
         except Exception as e:
             await session.rollback()
             raise HTTPException(status_code=500, detail=f"Error transaccional: {str(e)}")
+
+from pydantic import BaseModel
+class EvaluateRequest(BaseModel):
+    document_id: str
+
+@router.post("/{control_id}/evaluate")
+async def evaluate_control(
+    control_id: str,
+    payload: EvaluateRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Evalúa un control contra un documento específico usando IA"""
+    from app.models.document import Document
+    
+    async with AsyncSessionLocal() as session:
+        # Obtener el control
+        stmt = select(ISOCControl).where(ISOCControl.id == control_id)
+        result = await session.execute(stmt)
+        db_control = result.scalar_one_or_none()
+        
+        if not db_control:
+            raise HTTPException(status_code=404, detail="Control no encontrado")
+            
+        # Obtener el documento (asumiremos document_id es chapter_id o uuid)
+        doc_stmt = select(Document).where(Document.id == payload.document_id)
+        doc_result = await session.execute(doc_stmt)
+        db_document = doc_result.scalar_one_or_none()
+        
+        if not db_document:
+            raise HTTPException(status_code=404, detail="Documento no encontrado")
+            
+        if not db_document.content:
+            raise HTTPException(status_code=400, detail="El documento está vacío")
+            
+        # Llamar a la IA
+        evaluation = await analyzer.ai_service.evaluate_compliance(
+            document_text=db_document.content,
+            control_title=db_control.title,
+            control_desc=db_control.description
+        )
+        
+        # Actualizar la base de datos con el veredicto
+        db_control.score = evaluation.get("score", 0)
+        db_control.document_id = payload.document_id
+        db_control.justification = evaluation.get("justification", "")
+        
+        # Traducir status de la IA al formato de BD que definió Elías
+        ai_status = evaluation.get("status", "notImplemented").lower()
+        if "implemented" in ai_status:
+            db_control.status = "Implementado"
+        elif "planned" in ai_status:
+            db_control.status = "Planificado"
+        else:
+            db_control.status = "No Implementado"
+            
+        await session.commit()
+        await session.refresh(db_control)
+        
+        return {
+            "message": "Evaluación IA completada",
+            "score": db_control.score,
+            "status": ai_status,
+            "justification": db_control.justification
+        }

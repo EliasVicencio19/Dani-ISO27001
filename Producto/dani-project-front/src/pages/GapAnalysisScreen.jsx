@@ -6,7 +6,7 @@ import {
   AlertCircle, Activity, Shield, Edit3, FileCheck, Globe
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
-import { complianceAPI } from '../services/api';
+import { complianceAPI, documentsAPI } from '../services/api';
 
 function GapAnalysisScreen() {
   const { theme: t, language, setLanguage } = useContext(ThemeContext);
@@ -216,6 +216,9 @@ function GapAnalysisScreen() {
   const [filterApplicable, setFilterApplicable] = useState('all');
   const [showJustificationModal, setShowJustificationModal] = useState(null);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const [availableDocs, setAvailableDocs] = useState([]);
+  const [showAIAuditModal, setShowAIAuditModal] = useState(null);
+  const [isAuditing, setIsAuditing] = useState(false);
 
   // ==========================================
   // DATOS DE LAS FASES
@@ -324,6 +327,40 @@ function GapAnalysisScreen() {
     };
     loadISOControls();
   }, []);
+
+  // Cargar documentos publicados
+  useEffect(() => {
+    const loadDocs = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const data = await documentsAPI.getPublishedPolicies(token);
+        if (data.policies) setAvailableDocs(data.policies);
+      } catch (error) {
+        console.error("Error loading policies:", error);
+      }
+    };
+    loadDocs();
+  }, []);
+
+  const handleAIAudit = async (documentId) => {
+    if (!showAIAuditModal) return;
+    setIsAuditing(true);
+    try {
+      const response = await complianceAPI.evaluateControl(showAIAuditModal.id, documentId);
+      setControls(prev => prev.map(c => c.id === showAIAuditModal.id ? { 
+        ...c, 
+        status: response.status === 'implemented' ? 'implemented' : (response.status === 'planned' ? 'planned' : 'notImplemented'),
+        justification: response.justification 
+      } : c));
+      alert("✨ " + (language === 'es' ? 'Evaluación completada por DANI' : 'DANI AI Evaluation Complete'));
+      setShowAIAuditModal(null);
+    } catch (error) {
+      console.error("Error en evaluación IA:", error);
+      alert("❌ " + (language === 'es' ? 'Error al evaluar con IA' : 'Error evaluating with AI'));
+    } finally {
+      setIsAuditing(false);
+    }
+  };
 
   // Funciones del wizard
   const currentPhaseData = phases[currentPhase];
@@ -495,7 +532,8 @@ function GapAnalysisScreen() {
                 <td style={{ padding: '16px 20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '12px', color: control.justification ? t.textMuted : '#ef4444', fontStyle: control.justification ? 'normal' : 'italic' }}>{control.justification || tText.required}</span>
-                    <button onClick={() => setShowJustificationModal(control)} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: t.textDim }}><Edit3 size={14} /></button>
+                    <button onClick={() => setShowJustificationModal(control)} title="Editar manualmente" style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: t.textDim }}><Edit3 size={14} /></button>
+                    <button onClick={() => setShowAIAuditModal(control)} title="Auditar con IA" style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: '#8b5cf6' }}><Sparkles size={14} /></button>
                   </div>
                 </td>
               </tr>
@@ -515,6 +553,43 @@ function GapAnalysisScreen() {
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowJustificationModal(null)} style={{ padding: '8px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', cursor: 'pointer' }}>Cancelar</button>
               <button onClick={() => { const textarea = document.getElementById('justification-textarea'); updateJustification(showJustificationModal.id, textarea.value); }} style={{ padding: '8px 16px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer' }}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE IA */}
+      {showAIAuditModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: t.cardBg, borderRadius: '16px', padding: '24px', width: '500px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', color: t.text }}><Sparkles size={20} color="#8b5cf6" /> Auditar con Inteligencia Artificial</h3>
+            <p style={{ fontSize: '13px', color: t.textDim, marginBottom: '20px' }}>Selecciona el documento de evidencia que DANI debe evaluar contra el control <strong>{showAIAuditModal.id}</strong>.</p>
+            
+            <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+              {availableDocs.length === 0 ? (
+                <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '8px', fontSize: '13px' }}>
+                  No hay documentos publicados disponibles para auditar. Ve al Generador de Documentos y aprueba uno primero.
+                </div>
+              ) : (
+                availableDocs.map(doc => (
+                  <button 
+                    key={doc.id}
+                    onClick={() => handleAIAudit(doc.id)}
+                    disabled={isAuditing}
+                    style={{ padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', textAlign: 'left', cursor: isAuditing ? 'wait' : 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: t.text }}>Capítulo {doc.chapter_id}</div>
+                      <div style={{ fontSize: '12px', color: t.textDim }}>{doc.title}</div>
+                    </div>
+                    {isAuditing && <div style={{ fontSize: '12px', color: '#8b5cf6' }}>Evaluando...</div>}
+                  </button>
+                ))
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowAIAuditModal(null)} disabled={isAuditing} style={{ padding: '8px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', cursor: 'pointer', color: t.text }}>Cancelar</button>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, JSON, Boolean
+from sqlalchemy import Column, String, Text, JSON, Boolean, Integer
 import uuid
 from app.dependencies.database import Base
 
@@ -21,3 +21,5 @@ class ISOCControl(Base):
     applies = Column(Boolean, default=True, nullable=False)
     status = Column(String(50), default="No Implementado", nullable=False) # Implementado, Planificado, No Implementado
     justification = Column(Text, nullable=True)
+    score = Column(Integer, default=0, nullable=False)
+    document_id = Column(String(36), nullable=True)
