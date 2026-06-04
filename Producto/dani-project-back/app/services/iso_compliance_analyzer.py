@@ -10,6 +10,10 @@ class ISOComplianceAnalyzer:
     def __init__(self):
         self.controls_file = Path(__file__).parent.parent / "data" / "iso_controls.json"
         self.controls_data = self._load_controls()
+        
+        # Integrar el motor de IA
+        from app.services.ai_service import AIService
+        self.ai_service = AIService()
     
     def _load_controls(self) -> Dict:
         """Cargar controles desde archivo JSON"""
