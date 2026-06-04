@@ -169,6 +169,30 @@ export const documentsAPI = {
       body: JSON.stringify({ status })
     });
     return response.json();
+  },
+
+  getPublishedPolicies: async (token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/documents/published/policies`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
+      }
+    });
+    return response.json();
+  },
+
+  acknowledgePolicy: async (documentId, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/documents/${documentId}/acknowledge`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
+      }
+    });
+    return response.json();
   }
 };
 
