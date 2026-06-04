@@ -6,7 +6,7 @@ from sqlalchemy import select
 import re
 import logging
 
-
+from app.dependencies.auth import get_current_user
 from app.services.auth_service import AuthService
 from app.dependencies.database import get_db
 from app.models import User
