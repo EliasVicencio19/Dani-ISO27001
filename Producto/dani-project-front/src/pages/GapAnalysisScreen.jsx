@@ -210,6 +210,8 @@ function GapAnalysisScreen() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [controls, setControls] = useState({});
+  const [isLoading, setIsLoading] = useState(true); // ✅ Agregar esto
+  const [error, setError] = useState(null); // ✅ Agregar esto para errores
   const [isSaving, setIsSaving] = useState(false);
   const [filterApplicable, setFilterApplicable] = useState('all');
   const [showJustificationModal, setShowJustificationModal] = useState(null);
@@ -289,13 +291,20 @@ function GapAnalysisScreen() {
   // Cargar controles ISO
   useEffect(() => {
     const loadISOControls = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
         const token = localStorage.getItem('token');
         console.log('Token usado:', token);
+
+        if (!token) {
+          throw new Error('No hay token de autenticación');
+        }
+
         const data = await complianceAPI.getControls(token);
         console.log('Datos recibidos:', data);
 
-        if (data.controls) {
+        if (data.controls && Array.isArray(data.controls)) {
           const formattedControls = data.controls.map(c => ({
             id: c.id,
             name: c.name,
@@ -306,9 +315,14 @@ function GapAnalysisScreen() {
           }));
           setControls(formattedControls);
           console.log('✅ Controles cargados desde BD:', formattedControls.length);
+        } else {
+          throw new Error('No se recibieron controles del servidor');
         }
       } catch (error) {
         console.error("Error loading ISO controls:", error);
+        setError(error.message);
+      } finally {
+        setIsLoading(false);
       }
     };
     loadISOControls();
