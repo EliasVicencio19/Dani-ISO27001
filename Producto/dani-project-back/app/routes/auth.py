@@ -134,3 +134,16 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
     token = credentials.credentials
     payload = AuthService.verify_token(token)
     return {"valid": True, "user": payload.get("sub")}
+
+@router.get("/me")
+async def get_current_user_info(
+    current_user: dict = Depends(get_current_user)
+):
+    """Obtener información del usuario actual"""
+    return {
+        "id": current_user.get("id"),
+        "email": current_user.get("email"),
+        "full_name": current_user.get("full_name"),
+        "role": current_user.get("role"),
+        "is_active": current_user.get("is_active")
+    }

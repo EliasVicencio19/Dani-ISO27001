@@ -201,18 +201,18 @@ export const documentsAPI = {
 // ============================================
 export const complianceAPI = {
   getControls: async (token, category = null) => {
-    const url = category 
-      ? `${API_URL}/api/compliance/controls?category=${category}`
-      : `${API_URL}/api/compliance/controls`;
-    const response = await fetch(url, {
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    return response.json();
-    
-  },
+  const resolvedToken = token || localStorage.getItem('token'); // ✅ Agregar esto
+  const url = category 
+    ? `${API_URL}/api/compliance/controls?category=${category}`
+    : `${API_URL}/api/compliance/controls`;
+  const response = await fetch(url, {
+    headers: { 
+      'Authorization': `Bearer ${resolvedToken}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  return response.json();
+},
   
   getStatistics: async (token = null) => {
     const resolvedToken = token || localStorage.getItem('token');
