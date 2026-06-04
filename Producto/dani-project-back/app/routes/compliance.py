@@ -193,3 +193,65 @@ async def evaluate_control(
             "status": ai_status,
             "justification": db_control.justification
         }
+
+@router.post("/bulk-audit")
+async def bulk_audit(
+    current_user: dict = Depends(get_current_user)
+):
+    """Audita todos los controles 'No Implementados' contra todo el repositorio documental mediante IA/RAG"""
+    from app.models.evidence_chunk import EvidenceChunk
+    from app.services.embedding_service import EmbeddingService
+    
+    embedder = EmbeddingService()
+    updated_count = 0
+    results = []
+
+    async with AsyncSessionLocal() as session:
+        # Traer controles aplicables
+        stmt = select(ISOCControl).where(ISOCControl.applies == True)
+        result = await session.execute(stmt)
+        controls = result.scalars().all()
+        
+        for control in controls:
+            # 1. Crear embedding para el control
+            query_vector = embedder.generate_single_embedding(f"{control.title}. {control.description}")
+            
+            # 2. Buscar similitud de coseno en la documentación de la empresa
+            chunk_stmt = (
+                select(EvidenceChunk)
+                .order_by(EvidenceChunk.embedding.cosine_distance(query_vector))
+                .limit(4)
+            )
+            chunk_res = await session.execute(chunk_stmt)
+            top_chunks = chunk_res.scalars().all()
+            
+            context = "\n\n".join([f"- {c.content}" for c in top_chunks]) if top_chunks else ""
+            
+            # 3. Mandar a evaluar
+            evaluation = await analyzer.ai_service.mass_evaluate_control(
+                control_title=control.title,
+                control_desc=control.description,
+                context_chunks=context
+            )
+            
+            # 4. Actualizar BD
+            control.score = evaluation.get("score", 0)
+            control.justification = evaluation.get("justification", "")
+            
+            ai_status = evaluation.get("status", "notImplemented").lower()
+            if "implemented" in ai_status:
+                control.status = "Implementado"
+            elif "planned" in ai_status:
+                control.status = "Planificado"
+            else:
+                control.status = "No Implementado"
+                
+            updated_count += 1
+            results.append({"id": control.control_id, "status": control.status, "score": control.score, "justification": control.justification})
+            
+        await session.commit()
+        
+    return {
+        "message": f"Auditoría Masiva completada. {updated_count} controles evaluados.",
+        "results": results
+    }

@@ -165,3 +165,57 @@ class AIService:
                 "status": "planned",
                 "justification": f"Fallo en la llamada a la IA: {str(e)[:50]}"
             }
+
+    async def mass_evaluate_control(self, control_title: str, control_desc: str, context_chunks: str) -> dict:
+        """Auditar un control contra multiples fragmentos RAG extraídos de todos los documentos"""
+        if not self.client:
+            return {
+                "score": 2,
+                "status": "implemented",
+                "justification": "[Demo Offline] Según el RAG masivo, la organización cumple con este control adecuadamente."
+            }
+            
+        prompt = f"""
+        Actúa como un Auditor Líder de ISO 27001. Tu objetivo es evaluar si la empresa cumple con el siguiente control normativo, basándote ÚNICAMENTE en los fragmentos de documentación corporativa recuperados (Contexto RAG).
+        
+        CONTROL A EVALUAR:
+        Título: {control_title}
+        Descripción: {control_desc}
+        
+        CONTEXTO CORPORATIVO RECUPERADO (RAG):
+        {context_chunks}
+        
+        EVALUACIÓN:
+        1. Analiza estrictamente si los fragmentos abordan lo que exige el control. Si el contexto está vacío, asume que no hay evidencia.
+        2. Asigna un puntaje numérico: 0 (No aborda el control / Sin evidencia), 1 (Aborda parcialmente), 2 (Cumple totalmente).
+        3. Determina el estado: "implemented" (si es 2), "planned" (si es 1), o "notImplemented" (si es 0).
+        4. Redacta una justificación técnica y formal explicando tu decisión como auditor (max 50 palabras).
+        
+        Responde SOLO con un objeto JSON válido. Ejemplo:
+        {{
+            "score": 2,
+            "status": "implemented",
+            "justification": "Tu justificación técnica aquí..."
+        }}
+        """
+        
+        try:
+            response = await self.client.chat.completions.create(
+                model=settings.AI_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=400
+            )
+            
+            import json
+            content = response.choices[0].message.content
+            content = content.replace('```json', '').replace('```', '').strip()
+            return json.loads(content)
+            
+        except Exception as e:
+            logger.error(f"Error en mass_evaluate_control: {e}")
+            return {
+                "score": 0,
+                "status": "notImplemented",
+                "justification": f"Fallo en la evaluación masiva con IA: {str(e)[:50]}"
+            }

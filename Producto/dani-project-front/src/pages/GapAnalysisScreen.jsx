@@ -219,6 +219,7 @@ function GapAnalysisScreen() {
   const [availableDocs, setAvailableDocs] = useState([]);
   const [showAIAuditModal, setShowAIAuditModal] = useState(null);
   const [isAuditing, setIsAuditing] = useState(false);
+  const [isBulkAuditing, setIsBulkAuditing] = useState(false);
 
   // ==========================================
   // DATOS DE LAS FASES
@@ -359,6 +360,37 @@ function GapAnalysisScreen() {
       alert("❌ " + (language === 'es' ? 'Error al evaluar con IA' : 'Error evaluating with AI'));
     } finally {
       setIsAuditing(false);
+    }
+  };
+
+  const handleBulkAudit = async () => {
+    setIsBulkAuditing(true);
+    try {
+      const response = await complianceAPI.bulkAudit();
+      
+      if (response.results) {
+        setControls(prevControls => {
+          const newControls = [...prevControls];
+          response.results.forEach(res => {
+            const idx = newControls.findIndex(c => c.id === res.id);
+            if (idx !== -1) {
+              newControls[idx] = {
+                ...newControls[idx],
+                status: res.status === 'Implementado' ? 'implemented' : (res.status === 'Planificado' ? 'planned' : 'notImplemented'),
+                score: res.score,
+                justification: res.justification
+              };
+            }
+          });
+          return newControls;
+        });
+      }
+      alert("✨ " + (language === 'es' ? 'Auditoría masiva completada' : 'Bulk audit complete'));
+    } catch (error) {
+      console.error("Error en auditoría masiva:", error);
+      alert("❌ " + (language === 'es' ? 'Error al ejecutar la auditoría masiva' : 'Error executing bulk audit'));
+    } finally {
+      setIsBulkAuditing(false);
     }
   };
 
@@ -621,8 +653,8 @@ function GapAnalysisScreen() {
           <button onClick={() => setActiveMainTab('soa')} style={{ padding: '8px 20px', borderRadius: '6px', background: activeMainTab === 'soa' ? '#3b82f6' : 'transparent', border: activeMainTab === 'soa' ? 'none' : `1px solid ${t.border}`, color: activeMainTab === 'soa' ? 'white' : t.text, fontWeight: 500, fontSize: '13px', cursor: 'pointer' }}>
             {tText.previewSOA}
           </button>
-          <button style={{ padding: '8px 16px', borderRadius: '6px', background: 'transparent', border: `1px solid ${t.border}`, color: t.text, fontWeight: 500, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <FolderUp size={14} /> {tText.bulkUpload}
+          <button onClick={handleBulkAudit} disabled={isBulkAuditing} style={{ padding: '8px 16px', borderRadius: '6px', background: isBulkAuditing ? 'rgba(139, 92, 246, 0.1)' : 'transparent', border: `1px solid ${isBulkAuditing ? '#8b5cf6' : t.border}`, color: isBulkAuditing ? '#8b5cf6' : t.text, fontWeight: 500, fontSize: '13px', cursor: isBulkAuditing ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.3s ease' }}>
+            <Sparkles size={14} color={isBulkAuditing ? '#8b5cf6' : t.text} /> {isBulkAuditing ? (language === 'es' ? 'Auditando...' : 'Auditing...') : (language === 'es' ? 'Auditoría Total (IA)' : 'Bulk Audit (AI)')}
           </button>
           <button onClick={handleSaveProgress} disabled={isSaving} style={{ padding: '8px 16px', borderRadius: '6px', background: '#10b981', border: 'none', color: 'white', fontWeight: 500, fontSize: '13px', cursor: isSaving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Download size={14} /> {isSaving ? tText.saving : tText.saveProgress}

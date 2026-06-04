@@ -252,13 +252,25 @@ export const complianceAPI = {
   
   evaluateControl: async (controlId, documentId, token = null) => {
     const resolvedToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/compliance/controls/${controlId}/evaluate`, {
+    const response = await fetch(`${API_URL}/api/compliance/${controlId}/evaluate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
       },
       body: JSON.stringify({ document_id: documentId })
+    });
+    return response.json();
+  },
+  
+  bulkAudit: async (token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/compliance/bulk-audit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
+      }
     });
     return response.json();
   }
