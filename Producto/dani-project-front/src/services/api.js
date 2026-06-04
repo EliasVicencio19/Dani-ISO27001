@@ -248,6 +248,19 @@ export const complianceAPI = {
       body: JSON.stringify(organizationData)
     });
     return response.json();
+  },
+  
+  evaluateControl: async (controlId, documentId, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/compliance/${controlId}/evaluate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
+      },
+      body: JSON.stringify({ document_id: documentId })
+    });
+    return response.json();
   }
 };
 

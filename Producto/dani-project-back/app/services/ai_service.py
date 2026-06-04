@@ -110,3 +110,58 @@ class AIService:
                 "mitigation_steps": ["1. Realizar auditoría de accesos.", "2. Enforzar TLS 1.3.", "3. Implementar MFA."],
                 "priority": "alta"
             }
+
+    async def evaluate_compliance(self, document_text: str, control_title: str, control_desc: str) -> dict:
+        """Auditar un documento contra un control de la ISO 27001"""
+        if not self.client:
+            # Fallback simulado
+            return {
+                "score": 2,
+                "status": "implemented",
+                "justification": "[Demo Offline] El documento analizado evidencia lineamientos sólidos que satisfacen plenamente los requerimientos de este control normativo."
+            }
+            
+        prompt = f"""
+        Actúa como un Auditor Líder de ISO 27001. Tu objetivo es evaluar si el documento proporcionado por la empresa cumple con los requisitos del siguiente control normativo.
+        
+        CONTROL A EVALUAR:
+        Título: {control_title}
+        Descripción: {control_desc}
+        
+        DOCUMENTO DE LA EMPRESA (EVIDENCIA):
+        {document_text[:5000]}
+        
+        EVALUACIÓN:
+        1. Analiza estrictamente si el documento aborda lo que exige el control.
+        2. Asigna un puntaje numérico: 0 (No aborda el control), 1 (Aborda parcialmente), 2 (Cumple totalmente).
+        3. Determina el estado: "implemented" (si es 2), "planned" (si es 1), o "notImplemented" (si es 0).
+        4. Redacta una justificación técnica y formal explicando tu decisión como auditor (max 50 palabras).
+        
+        Responde SOLO con un objeto JSON válido. Ejemplo:
+        {{
+            "score": 2,
+            "status": "implemented",
+            "justification": "Tu justificación técnica aquí..."
+        }}
+        """
+        
+        try:
+            response = await self.client.chat.completions.create(
+                model=settings.AI_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=400
+            )
+            
+            import json
+            content = response.choices[0].message.content
+            content = content.replace('```json', '').replace('```', '').strip()
+            return json.loads(content)
+            
+        except Exception as e:
+            logger.error(f"Error en evaluate_compliance: {e}")
+            return {
+                "score": 1,
+                "status": "planned",
+                "justification": f"Fallo en la llamada a la IA: {str(e)[:50]}"
+            }
