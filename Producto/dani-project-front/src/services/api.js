@@ -252,7 +252,7 @@ export const complianceAPI = {
   
   evaluateControl: async (controlId, documentId, token = null) => {
     const resolvedToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/compliance/${controlId}/evaluate`, {
+    const response = await fetch(`${API_URL}/api/compliance/controls/${controlId}/evaluate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

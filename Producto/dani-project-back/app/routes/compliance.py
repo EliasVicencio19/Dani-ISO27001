@@ -62,6 +62,23 @@ async def get_all_controls(
     
     return analyzer.get_all_controls()
 
+@router.post("/controls/{control_id}/evaluate")
+async def evaluate_control_with_ai(
+    control_id: str,
+    request: dict,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Evalúa un control usando IA y un documento de evidencia"""
+    document_id = request.get("document_id")
+    
+    # Aquí va la lógica de IA para evaluar el control
+    # Por ahora, retorna un mock
+    return {
+        "status": "implemented",  # o "planned", "notImplemented"
+        "justification": f"Control {control_id} evaluado con documento {document_id} por IA"
+    }
+
 @router.get("/statistics")
 async def get_statistics(current_user: dict = Depends(get_current_user)):
     data = analyzer.get_all_controls()
