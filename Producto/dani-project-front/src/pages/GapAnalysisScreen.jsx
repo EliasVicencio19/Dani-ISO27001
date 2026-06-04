@@ -209,7 +209,7 @@ function GapAnalysisScreen() {
   const [currentPhase, setCurrentPhase] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [controls, setControls] = useState({});
+  const [controls, setControls] = useState([]);
   const [isLoading, setIsLoading] = useState(true); // ✅ Agregar esto
   const [error, setError] = useState(null); // ✅ Agregar esto para errores
   const [isSaving, setIsSaving] = useState(false);
@@ -394,15 +394,51 @@ function GapAnalysisScreen() {
     setShowLanguageMenu(false);
   };
 
-  const filteredControls = controls.filter(c => {
+  const filteredControls = Array.isArray(controls) ? controls.filter(c => {
     if (filterApplicable === 'applicable') return c.applicable;
     if (filterApplicable === 'notApplicable') return !c.applicable;
     return true;
-  });
+  }) : [];
 
-  const appliesCount = controls.filter(c => c.applicable).length;
-  const implementedCount = controls.filter(c => c.applicable && c.status === 'implemented').length;
+  const appliesCount = Array.isArray(controls) ? controls.filter(c => c.applicable).length : 0;
+  const implementedCount = Array.isArray(controls) ? controls.filter(c => c.applicable && c.status === 'implemented').length : 0;
 
+
+  // ✅ CAMBIO 4: Mostrar loading mientras se cargan los datos
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ 
+            width: '40px', 
+            height: '40px', 
+            border: '3px solid #10b981', 
+            borderTopColor: 'transparent', 
+            borderRadius: '50%', 
+            animation: 'spin 1s linear infinite', 
+            margin: '0 auto 16px' 
+          }} />
+          <p>Cargando controles ISO 27001...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ CAMBIO 5: Mostrar error si ocurrió un problema
+  if (error) {
+    return (
+      <div style={{ padding: '24px', textAlign: 'center' }}>
+        <div style={{ color: '#ef4444', marginBottom: '16px' }}>⚠️ Error cargando los controles</div>
+        <p>{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          style={{ padding: '8px 16px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer' }}
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
   // ==========================================
   // COMPONENTE INTERACTIVE SOA
   // ==========================================
