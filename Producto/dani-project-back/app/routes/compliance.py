@@ -109,6 +109,7 @@ async def full_assessment(
                 "message": f"Se actualizaron exitosamente {updated_count} controles.",
                 "assessment_date": datetime.utcnow().isoformat()
             }
+        except Exception as e:
             await session.rollback()
             raise HTTPException(status_code=500, detail=f"Error transaccional: {str(e)}")
 
