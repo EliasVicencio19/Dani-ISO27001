@@ -1,6 +1,6 @@
 import uuid
 import enum
-from sqlalchemy import Column, String, Text, DateTime, Enum, Integer
+from sqlalchemy import Column, String, Text, DateTime, Enum, Integer, ForeignKey
 from sqlalchemy.sql import func
 from app.dependencies.database import Base
 
@@ -22,6 +22,11 @@ class Document(Base):
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
-    # Optionally store the user ID who last modified or created it
-    # created_by = Column(String(36), nullable=True)
+
+class DocumentAcknowledgement(Base):
+    __tablename__ = "document_acknowledgements"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    document_id = Column(String(36), ForeignKey("documents.id"), nullable=False, index=True)
+    acknowledged_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
