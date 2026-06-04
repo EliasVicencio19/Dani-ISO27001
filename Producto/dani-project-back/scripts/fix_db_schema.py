@@ -28,6 +28,18 @@ async def fix_schema():
         except Exception as e:
             logger.info(f"⚠️ La columna 'justification' ya existía o hubo un error: {e}")
             
+        try:
+            await conn.execute(text("ALTER TABLE iso_controls ADD COLUMN score INTEGER DEFAULT 0 NOT NULL;"))
+            logger.info("✅ Columna 'score' agregada.")
+        except Exception as e:
+            logger.info(f"⚠️ La columna 'score' ya existía o hubo un error: {e}")
+            
+        try:
+            await conn.execute(text("ALTER TABLE iso_controls ADD COLUMN document_id VARCHAR(36);"))
+            logger.info("✅ Columna 'document_id' agregada.")
+        except Exception as e:
+            logger.info(f"⚠️ La columna 'document_id' ya existía o hubo un error: {e}")
+            
     logger.info("🎉 ¡Esquema de base de datos actualizado correctamente!")
 
 if __name__ == "__main__":
