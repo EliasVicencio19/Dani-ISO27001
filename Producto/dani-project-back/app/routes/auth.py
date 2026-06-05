@@ -120,7 +120,11 @@ async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
         )
     
     access_token = AuthService.create_access_token(
-        data={"sub": user.email, "role": user.role.value if hasattr(user.role, 'value') else str(user.role)}
+        data={
+            "sub": user.email, 
+            "user_id": str(user.id),
+            "role": user.role.value if hasattr(user.role, 'value') else str(user.role)
+        }
     )
     
     return TokenResponse(

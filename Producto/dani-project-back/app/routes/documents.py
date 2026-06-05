@@ -224,7 +224,21 @@ async def acknowledge_policy(
     current_user: dict = Depends(get_current_user)
 ):
     from app.models.document import DocumentAcknowledgement
+    from app.models.user import User
+    
     user_id = current_user.get("user_id")
+    
+    # Fallback para tokens antiguos que no traían el user_id
+    if not user_id:
+        email = current_user.get("email")
+        if email:
+            user_query = await db.execute(select(User).where(User.email == email))
+            db_user = user_query.scalar_one_or_none()
+            if db_user:
+                user_id = str(db_user.id)
+                
+    if not user_id:
+        raise HTTPException(status_code=401, detail="No se pudo identificar al usuario.")
     
     # Verificamos que el documento exista
     doc_result = await db.execute(select(Document).filter(Document.id == document_id))
