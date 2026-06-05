@@ -555,7 +555,9 @@ function GapAnalysisScreen() {
             {filteredControls.map((control) => (
               <tr key={control.id} style={{ borderBottom: `1px solid ${t.border}` }}>
                 <td style={{ padding: '16px 20px' }}><span style={{ fontSize: '13px', fontWeight: 600, color: '#8b5cf6' }}>{control.id}</span></td>
-                <td style={{ padding: '16px 20px' }}><div style={{ fontSize: '13px', color: t.text }}>{control.name}</div><span style={{ fontSize: '11px', color: t.textDim }}>{control.category}</span></td>
+                {/* 🔽🔽🔽 ESTA ES LA LÍNEA QUE CAMBIA 🔽🔽🔽 */}
+                <td style={{ padding: '16px 20px' }}><div style={{ fontSize: '13px', color: t.text }}>{getControlName(control.id, language)}</div><span style={{ fontSize: '11px', color: t.textDim }}>{control.category}</span></td>
+                {/* 🔼🔼🔼 ESTA ES LA LÍNEA QUE CAMBIA 🔼🔼🔼 */}
                 <td style={{ padding: '16px 20px', textAlign: 'center' }}>
                   <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
                     <button onClick={() => toggleApplicable(control.id)} style={{ padding: '6px 12px', background: control.applicable ? '#10b98120' : 'transparent', border: `1px solid ${control.applicable ? '#10b981' : t.border}`, borderRadius: '6px 0 0 6px', color: control.applicable ? '#10b981' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>{tText.applicable}</button>
