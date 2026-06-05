@@ -224,7 +224,7 @@ async def acknowledge_policy(
     current_user: dict = Depends(get_current_user)
 ):
     from app.models.document import DocumentAcknowledgement
-    user_id = current_user.get("id") or current_user.get("sub")
+    user_id = current_user.get("user_id")
     
     # Verificamos que el documento exista
     doc_result = await db.execute(select(Document).filter(Document.id == document_id))
