@@ -16,13 +16,29 @@ router = APIRouter(prefix="/api/documents", tags=["Documents"])
 async def get_all_documents(
     skip: int = 0,
     limit: int = 100,
+    db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """Obtener todos los documentos"""
+    result = await db.execute(select(Document).offset(skip).limit(limit))
+    docs = result.scalars().all()
+    
+    documents = []
+    for d in docs:
+        documents.append({
+            "id": d.id,
+            "chapter_id": d.chapter_id,
+            "name": d.title,
+            "status": d.status.value if hasattr(d.status, 'value') else d.status,
+            "version": d.version.replace('v', '') if d.version else '1.0',
+            "updated": d.updated_at.strftime('%b %d') if d.updated_at else 'N/A',
+            "signatures": "0/0"
+        })
+        
     return {
         "message": "Endpoint de documentos",
-        "documents": [],
-        "total": 0
+        "documents": documents,
+        "total": len(documents)
     }
 
 from app.services.ai_service import AIService

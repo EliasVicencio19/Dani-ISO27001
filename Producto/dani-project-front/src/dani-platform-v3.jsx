@@ -131,7 +131,7 @@ export default function DaniPlatform() {
           {activeScreen === 'doc-generator' && <DocGeneratorScreen />}
           {activeScreen === 'risk-map' && <RiskMapScreen />}
           {activeScreen === 'evidence' && <EvidenceCenterScreen />}
-          {activeScreen === 'documents' && <DocumentsScreen />}
+          {activeScreen === 'documents' && <DocumentsScreen setActiveScreen={setActiveScreen} />}
           {activeScreen === 'audit-room' && <AuditRoomScreen />}
           {activeScreen === 'user-management' && <UserManagementScreen />}
           {activeScreen === 'employee-portal' && <EmployeePortalScreen />}

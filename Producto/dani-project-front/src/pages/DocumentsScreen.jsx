@@ -72,7 +72,7 @@ const faqData = {
   ]
 };
 
-function DocumentsScreen() {
+function DocumentsScreen({ setActiveScreen }) {
   const { darkMode, theme: t, language } = useContext(ThemeContext);
   const tr = useTranslation();
   const [chatQuery, setChatQuery] = useState('');
@@ -80,17 +80,39 @@ function DocumentsScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState(null);
   const [activeTab, setActiveTab] = useState('chat');
+  
+  const [documents, setDocuments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const labels = chatLabels[language] || chatLabels.en;
   const questions = suggestedQuestions[language] || suggestedQuestions.en;
   const faqs = faqData[language] || faqData.en;
 
-  const documents = [
-    { id: 1, name: 'Information Security Policy', status: 'approved', version: '2.1', updated: 'Jan 15', signatures: '45/45' },
-    { id: 2, name: 'Access Control Policy', status: 'review', version: '1.3', updated: 'Feb 02', signatures: '12/45' },
-    { id: 3, name: 'Incident Response Procedure', status: 'approved', version: '1.8', updated: 'Dec 20', signatures: '45/45' },
-    { id: 4, name: 'Business Continuity Plan', status: 'draft', version: '0.5', updated: 'Feb 28', signatures: '0/45' }
-  ];
+  // Cargar documentos desde backend
+  React.useEffect(() => {
+    const fetchDocs = async () => {
+      try {
+        const { documentsAPI } = await import('../services/api');
+        const res = await documentsAPI.getAll();
+        if (res.documents) setDocuments(res.documents);
+      } catch (err) {
+        console.error("Error cargando documentos", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchDocs();
+  }, []);
+
+  const handleUpdateStatus = async (docId, newStatus) => {
+    try {
+      const { documentsAPI } = await import('../services/api');
+      await documentsAPI.updateStatus(docId, newStatus);
+      setDocuments(prev => prev.map(d => d.chapter_id === docId ? { ...d, status: newStatus } : d));
+    } catch (err) {
+      alert("Error actualizando estado. Recuerda que necesitas ser Administrador.");
+    }
+  };
 
   const handleSendMessage = (message) => {
     if (!message.trim()) return;
@@ -138,11 +160,14 @@ function DocumentsScreen() {
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>{tr('documentManager')}</h1>
-          <p style={{ color: t.textDim, fontSize: '15px' }}>{tr('policiesProcedures')}</p>
+          <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>Gestor Documental</h1>
+          <p style={{ color: t.textDim, fontSize: '15px' }}>Políticas y Documentación del SGSI</p>
         </div>
-        <button style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-          <Plus size={16} />{tr('createDocument')}
+        <button 
+          onClick={() => setActiveScreen && setActiveScreen('doc-generator')}
+          style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
+        >
+          <Plus size={16} />Crear Documento
         </button>
       </div>
 
@@ -150,15 +175,28 @@ function DocumentsScreen() {
         {/* Documents List */}
         <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 0.8fr 1fr 1fr', padding: '14px 24px', background: t.hoverBg, borderBottom: `1px solid ${t.border}`, fontSize: '11px', color: t.textDim, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            <span>{tr('document')}</span><span>{tr('status')}</span><span>{tr('version')}</span><span>{tr('updated')}</span><span>{tr('signatures')}</span>
+            <span>Documento</span><span>Estado</span><span>Versión</span><span>Actualizado</span><span>Firmas</span>
           </div>
-          {documents.map((doc) => (
-            <div key={doc.id} style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 0.8fr 1fr 1fr', padding: '16px 24px', borderBottom: `1px solid ${t.border}`, alignItems: 'center' }}>
+          {isLoading ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: t.textDim }}>Cargando documentos...</div>
+          ) : documents.length === 0 ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: t.textDim }}>No hay documentos. Usa el botón superior para generar uno.</div>
+          ) : documents.map((doc) => (
+            <div key={doc.id || doc.chapter_id} style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 0.8fr 1fr 1fr', padding: '16px 24px', borderBottom: `1px solid ${t.border}`, alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FileText size={16} color="#3b82f6" /></div>
                 <span style={{ fontWeight: 500, fontSize: '14px' }}>{doc.name}</span>
               </div>
-              <span style={{ display: 'inline-flex', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: `${getStatusColor(doc.status)}22`, color: getStatusColor(doc.status), textTransform: 'capitalize', width: 'fit-content' }}>{doc.status}</span>
+              <select 
+                value={doc.status} 
+                onChange={(e) => handleUpdateStatus(doc.chapter_id, e.target.value)}
+                style={{ display: 'inline-flex', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: `${getStatusColor(doc.status)}22`, color: getStatusColor(doc.status), textTransform: 'capitalize', width: 'fit-content', border: 'none', cursor: 'pointer', outline: 'none' }}
+              >
+                <option value="draft">Borrador</option>
+                <option value="review">Revisión</option>
+                <option value="approved">Aprobado</option>
+                <option value="published">Publicado</option>
+              </select>
               <span style={{ color: t.textMuted, fontSize: '13px' }}>v{doc.version}</span>
               <span style={{ color: t.textDim, fontSize: '13px' }}>{doc.updated}</span>
               <span style={{ fontSize: '13px' }}>{doc.signatures}</span>

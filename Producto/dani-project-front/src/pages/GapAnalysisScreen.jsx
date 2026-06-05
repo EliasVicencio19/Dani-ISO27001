@@ -416,13 +416,21 @@ function GapAnalysisScreen() {
       } else if (currentPhase < phases.length - 1) {
         setCurrentPhase(currentPhase + 1);
         setCurrentQuestion(0);
+      } else {
+        setActiveMainTab('soa');
       }
     }, 300);
   };
 
   const goToNext = () => {
-    if (currentQuestion < currentPhaseData.questions.length - 1) setCurrentQuestion(currentQuestion + 1);
-    else if (currentPhase < phases.length - 1) { setCurrentPhase(currentPhase + 1); setCurrentQuestion(0); }
+    if (currentQuestion < currentPhaseData.questions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1);
+    } else if (currentPhase < phases.length - 1) {
+      setCurrentPhase(currentPhase + 1);
+      setCurrentQuestion(0);
+    } else {
+      setActiveMainTab('soa');
+    }
   };
 
   const goToPrev = () => {
