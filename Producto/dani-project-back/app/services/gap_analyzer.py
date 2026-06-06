@@ -207,28 +207,17 @@ class GapAnalyzer:
     
     async def _generate_kpi_dashboard(self) -> Dict:
         """Generar dashboard de KPIs"""
-        # Obtener KPIs de la base de datos
         result = await self.db.execute(select(KPI))
         kpis = result.scalars().all()
-        
-        dashboard = {
-            "strategic": [],
-            "operational": [],
-            "security": [],
-            "timestamp": datetime.utcnow().isoformat()
-        }
-        
-        # Si no hay KPIs, crear los defaults
+
         if not kpis:
             default_kpis = self._get_default_kpis()
             for kpi_data in default_kpis:
-                kpi = KPI(**kpi_data)
-                self.db.add(kpi)
+                self.db.add(KPI(**kpi_data))
             await self.db.commit()
-            kpis = default_kpis
-            dashboard = self._format_kpis(kpis)
-        
-        return dashboard
+            kpis = default_kpis  # dicts, compatibles con _format_kpis
+
+        return self._format_kpis(kpis)
     
     async def _calculate_overall_score(self) -> Dict:
         """Calcular score general de cumplimiento"""
@@ -296,9 +285,16 @@ class GapAnalyzer:
             {"name": "Disponibilidad", "category": "operational", "target_value": 99.9, "current_value": 99.95, "unit": "%", "frequency": "daily"},
         ]
     
+    def _get_kpi_category(self, kpi) -> str:
+        """Obtiene la categoría de un KPI sea dict u objeto ORM."""
+        if isinstance(kpi, dict):
+            return kpi.get("category", "")
+        return getattr(kpi, "category", "")
+
     def _format_kpis(self, kpis: List) -> Dict:
         return {
-            "strategic": [k for k in kpis if k.get("category") == "strategic"],
-            "operational": [k for k in kpis if k.get("category") == "operational"],
-            "security": [k for k in kpis if k.get("category") == "security"]
+            "strategic": [k for k in kpis if self._get_kpi_category(k) == "strategic"],
+            "operational": [k for k in kpis if self._get_kpi_category(k) == "operational"],
+            "security": [k for k in kpis if self._get_kpi_category(k) == "security"],
+            "timestamp": datetime.utcnow().isoformat()
         }

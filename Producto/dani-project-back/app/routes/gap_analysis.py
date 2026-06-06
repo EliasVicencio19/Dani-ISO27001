@@ -3,10 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any, List
 from datetime import datetime
 
+from sqlalchemy import select
 from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db
 from app.services.gap_analyzer import GapAnalyzer
-from app.models.gap_analysis import GapAnalysis, RemediationAction, ControlImplementation
+from app.models.gap_analysis import GapAnalysis, RemediationAction, ControlImplementation, KPI
 
 router = APIRouter(prefix="/api/gap-analysis", tags=["Gap Analysis"])
 
