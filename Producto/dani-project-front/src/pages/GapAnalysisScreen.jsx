@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { complianceAPI, documentsAPI } from '../services/api';
+import { getControlName } from '../translations/controls';
 
 function GapAnalysisScreen() {
   const { theme: t, language, setLanguage } = useContext(ThemeContext);
@@ -306,9 +307,10 @@ function GapAnalysisScreen() {
         console.log('Datos recibidos:', data);
 
         if (data.controls && Array.isArray(data.controls)) {
+          // ✅ Guardamos el ID original para poder traducir después
           const formattedControls = data.controls.map(c => ({
-            id: c.id,
-            name: c.name,
+            id: c.id,              // ID del control (ej: "5.1")
+            name: c.name,          // Nombre en español (de la BD)
             category: c.category || 'Organizational',
             applicable: c.applicable !== undefined ? c.applicable : true,
             status: c.status === 'implemented' ? 'implemented' : (c.status === 'planned' ? 'planned' : 'notImplemented'),
@@ -330,28 +332,28 @@ function GapAnalysisScreen() {
   }, []);
 
   // Cargar documentos publicados
-  useEffect(() => {
-    const loadDocs = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const data = await documentsAPI.getPublishedPolicies(token);
-        if (data.policies) setAvailableDocs(data.policies);
-      } catch (error) {
-        console.error("Error loading policies:", error);
-      }
-    };
-    loadDocs();
-  }, []);
+  //useEffect(() => {
+  //  const loadDocs = async () => {
+  //    try {
+  //      const token = localStorage.getItem('token');
+  //      const data = await documentsAPI.getPublishedPolicies(token);
+  //      if (data.policies) setAvailableDocs(data.policies);
+  //    } catch (error) {
+  //      console.error("Error loading policies:", error);
+  //    }
+  //  };
+  //  loadDocs();
+  //}, []);
 
   const handleAIAudit = async (documentId) => {
     if (!showAIAuditModal) return;
     setIsAuditing(true);
     try {
       const response = await complianceAPI.evaluateControl(showAIAuditModal.id, documentId);
-      setControls(prev => prev.map(c => c.id === showAIAuditModal.id ? { 
-        ...c, 
+      setControls(prev => prev.map(c => c.id === showAIAuditModal.id ? {
+        ...c,
         status: response.status === 'implemented' ? 'implemented' : (response.status === 'planned' ? 'planned' : 'notImplemented'),
-        justification: response.justification 
+        justification: response.justification
       } : c));
       alert("✨ " + (language === 'es' ? 'Evaluación completada por DANI' : 'DANI AI Evaluation Complete'));
       setShowAIAuditModal(null);
@@ -367,7 +369,7 @@ function GapAnalysisScreen() {
     setIsBulkAuditing(true);
     try {
       const response = await complianceAPI.bulkAudit();
-      
+
       if (response.results) {
         setControls(prevControls => {
           const newControls = [...prevControls];
@@ -486,14 +488,14 @@ function GapAnalysisScreen() {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ 
-            width: '40px', 
-            height: '40px', 
-            border: '3px solid #10b981', 
-            borderTopColor: 'transparent', 
-            borderRadius: '50%', 
-            animation: 'spin 1s linear infinite', 
-            margin: '0 auto 16px' 
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid #10b981',
+            borderTopColor: 'transparent',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px'
           }} />
           <p>Cargando controles ISO 27001...</p>
         </div>
@@ -507,8 +509,8 @@ function GapAnalysisScreen() {
       <div style={{ padding: '24px', textAlign: 'center' }}>
         <div style={{ color: '#ef4444', marginBottom: '16px' }}>⚠️ Error cargando los controles</div>
         <p>{error}</p>
-        <button 
-          onClick={() => window.location.reload()} 
+        <button
+          onClick={() => window.location.reload()}
           style={{ padding: '8px 16px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer' }}
         >
           Reintentar
@@ -553,7 +555,9 @@ function GapAnalysisScreen() {
             {filteredControls.map((control) => (
               <tr key={control.id} style={{ borderBottom: `1px solid ${t.border}` }}>
                 <td style={{ padding: '16px 20px' }}><span style={{ fontSize: '13px', fontWeight: 600, color: '#8b5cf6' }}>{control.id}</span></td>
-                <td style={{ padding: '16px 20px' }}><div style={{ fontSize: '13px', color: t.text }}>{control.name}</div><span style={{ fontSize: '11px', color: t.textDim }}>{control.category}</span></td>
+                {/* 🔽🔽🔽 ESTA ES LA LÍNEA QUE CAMBIA 🔽🔽🔽 */}
+                <td style={{ padding: '16px 20px' }}><div style={{ fontSize: '13px', color: t.text }}>{getControlName(control.id, language)}</div><span style={{ fontSize: '11px', color: t.textDim }}>{control.category}</span></td>
+                {/* 🔼🔼🔼 ESTA ES LA LÍNEA QUE CAMBIA 🔼🔼🔼 */}
                 <td style={{ padding: '16px 20px', textAlign: 'center' }}>
                   <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
                     <button onClick={() => toggleApplicable(control.id)} style={{ padding: '6px 12px', background: control.applicable ? '#10b98120' : 'transparent', border: `1px solid ${control.applicable ? '#10b981' : t.border}`, borderRadius: '6px 0 0 6px', color: control.applicable ? '#10b981' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>{tText.applicable}</button>
@@ -604,7 +608,7 @@ function GapAnalysisScreen() {
           <div style={{ background: t.cardBg, borderRadius: '16px', padding: '24px', width: '500px', maxWidth: '90%' }}>
             <h3 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', color: t.text }}><Sparkles size={20} color="#8b5cf6" /> Auditar con Inteligencia Artificial</h3>
             <p style={{ fontSize: '13px', color: t.textDim, marginBottom: '20px' }}>Selecciona el documento de evidencia que DANI debe evaluar contra el control <strong>{showAIAuditModal.id}</strong>.</p>
-            
+
             <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
               {availableDocs.length === 0 ? (
                 <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '8px', fontSize: '13px' }}>
@@ -612,7 +616,7 @@ function GapAnalysisScreen() {
                 </div>
               ) : (
                 availableDocs.map(doc => (
-                  <button 
+                  <button
                     key={doc.id}
                     onClick={() => handleAIAudit(doc.id)}
                     disabled={isAuditing}
