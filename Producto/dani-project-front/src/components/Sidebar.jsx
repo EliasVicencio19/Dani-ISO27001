@@ -65,21 +65,25 @@ function SidebarProgressRings({ theme: t, language, collapsed }) {
   );
 }
 
+import { useAuth } from '../contexts/AuthContext';
+
 const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCollapsed }) => {
   const { theme: t, language, translations } = useTheme();
+  const { user } = useAuth();
   const l = translations[language];
+  const isAdmin = user && ['admin', 'manager', 'auditor'].includes(user?.role);
 
   const navItems = [
-    { id: 'dashboard', label: l.dashboard, icon: LayoutDashboard },
-    { id: 'gap-analysis', label: l.gapAnalysis, icon: Search },
-    { id: 'doc-generator', label: l.docGenerator, icon: FilePlus2 },
-    { id: 'risk-map', label: l.riskMap, icon: AlertTriangle },
-    { id: 'evidence', label: l.evidenceCenter, icon: Database },
-    { id: 'documents', label: l.documents, icon: FileText },
-    { id: 'audit-room', label: l.auditRoom, icon: FileCheck },
-    { id: 'user-management', label: l.userManagement, icon: Users },
-    { id: 'employee-portal', label: language === 'es' ? 'Portal de Empleados' : 'Employee Portal', icon: UserCircle },
-  ];
+    { id: 'dashboard', label: l.dashboard, icon: LayoutDashboard, adminOnly: false },
+    { id: 'gap-analysis', label: l.gapAnalysis, icon: Search, adminOnly: true },
+    { id: 'doc-generator', label: l.docGenerator, icon: FilePlus2, adminOnly: true },
+    { id: 'risk-map', label: l.riskMap, icon: AlertTriangle, adminOnly: true },
+    { id: 'evidence', label: l.evidenceCenter, icon: Database, adminOnly: true },
+    { id: 'documents', label: l.documents, icon: FileText, adminOnly: true },
+    { id: 'audit-room', label: l.auditRoom, icon: FileCheck, adminOnly: true },
+    { id: 'user-management', label: l.userManagement, icon: Users, adminOnly: true },
+    { id: 'employee-portal', label: language === 'es' ? 'Portal de Empleados' : 'Employee Portal', icon: UserCircle, adminOnly: false },
+  ].filter(item => !item.adminOnly || isAdmin);
 
   return (
     <aside style={{ width: sidebarCollapsed ? '80px' : '260px', background: t.sidebarBg, backdropFilter: 'blur(20px)', borderRight: `1px solid ${t.border}`, padding: '24px 16px', display: 'flex', flexDirection: 'column', transition: 'all 0.3s ease', position: 'relative', zIndex: 10 }}>
