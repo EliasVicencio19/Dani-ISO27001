@@ -24,6 +24,14 @@ const UserManagementScreen = () => {
   const [newUser, setNewUser] = useState({ full_name: '', email: '', password: '', role: 'employee', department: 'General' });
   const [isCreating, setIsCreating] = useState(false);
 
+  // Modal de Editar Usuario
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Estado de eliminación
+  const [isDeleting, setIsDeleting] = useState(null);
+
   // ==========================================
   // 2. CONEXIÓN REAL CON EL BACKEND
   // ==========================================
@@ -70,6 +78,49 @@ const UserManagementScreen = () => {
       alert("Error al crear usuario: " + error.message);
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleOpenEdit = (user, e) => {
+    e.stopPropagation();
+    setEditingUser({ id: user.id, full_name: user.name, email: user.email, role: user.role, is_active: user.status === 'active' });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    setIsUpdating(true);
+    try {
+      await userAPI.update(editingUser.id, {
+        full_name: editingUser.full_name,
+        email: editingUser.email,
+        role: editingUser.role,
+        is_active: editingUser.is_active
+      });
+      setIsEditModalOpen(false);
+      setEditingUser(null);
+      await loadUsers();
+    } catch (error) {
+      console.error("Error actualizando usuario:", error);
+      alert("Error al actualizar usuario: " + error.message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId, e) => {
+    e.stopPropagation();
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.')) return;
+    setIsDeleting(userId);
+    try {
+      await userAPI.delete(userId);
+      if (selectedUser?.id === userId) setSelectedUser(null);
+      await loadUsers();
+    } catch (error) {
+      console.error("Error eliminando usuario:", error);
+      alert("Error al eliminar usuario: " + error.message);
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -235,8 +286,21 @@ const UserManagementScreen = () => {
                       {/* Acciones */}
                       <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                          <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: t.textDim, padding: '6px', borderRadius: '6px' }}><Edit3 size={18} /></button>
-                          <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '6px', borderRadius: '6px' }}><Trash2 size={18} /></button>
+                          <button
+                            onClick={(e) => handleOpenEdit(user, e)}
+                            title="Editar usuario"
+                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: t.textDim, padding: '6px', borderRadius: '6px' }}
+                          >
+                            <Edit3 size={18} />
+                          </button>
+                          <button
+                            onClick={(e) => handleDeleteUser(user.id, e)}
+                            disabled={isDeleting === user.id}
+                            title="Eliminar usuario"
+                            style={{ background: 'transparent', border: 'none', cursor: isDeleting === user.id ? 'not-allowed' : 'pointer', color: '#ef4444', padding: '6px', borderRadius: '6px', opacity: isDeleting === user.id ? 0.5 : 1 }}
+                          >
+                            <Trash2 size={18} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -299,6 +363,52 @@ const UserManagementScreen = () => {
         </div>
 
       </div>
+
+      {/* MODAL EDITAR USUARIO */}
+      {isEditModalOpen && editingUser && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, width: '400px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', animation: 'fadeIn 0.2s ease' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: t.text }}>Editar Usuario</h3>
+              <button onClick={() => setIsEditModalOpen(false)} style={{ background: 'none', border: 'none', color: t.textDim, cursor: 'pointer' }}><XCircle size={20} /></button>
+            </div>
+
+            <form onSubmit={handleUpdateUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Nombre Completo</label>
+                <input required type="text" value={editingUser.full_name} onChange={e => setEditingUser({...editingUser, full_name: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Correo Electrónico</label>
+                <input required type="email" value={editingUser.email} onChange={e => setEditingUser({...editingUser, email: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }} />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Rol en el Sistema</label>
+                <select value={editingUser.role} onChange={e => setEditingUser({...editingUser, role: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }}>
+                  <option value="admin">Administrador</option>
+                  <option value="auditor">Auditor</option>
+                  <option value="manager">Manager</option>
+                  <option value="employee">Empleado</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px' }}>
+                <input type="checkbox" id="is_active" checked={editingUser.is_active} onChange={e => setEditingUser({...editingUser, is_active: e.target.checked})} style={{ cursor: 'pointer' }} />
+                <label htmlFor="is_active" style={{ fontSize: '13px', color: t.text, cursor: 'pointer' }}>Usuario activo</label>
+              </div>
+
+              <div style={{ marginTop: '8px', display: 'flex', gap: '12px' }}>
+                <button type="button" onClick={() => setIsEditModalOpen(false)} style={{ flex: 1, padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" disabled={isUpdating} style={{ flex: 1, padding: '12px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: isUpdating ? 'not-allowed' : 'pointer', opacity: isUpdating ? 0.7 : 1 }}>
+                  {isUpdating ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL CREAR USUARIO */}
       {isAddModalOpen && (
