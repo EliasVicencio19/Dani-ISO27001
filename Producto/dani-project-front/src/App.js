@@ -26,7 +26,7 @@ function AppRoutes() {
       <Route path="*" element={<Navigate to="/" />} />
 
       <Route path="/gap-analysis" element={
-        <ProtectedRoute>
+        <ProtectedRoute requiredRoles={['admin', 'manager', 'auditor']}>
           <GapAnalysis />
         </ProtectedRoute>
       } />
