@@ -5,6 +5,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from app.dependencies.database import get_db
+from app.dependencies.auth import get_current_user, require_admin
 from app.models.user import User, UserRole
 from app.services.auth_service import AuthService
 
@@ -12,7 +13,10 @@ router = APIRouter(prefix="/api/users", tags=["Users"])
 
 @router.get("")
 @router.get("/")
-async def get_all_users(db: AsyncSession = Depends(get_db)):
+async def get_all_users(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
     query = select(User)
     result = await db.execute(query)
     users = result.scalars().all()
@@ -39,7 +43,11 @@ class CreateUserRequest(BaseModel):
 
 @router.post("")
 @router.post("/")
-async def create_user(user_data: CreateUserRequest, db: AsyncSession = Depends(get_db)):
+async def create_user(
+    user_data: CreateUserRequest,
+    current_user: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db)
+):
     # Check if exists
     query = select(User).where(User.email == user_data.email)
     result = await db.execute(query)
@@ -70,7 +78,11 @@ async def create_user(user_data: CreateUserRequest, db: AsyncSession = Depends(g
     return {"message": "Usuario creado exitosamente", "id": new_user.id}
 
 @router.get("/{user_id}")
-async def get_user_by_id(user_id: str, db: AsyncSession = Depends(get_db)):
+async def get_user_by_id(
+    user_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
     query = select(User).where(User.id == user_id)
     result = await db.execute(query)
     user = result.scalar_one_or_none()
@@ -99,6 +111,7 @@ class UpdateUserRequest(BaseModel):
 async def update_user(
     user_id: str,
     user_data: UpdateUserRequest,
+    current_user: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db)
 ):
     query = select(User).where(User.id == user_id)
@@ -143,6 +156,7 @@ async def update_user(
 @router.delete("/{user_id}")
 async def delete_user(
     user_id: str,
+    current_user: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db)
 ):
     query = select(User).where(User.id == user_id)
