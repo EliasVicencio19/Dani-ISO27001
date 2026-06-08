@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { complianceAPI, documentsAPI } from '../services/api';
+import { getFullGapAnalysis, getComplianceScore } from '../services/gapAnalysisAPI';
 import { getControlName } from '../translations/controls';
 
 function GapAnalysisScreen() {
@@ -221,6 +222,9 @@ function GapAnalysisScreen() {
   const [showAIAuditModal, setShowAIAuditModal] = useState(null);
   const [isAuditing, setIsAuditing] = useState(false);
   const [isBulkAuditing, setIsBulkAuditing] = useState(false);
+  const [fullAnalysis, setFullAnalysis] = useState(null);
+  const [overallScore, setOverallScore] = useState(null);
+  const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
 
   // ==========================================
   // DATOS DE LAS FASES
@@ -329,6 +333,26 @@ function GapAnalysisScreen() {
       }
     };
     loadISOControls();
+  }, []);
+
+  // Cargar análisis de brechas completo desde el backend
+  useEffect(() => {
+    const loadAnalysis = async () => {
+      setIsLoadingAnalysis(true);
+      try {
+        const [analysis, score] = await Promise.all([
+          getFullGapAnalysis(),
+          getComplianceScore()
+        ]);
+        setFullAnalysis(analysis);
+        setOverallScore(score);
+      } catch (error) {
+        console.error('Error cargando análisis de brechas:', error);
+      } finally {
+        setIsLoadingAnalysis(false);
+      }
+    };
+    loadAnalysis();
   }, []);
 
   // Cargar documentos publicados
@@ -642,6 +666,157 @@ function GapAnalysisScreen() {
   );
 
   // ==========================================
+  // VISTA DE RESULTADOS (pestaña Resultados)
+  // ==========================================
+  const getScoreColor = (s) => s >= 85 ? '#10b981' : s >= 70 ? '#f59e0b' : '#ef4444';
+
+  const ResultadosView = () => {
+    if (isLoadingAnalysis) {
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '80px', color: t.textDim }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: '32px', height: '32px', border: '3px solid #8b5cf6', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+            <p>{language === 'es' ? 'Calculando análisis...' : 'Calculating analysis...'}</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (!overallScore && !fullAnalysis) {
+      return (
+        <div style={{ padding: '60px', textAlign: 'center', color: t.textDim }}>
+          <p>{language === 'es' ? 'No se pudo cargar el análisis. Verifica la conexión con el backend.' : 'Could not load analysis. Check backend connection.'}</p>
+        </div>
+      );
+    }
+
+    const score = overallScore?.overall_score ?? 0;
+    const gap = overallScore?.gap_to_certification ?? 0;
+    const clauses = fullAnalysis?.clause_gaps ?? [];
+    const sprints = fullAnalysis?.remediation_plan ?? {};
+    const kpis = fullAnalysis?.kpi_dashboard ?? {};
+    const allKpis = [...(kpis.strategic ?? []), ...(kpis.security ?? []), ...(kpis.operational ?? [])];
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
+
+        {/* Tarjetas de score */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+          <div style={{ background: t.cardBg, border: `2px solid ${getScoreColor(score)}40`, borderRadius: '16px', padding: '28px', textAlign: 'center' }}>
+            <div style={{ fontSize: '52px', fontWeight: 800, color: getScoreColor(score), lineHeight: 1 }}>{score}%</div>
+            <div style={{ fontSize: '13px', color: t.textDim, marginTop: '10px' }}>{language === 'es' ? 'Cumplimiento General' : 'Overall Compliance'}</div>
+            <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '6px' }}>{language === 'es' ? `Faltan ${gap}% para certificación` : `${gap}% to certification`}</div>
+          </div>
+          <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '28px', textAlign: 'center' }}>
+            <div style={{ fontSize: '52px', fontWeight: 800, color: '#3b82f6', lineHeight: 1 }}>85%</div>
+            <div style={{ fontSize: '13px', color: t.textDim, marginTop: '10px' }}>{language === 'es' ? 'Meta ISO 27001' : 'ISO 27001 Target'}</div>
+            <div style={{ fontSize: '12px', color: t.textDim, marginTop: '6px' }}>{language === 'es' ? 'Requerido para certificación' : 'Required for certification'}</div>
+          </div>
+          <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '28px', textAlign: 'center' }}>
+            <div style={{ fontSize: '52px', fontWeight: 800, color: overallScore?.trend === 'up' ? '#10b981' : '#ef4444', lineHeight: 1 }}>
+              {overallScore?.trend === 'up' ? '↑' : '↓'}
+            </div>
+            <div style={{ fontSize: '13px', color: t.textDim, marginTop: '10px' }}>{language === 'es' ? 'Tendencia' : 'Trend'}</div>
+            <div style={{ fontSize: '12px', color: t.textDim, marginTop: '6px' }}>{language === 'es' ? 'Progresión actual' : 'Current progress'}</div>
+          </div>
+        </div>
+
+        {/* Brechas por cláusula */}
+        {clauses.length > 0 && (
+          <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '24px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 600, color: t.text, marginBottom: '20px' }}>
+              {language === 'es' ? 'Brechas por Cláusula ISO 27001' : 'Gaps by ISO 27001 Clause'}
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {clauses.map(c => (
+                <div key={c.clause_id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '13px', color: t.text }}>
+                      {language === 'es' ? 'Cláusula' : 'Clause'} {c.clause_id}: {c.clause_name}
+                    </span>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', color: t.textDim }}>{language === 'es' ? 'Brecha' : 'Gap'}: {c.gap}%</span>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: getScoreColor(c.current_score) }}>{c.current_score}%</span>
+                    </div>
+                  </div>
+                  <div style={{ height: '8px', background: t.inputBg, borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{ width: `${c.current_score}%`, height: '100%', background: getScoreColor(c.current_score), borderRadius: '4px', transition: 'width 0.6s ease' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Plan de remediación */}
+        {sprints.sprint_1 && (
+          <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '24px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 600, color: t.text, marginBottom: '16px' }}>
+              {language === 'es' ? 'Plan de Remediación' : 'Remediation Plan'}
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', padding: '16px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#ef4444', marginBottom: '10px' }}>
+                  SPRINT 1 — Crítico ({sprints.sprint_1.duration_days} días)
+                </div>
+                {sprints.sprint_1.controls.map(ctrl => (
+                  <div key={ctrl.id} style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px' }}>
+                    • <strong style={{ color: '#ef4444' }}>{ctrl.id}</strong>: {ctrl.title}
+                  </div>
+                ))}
+                <div style={{ fontSize: '11px', color: t.textDim, marginTop: '10px', borderTop: `1px solid rgba(239,68,68,0.15)`, paddingTop: '8px' }}>
+                  {sprints.sprint_1.total_hours}h estimadas
+                </div>
+              </div>
+              <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '12px', padding: '16px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#f59e0b', marginBottom: '10px' }}>
+                  SPRINT 2 — Alto ({sprints.sprint_2.duration_days} días)
+                </div>
+                {sprints.sprint_2.controls.map(ctrl => (
+                  <div key={ctrl.id} style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px' }}>
+                    • <strong style={{ color: '#f59e0b' }}>{ctrl.id}</strong>: {ctrl.title}
+                  </div>
+                ))}
+                <div style={{ fontSize: '11px', color: t.textDim, marginTop: '10px', borderTop: `1px solid rgba(245,158,11,0.15)`, paddingTop: '8px' }}>
+                  {sprints.sprint_2.total_hours}h estimadas
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: '14px', fontSize: '13px', color: t.textDim }}>
+              {language === 'es' ? 'Costo estimado' : 'Estimated cost'}: <strong style={{ color: t.text }}>${sprints.estimated_cost_usd?.toLocaleString() ?? '—'} USD</strong>
+              {' · '}{sprints.total_hours}h {language === 'es' ? 'totales' : 'total'}
+            </div>
+          </div>
+        )}
+
+        {/* KPIs */}
+        {allKpis.length > 0 && (
+          <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '24px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 600, color: t.text, marginBottom: '16px' }}>KPIs</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
+              {allKpis.map((kpi, i) => {
+                const name = typeof kpi === 'object' ? (kpi.name ?? '') : '';
+                const current = typeof kpi === 'object' ? (kpi.current_value ?? 0) : 0;
+                const target = typeof kpi === 'object' ? (kpi.target_value ?? 100) : 100;
+                const unit = typeof kpi === 'object' ? (kpi.unit ?? '') : '';
+                const onTrack = target === 0 ? current === 0 : current >= target;
+                return (
+                  <div key={i} style={{ background: t.inputBg, borderRadius: '10px', padding: '14px' }}>
+                    <div style={{ fontSize: '11px', color: t.textDim, marginBottom: '6px', lineHeight: '1.3' }}>{name}</div>
+                    <div style={{ fontSize: '22px', fontWeight: 700, color: onTrack ? '#10b981' : '#ef4444' }}>{current}{unit}</div>
+                    <div style={{ fontSize: '11px', color: t.textDim, marginTop: '2px' }}>{language === 'es' ? 'Meta' : 'Target'}: {target}{unit}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+      </div>
+    );
+  };
+
+  // ==========================================
   // RENDER PRINCIPAL
   // ==========================================
   return (
@@ -664,6 +839,9 @@ function GapAnalysisScreen() {
           </button>
           <button onClick={() => setActiveMainTab('soa')} style={{ padding: '8px 20px', borderRadius: '6px', background: activeMainTab === 'soa' ? '#3b82f6' : 'transparent', border: activeMainTab === 'soa' ? 'none' : `1px solid ${t.border}`, color: activeMainTab === 'soa' ? 'white' : t.text, fontWeight: 500, fontSize: '13px', cursor: 'pointer' }}>
             {tText.previewSOA}
+          </button>
+          <button onClick={() => setActiveMainTab('resultados')} style={{ padding: '8px 20px', borderRadius: '6px', background: activeMainTab === 'resultados' ? '#8b5cf6' : 'transparent', border: activeMainTab === 'resultados' ? 'none' : `1px solid ${t.border}`, color: activeMainTab === 'resultados' ? 'white' : t.text, fontWeight: 500, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Activity size={14} /> {language === 'es' ? 'Resultados' : language === 'pt' ? 'Resultados' : 'Results'}
           </button>
           <button onClick={handleBulkAudit} disabled={isBulkAuditing} style={{ padding: '8px 16px', borderRadius: '6px', background: isBulkAuditing ? 'rgba(139, 92, 246, 0.1)' : 'transparent', border: `1px solid ${isBulkAuditing ? '#8b5cf6' : t.border}`, color: isBulkAuditing ? '#8b5cf6' : t.text, fontWeight: 500, fontSize: '13px', cursor: isBulkAuditing ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.3s ease' }}>
             <Sparkles size={14} color={isBulkAuditing ? '#8b5cf6' : t.text} /> {isBulkAuditing ? (language === 'es' ? 'Auditando...' : 'Auditing...') : (language === 'es' ? 'Auditoría Total (IA)' : 'Bulk Audit (AI)')}
@@ -751,8 +929,10 @@ function GapAnalysisScreen() {
             </div>
           </div>
         </>
-      ) : (
+      ) : activeMainTab === 'soa' ? (
         <InteractiveSOA />
+      ) : (
+        <ResultadosView />
       )}
     </div>
   );
