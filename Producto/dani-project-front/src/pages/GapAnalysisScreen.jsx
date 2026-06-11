@@ -355,19 +355,19 @@ function GapAnalysisScreen() {
     loadAnalysis();
   }, []);
 
-  // Cargar documentos publicados
-  //useEffect(() => {
-  //  const loadDocs = async () => {
-  //    try {
-  //      const token = localStorage.getItem('token');
-  //      const data = await documentsAPI.getPublishedPolicies(token);
-  //      if (data.policies) setAvailableDocs(data.policies);
-  //    } catch (error) {
-  //      console.error("Error loading policies:", error);
-  //    }
-  //  };
-  //  loadDocs();
-  //}, []);
+  // Cargar documentos publicados para el modal de auditoría IA
+  useEffect(() => {
+    const loadDocs = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const data = await documentsAPI.getPublishedPolicies(token);
+        if (data?.policies) setAvailableDocs(data.policies);
+      } catch (error) {
+        console.error("Error loading policies:", error);
+      }
+    };
+    loadDocs();
+  }, []);
 
   const handleAIAudit = async (documentId) => {
     if (!showAIAuditModal) return;

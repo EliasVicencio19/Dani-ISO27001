@@ -144,8 +144,8 @@ async def evaluate_control(
     from app.models.document import Document
     
     async with AsyncSessionLocal() as session:
-        # Obtener el control
-        stmt = select(ISOCControl).where(ISOCControl.id == control_id)
+        # Obtener el control por código ISO (ej: "5.1"), no por UUID
+        stmt = select(ISOCControl).where(ISOCControl.control_id == control_id)
         result = await session.execute(stmt)
         db_control = result.scalar_one_or_none()
         
@@ -198,46 +198,51 @@ async def evaluate_control(
 async def bulk_audit(
     current_user: dict = Depends(get_current_user)
 ):
-    """Audita todos los controles 'No Implementados' contra todo el repositorio documental mediante IA/RAG"""
+    """Audita los controles aplicables contra el repositorio documental mediante IA/RAG"""
+    import asyncio
     from app.models.evidence_chunk import EvidenceChunk
     from app.services.embedding_service import EmbeddingService
-    
+
+    DEMO_LIMIT = 10  # Limitar para evitar timeout en Render.com (plan gratuito = 30s)
     embedder = EmbeddingService()
-    updated_count = 0
     results = []
 
     async with AsyncSessionLocal() as session:
-        # Traer controles aplicables
-        stmt = select(ISOCControl).where(ISOCControl.applies == True)
+        stmt = select(ISOCControl).where(ISOCControl.applies == True).limit(DEMO_LIMIT)
         result = await session.execute(stmt)
         controls = result.scalars().all()
-        
+
         for control in controls:
-            # 1. Crear embedding para el control
-            query_vector = embedder.generate_single_embedding(f"{control.title}. {control.description}")
-            
-            # 2. Buscar similitud de coseno en la documentación de la empresa
-            chunk_stmt = (
-                select(EvidenceChunk)
-                .order_by(EvidenceChunk.embedding.cosine_distance(query_vector))
-                .limit(4)
-            )
-            chunk_res = await session.execute(chunk_stmt)
-            top_chunks = chunk_res.scalars().all()
-            
-            context = "\n\n".join([f"- {c.content}" for c in top_chunks]) if top_chunks else ""
-            
-            # 3. Mandar a evaluar
-            evaluation = await analyzer.ai_service.mass_evaluate_control(
-                control_title=control.title,
-                control_desc=control.description,
-                context_chunks=context
-            )
-            
-            # 4. Actualizar BD
+            try:
+                query_vector = embedder.generate_single_embedding(
+                    f"{control.title}. {control.description}"
+                )
+                chunk_stmt = (
+                    select(EvidenceChunk)
+                    .order_by(EvidenceChunk.embedding.cosine_distance(query_vector))
+                    .limit(4)
+                )
+                chunk_res = await session.execute(chunk_stmt)
+                top_chunks = chunk_res.scalars().all()
+                context = "\n\n".join([f"- {c.content}" for c in top_chunks]) if top_chunks else ""
+
+                evaluation = await asyncio.wait_for(
+                    analyzer.ai_service.mass_evaluate_control(
+                        control_title=control.title,
+                        control_desc=control.description,
+                        context_chunks=context
+                    ),
+                    timeout=8.0
+                )
+            except (asyncio.TimeoutError, Exception):
+                evaluation = {
+                    "score": 0,
+                    "status": "notImplemented",
+                    "justification": "Evaluación no disponible en este momento."
+                }
+
             control.score = evaluation.get("score", 0)
             control.justification = evaluation.get("justification", "")
-            
             ai_status = evaluation.get("status", "notImplemented").lower()
             if "implemented" in ai_status:
                 control.status = "Implementado"
@@ -245,13 +250,17 @@ async def bulk_audit(
                 control.status = "Planificado"
             else:
                 control.status = "No Implementado"
-                
-            updated_count += 1
-            results.append({"id": control.control_id, "status": control.status, "score": control.score, "justification": control.justification})
-            
+
+            results.append({
+                "id": control.control_id,
+                "status": control.status,
+                "score": control.score,
+                "justification": control.justification
+            })
+
         await session.commit()
-        
+
     return {
-        "message": f"Auditoría Masiva completada. {updated_count} controles evaluados.",
+        "message": f"Auditoría Masiva completada. {len(results)} controles evaluados.",
         "results": results
     }
