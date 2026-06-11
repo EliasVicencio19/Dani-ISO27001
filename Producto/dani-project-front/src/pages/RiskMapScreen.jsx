@@ -16,13 +16,7 @@ const RiskMapScreen = () => {
   // ==========================================
   const [risks, setRisks] = useState([]); // <- Aquí guardaremos los riesgos reales de la BD
   
-  const [selectedRisk, setSelectedRisk] = useState({
-    id: 1, name: 'Unauthorized Access', prob: 4, impact: 5, category: 'Access',
-    controls: [
-      { id: 'c1', name: 'Multi-Factor Authentication', reduction: 8 },
-      { id: 'c2', name: 'Privileged Access Management', reduction: 6 }
-    ]
-  });
+  const [selectedRisk, setSelectedRisk] = useState(null);
   const [appliedControls, setAppliedControls] = useState([]);
   const [showAssetDiscovery, setShowAssetDiscovery] = useState(true);
   const [activeAssetSource, setActiveAssetSource] = useState('network');
@@ -41,7 +35,9 @@ const RiskMapScreen = () => {
       try {
         const data = await riskAPI.getAll();
         if (data && data.length > 0) {
-          setRisks(data); // Si hay datos, los guardamos
+          setRisks(data);
+          const first = data[0];
+          setSelectedRisk({ ...first, name: first.title, prob: first.likelihood || first.prob });
         }
       } catch (error) {
         console.error("Error conectando con la API de Riesgos. Usando datos locales.", error);
@@ -270,7 +266,15 @@ const RiskMapScreen = () => {
 
         {/* PANEL DE SIMULACIÓN */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          
+
+          {!selectedRisk && (
+            <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '48px 24px', textAlign: 'center', color: t.textDim }}>
+              <Target size={36} style={{ marginBottom: '12px', opacity: 0.4 }} />
+              <p style={{ fontSize: '14px' }}>Haz clic en un riesgo de la matriz para ver el simulador</p>
+            </div>
+          )}
+
+          {selectedRisk && <>
           {/* Header del Riesgo */}
           <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -278,7 +282,7 @@ const RiskMapScreen = () => {
             </div>
             <div>
               <h2 style={{ fontSize: '18px', fontWeight: 700, color: t.text, marginBottom: '6px' }}>{selectedRisk.name}</h2>
-              <span style={{ fontSize: '11px', padding: '4px 10px', background: t.inputBg, borderRadius: '6px', color: t.textDim }}>{selectedRisk.category || 'Access'}</span>
+              <span style={{ fontSize: '11px', padding: '4px 10px', background: t.inputBg, borderRadius: '6px', color: t.textDim }}>{selectedRisk.category || 'General'}</span>
             </div>
           </div>
 
@@ -368,6 +372,7 @@ const RiskMapScreen = () => {
               })}
             </div>
           </div>
+          </>}
 
         </div>
       </div>
