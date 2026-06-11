@@ -79,6 +79,23 @@ async def get_compliance_score(
     result = await analyzer._calculate_overall_score()
     return result
 
+@router.get("/domains")
+async def get_domain_scores(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_db)
+) -> Dict:
+    """Scores de cumplimiento por dominio ISO 27001 para el sidebar"""
+    analyzer = GapAnalyzer(db)
+    clauses = await analyzer._analyze_clauses()
+    clause_map = {c["clause_id"]: c["current_score"] for c in clauses}
+
+    return {
+        "people":     round((clause_map.get("7", 75) + clause_map.get("6", 60)) / 2, 1),
+        "technology": round((clause_map.get("8", 65) + clause_map.get("9", 50)) / 2, 1),
+        "physical":   round(clause_map.get("9", 50), 1),
+        "processes":  round((clause_map.get("4", 80) + clause_map.get("5", 70) + clause_map.get("10", 45)) / 3, 1),
+    }
+
 @router.post("/remediation-actions/{gap_id}")
 async def create_remediation_action(
     gap_id: str,

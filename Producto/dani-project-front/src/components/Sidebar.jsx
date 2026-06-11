@@ -1,18 +1,32 @@
 /* eslint-disable */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, Search, FilePlus2, AlertTriangle, Database, FileText, FileCheck, Users, ChevronLeft, ChevronRight, Shield, UserCircle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { getDomainScores, getComplianceScore } from '../services/api';
 
 function SidebarProgressRings({ theme: t, language, collapsed }) {
-  if (collapsed) return null;
+  const [domains, setDomains] = useState(null);
+  const [overallProgress, setOverallProgress] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [domainData, scoreData] = await Promise.all([getDomainScores(), getComplianceScore()]);
+        if (domainData && !domainData.detail) setDomains(domainData);
+        if (scoreData && !scoreData.detail) setOverallProgress(Math.round(scoreData.overall_score ?? 0));
+      } catch (_) {}
+    };
+    load();
+  }, []);
+
   const domainProgress = [
-    { name: language === 'es' ? 'Personas' : 'People', progress: 82, color: '#3b82f6' },
-    { name: language === 'es' ? 'Tecnología' : 'Technology', progress: 68, color: '#8b5cf6' },
-    { name: language === 'es' ? 'Físico' : 'Physical', progress: 91, color: '#10b981' },
-    { name: language === 'es' ? 'Procesos' : 'Processes', progress: 55, color: '#f59e0b' }
+    { name: language === 'es' ? 'Personas' : 'People',     progress: domains?.people      ?? null, color: '#3b82f6' },
+    { name: language === 'es' ? 'Tecnología' : 'Technology', progress: domains?.technology ?? null, color: '#8b5cf6' },
+    { name: language === 'es' ? 'Físico' : 'Physical',     progress: domains?.physical     ?? null, color: '#10b981' },
+    { name: language === 'es' ? 'Procesos' : 'Processes',  progress: domains?.processes    ?? null, color: '#f59e0b' }
   ];
 
-  const overallProgress = Math.round(domainProgress.reduce((sum, d) => sum + d.progress, 0) / domainProgress.length);
+  const displayOverall = overallProgress ?? Math.round(domainProgress.filter(d => d.progress !== null).reduce((s, d) => s + d.progress, 0) / (domainProgress.filter(d => d.progress !== null).length || 1));
   const darkMode = t.bg.includes('#000000') || t.bg.includes('#0a0f1c'); // Infer dark mode from theme bg
 
   if (collapsed) {
@@ -20,10 +34,10 @@ function SidebarProgressRings({ theme: t, language, collapsed }) {
       <div style={{ padding: '12px 8px', borderTop: `1px solid ${t.border}`, marginTop: 'auto' }}>
         <div style={{ width: '48px', height: '48px', margin: '0 auto', position: 'relative' }}>
           <svg width="48" height="48" viewBox="0 0 48 48">
-            <circle cx="24" cy="24" r="20" fill="none" stroke={darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'} strokeWidth="4" />
-            <circle cx="24" cy="24" r="20" fill="none" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${overallProgress * 1.26} 126`} transform="rotate(-90 24 24)" />
+            <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
+            <circle cx="24" cy="24" r="20" fill="none" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${(displayOverall ?? 0) * 1.26} 126`} transform="rotate(-90 24 24)" />
           </svg>
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '11px', fontWeight: 700, color: '#10b981' }}>{overallProgress}%</div>
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '11px', fontWeight: 700, color: '#10b981' }}>{displayOverall ?? '--'}%</div>
         </div>
       </div>
     );
@@ -32,15 +46,15 @@ function SidebarProgressRings({ theme: t, language, collapsed }) {
   return (
     <div style={{ padding: '16px', borderTop: `1px solid ${t.border}`, marginTop: 'auto' }}>
       <div style={{ fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>{language === 'es' ? 'Análisis de Brechas' : 'Gap Analysis'}</div>
-      
+
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
         <div style={{ width: '64px', height: '64px', position: 'relative' }}>
           <svg width="64" height="64" viewBox="0 0 64 64">
-            <circle cx="32" cy="32" r="26" fill="none" stroke={darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'} strokeWidth="6" />
-            <circle cx="32" cy="32" r="26" fill="none" stroke="url(#overallGradient)" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${overallProgress * 1.63} 163`} transform="rotate(-90 32 32)" />
+            <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
+            <circle cx="32" cy="32" r="26" fill="none" stroke="url(#overallGradient)" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(displayOverall ?? 0) * 1.63} 163`} transform="rotate(-90 32 32)" />
             <defs><linearGradient id="overallGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#10b981" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient></defs>
           </svg>
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '16px', fontWeight: 700, color: '#10b981' }}>{overallProgress}%</div>
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '16px', fontWeight: 700, color: '#10b981' }}>{displayOverall ?? '--'}%</div>
         </div>
         <div>
           <div style={{ fontSize: '14px', fontWeight: 600, color: t.text }}>{language === 'es' ? 'General' : 'Overall'}</div>
@@ -53,10 +67,12 @@ function SidebarProgressRings({ theme: t, language, collapsed }) {
           <div key={i}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
               <span style={{ fontSize: '11px', color: t.textMuted }}>{domain.name}</span>
-              <span style={{ fontSize: '11px', fontWeight: 600, color: domain.color }}>{domain.progress}%</span>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: domain.color }}>
+                {domain.progress !== null ? `${domain.progress}%` : '...'}
+              </span>
             </div>
-            <div style={{ height: '6px', background: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ width: `${domain.progress}%`, height: '100%', background: domain.color, borderRadius: '3px', transition: 'width 0.5s ease' }} />
+            <div style={{ height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ width: `${domain.progress ?? 0}%`, height: '100%', background: domain.color, borderRadius: '3px', transition: 'width 0.8s ease' }} />
             </div>
           </div>
         ))}

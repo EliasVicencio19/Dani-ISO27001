@@ -499,4 +499,13 @@ export const getComplianceScore = async () => {
   return response.json();
 };
 
+// Obtener scores por dominio ISO para el sidebar
+export const getDomainScores = async () => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/api/gap-analysis/domains`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  return response.json();
+};
+
 export default api;
