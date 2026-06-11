@@ -24,8 +24,6 @@ class DeepSeekService:
         if not prompt_data:
             return {"error": f"No se encontró el prompt '{prompt_name}' en la base de datos."}
 
-        context = "Aquí irán los fragmentos recuperados de Weaviate."
-        
         user_message = prompt_data.user_prompt_template.format(
             title=risk.get('title', 'N/A'),
             description=risk.get('description', 'N/A')

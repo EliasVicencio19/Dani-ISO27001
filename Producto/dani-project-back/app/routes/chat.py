@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.dependencies.database import get_db
+from app.dependencies.auth import get_current_user
 from app.services.ai_service import AIService
 from app.services.embedding_service import EmbeddingService
 from app.models.evidence_chunk import EvidenceChunk
@@ -18,7 +19,11 @@ class ChatRequest(BaseModel):
     message: str
 
 @router.post("/")
-async def chat_endpoint(request: ChatRequest, db: AsyncSession = Depends(get_db)):
+async def chat_endpoint(
+    request: ChatRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     """
     Recibe el mensaje de React, busca fragmentos tanto en las evidencias subidas 
     como en la base normativa oficial (ISO 27001 / ISO 27002), e inyecta ambos como contexto a DANI.
