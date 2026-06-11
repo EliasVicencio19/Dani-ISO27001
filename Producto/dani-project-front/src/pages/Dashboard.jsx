@@ -2,13 +2,15 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Shield, Search, Download, RefreshCw, Clock, ArrowRight, FileCheck, AlertTriangle, Plus } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import CAPATracker from '../components/CAPATracker';
-import { getComplianceScore } from '../services/api';
-import { riskAPI } from '../services/api';
+import { getComplianceScore, riskAPI } from '../services/api';
 
 const DashboardScreen = ({ onNavigate }) => {
   const { theme: t, language, translations, darkMode } = useContext(ThemeContext);
+  const { user } = useAuth();
   const tr = (key) => translations[language]?.[key] || translations.en[key] || key;
+  const canAccessGapAnalysis = ['admin', 'manager', 'auditor'].includes(user?.role);
 
   const [healthScore, setHealthScore] = useState(null);
   const [riskStats, setRiskStats] = useState(null);
@@ -111,20 +113,22 @@ const DashboardScreen = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* BANNER DE ACCESO RÁPIDO RE-ESTILIZADO */}
-      <div 
-        onClick={() => onNavigate('gap-analysis')}
-        style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', cursor: 'pointer', marginBottom: '24px' }}
-      >
-        <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Search size={28} color="#10b981" /></div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '4px' }}>{tr('continueGapAnalysis')}</div>
-          <div style={{ fontSize: '14px', color: t.textDim }}>{tr('completeAssessment')} • 65% {tr('complete')}</div>
+      {/* BANNER DE ACCESO RÁPIDO — solo roles con acceso a Gap Analysis */}
+      {canAccessGapAnalysis && (
+        <div
+          onClick={() => onNavigate('gap-analysis')}
+          style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', cursor: 'pointer', marginBottom: '24px' }}
+        >
+          <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Search size={28} color="#10b981" /></div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '4px' }}>{tr('continueGapAnalysis')}</div>
+            <div style={{ fontSize: '14px', color: t.textDim }}>{tr('completeAssessment')} • {isLoading ? '...' : `${healthScore ?? '--'}%`} {tr('complete')}</div>
+          </div>
+          <div style={{ padding: '12px 24px', background: '#10b981', borderRadius: '10px', color: 'white', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {tr('continue')} <ArrowRight size={16} />
+          </div>
         </div>
-        <div style={{ padding: '12px 24px', background: '#10b981', borderRadius: '10px', color: 'white', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {tr('continue')} <ArrowRight size={16} />
-        </div>
-      </div>
+      )}
 
       {/* RASTREADOR CAPA MODULAR COMPLETO */}
       <CAPATracker />
