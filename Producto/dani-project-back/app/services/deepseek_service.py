@@ -28,7 +28,6 @@ class DeepSeekService:
             title=risk.get('title', 'N/A'),
             description=risk.get('description', 'N/A')
         )
-        user_message += f"\n\nContexto extraído de documentos: {context}"
         
         try:
             response = await self.client.chat.completions.create(
