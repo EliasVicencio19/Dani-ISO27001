@@ -1,13 +1,36 @@
 /* eslint-disable */
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Shield, Search, Download, RefreshCw, Clock, ArrowRight, FileCheck, AlertTriangle, Plus } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import CAPATracker from '../components/CAPATracker';
+import { getComplianceScore } from '../services/api';
+import { riskAPI } from '../services/api';
 
 const DashboardScreen = ({ onNavigate }) => {
   const { theme: t, language, translations, darkMode } = useContext(ThemeContext);
   const tr = (key) => translations[language]?.[key] || translations.en[key] || key;
-  const [healthScore] = useState(78);
+
+  const [healthScore, setHealthScore] = useState(null);
+  const [riskStats, setRiskStats] = useState(null);
+  const [lastSync, setLastSync] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      setIsLoading(true);
+      try {
+        const [scoreData, statsData] = await Promise.all([
+          getComplianceScore(),
+          riskAPI.getStatistics()
+        ]);
+        if (scoreData && !scoreData.detail) setHealthScore(Math.round(scoreData.overall_score ?? scoreData.score ?? 0));
+        if (statsData && !statsData.detail) setRiskStats(statsData);
+        setLastSync(new Date());
+      } catch (_) {}
+      finally { setIsLoading(false); }
+    };
+    loadDashboardData();
+  }, []);
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
@@ -19,9 +42,13 @@ const DashboardScreen = ({ onNavigate }) => {
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', fontSize: '13px', color: '#10b981' }}>
-            <RefreshCw size={14} /> {tr('synced')} 2 {tr('minAgo')}
+            <RefreshCw size={14} />
+            {lastSync ? `Actualizado ${lastSync.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}` : 'Cargando...'}
           </div>
-          <button style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+          <button
+            onClick={() => window.print()}
+            style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
+          >
             <Download size={16} /> {tr('exportReport')}
           </button>
         </div>
@@ -35,11 +62,13 @@ const DashboardScreen = ({ onNavigate }) => {
           <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto' }}>
             <svg width="120" height="120" viewBox="0 0 120 120">
               <circle cx="60" cy="60" r="52" fill="none" stroke={darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'} strokeWidth="12" />
-              <circle cx="60" cy="60" r="52" fill="none" stroke="url(#hg)" strokeWidth="12" strokeLinecap="round" strokeDasharray={`${healthScore * 3.27} 327`} transform="rotate(-90 60 60)" />
+              <circle cx="60" cy="60" r="52" fill="none" stroke="url(#hg)" strokeWidth="12" strokeLinecap="round" strokeDasharray={`${(healthScore ?? 0) * 3.27} 327`} transform="rotate(-90 60 60)" />
               <defs><linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#10b981" /><stop offset="100%" stopColor="#059669" /></linearGradient></defs>
             </svg>
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-              <div style={{ fontSize: '32px', fontWeight: 700, color: '#10b981' }}>{healthScore}%</div>
+              <div style={{ fontSize: '32px', fontWeight: 700, color: '#10b981' }}>
+                {isLoading ? '...' : `${healthScore ?? '--'}%`}
+              </div>
               <div style={{ fontSize: '11px', color: t.textDim }}>{tr('ready')}</div>
             </div>
           </div>
@@ -63,8 +92,12 @@ const DashboardScreen = ({ onNavigate }) => {
             <div style={{ width: '36px', height: '36px', background: 'rgba(245, 158, 11, 0.15)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Clock size={18} color="#f59e0b" /></div>
             <span style={{ fontSize: '13px', color: t.textMuted }}>{tr('pendingActions')}</span>
           </div>
-          <div style={{ fontSize: '36px', fontWeight: 700, color: '#f59e0b', marginBottom: '4px' }}>12</div>
-          <div style={{ fontSize: '13px', color: t.textDim }}>3 {tr('highPriority')}</div>
+          <div style={{ fontSize: '36px', fontWeight: 700, color: '#f59e0b', marginBottom: '4px' }}>
+            {isLoading ? '...' : (riskStats?.open_risks ?? '--')}
+          </div>
+          <div style={{ fontSize: '13px', color: t.textDim }}>
+            {isLoading ? '' : `${(riskStats?.by_level?.critical ?? 0) + (riskStats?.by_level?.high ?? 0)} alto/crítico`}
+          </div>
         </div>
 
         {/* Días para Auditoría */}
