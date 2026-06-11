@@ -111,6 +111,27 @@ class AIService:
                 "priority": "alta"
             }
 
+    async def generate_document(self, prompt: str) -> str:
+        """Genera un capítulo completo del SGSI — usa max_tokens alto para no truncar"""
+        if not self.client:
+            return "Error: API key no configurada"
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=settings.AI_MODEL,
+                messages=[
+                    {"role": "system", "content": "Eres un Consultor Lead Implementer y Auditor Líder de ISO 27001 con 20 años de experiencia. Redacta documentos extensos, formales y listos para producción."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.5,
+                max_tokens=3000
+            )
+            return response.choices[0].message.content
+
+        except Exception as e:
+            logger.error(f"Error en generate_document: {e}")
+            return f"Error al generar el documento: {str(e)}"
+
     async def evaluate_compliance(self, document_text: str, control_title: str, control_desc: str) -> dict:
         """Auditar un documento contra un control de la ISO 27001"""
         if not self.client:

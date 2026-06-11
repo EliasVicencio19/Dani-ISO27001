@@ -82,7 +82,7 @@ Estructura obligatoria (en Markdown):
 IMPORTANTE: Escribe al menos 800 palabras. El tono debe ser altamente corporativo, directivo y riguroso."""
     
     try:
-        content = await ai_service.chat(prompt)
+        content = await ai_service.generate_document(prompt)
     except Exception as e:
         content = f"Error conectando con la IA: {str(e)}"
         
