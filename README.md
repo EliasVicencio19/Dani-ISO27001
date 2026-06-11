@@ -2,385 +2,421 @@
   <img width="200" height="200" alt="dani logo" src="https://github.com/user-attachments/assets/7722c9bc-319d-47e5-be7a-07f332b0db00" />
 </div>
 
-# 🛡️ DANI — Governance, Risk & Compliance (GRC) Platform
+# DANI — Governance, Risk & Compliance (GRC) Platform
 
-> **Plataforma inteligente de cumplimiento ISO 27001:2022** diseñada para humanizar la ciberseguridad, automatizar el proceso de certificación y devolver tiempo valioso a los equipos de seguridad.
-
----
-
-## 📋 Tabla de Contenidos
-
-* [Descripción General](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-descripci%C3%B3n-general)
-* [El Problema que Resuelve](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-el-problema-que-resuelve)
-* [Características Principales](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-caracter%C3%ADsticas-principales)
-* [Stack Tecnológico](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#%EF%B8%8F-stack-tecnol%C3%B3gico)
-* [Arquitectura del Sistema](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#%EF%B8%8F-arquitectura-del-sistema)
-* [Módulos de la Plataforma](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-m%C3%B3dulos-de-la-plataforma)
-* [Diseño UX/UI](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-dise%C3%B1o-uxui)
-* [Instalación y Configuración](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-instalaci%C3%B3n-y-configuraci%C3%B3n)
-* [Estructura del Proyecto](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-estructura-del-proyecto)
-* [Plan de Desarrollo](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-plan-de-desarrollo)
-* [Equipo y Roles](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-equipo-y-roles)
-* [Contexto: Ecosistema Alloxentric](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-contexto-ecosistema-alloxentric)
-* [Contribución](https://claude.ai/chat/1904a889-1efe-4063-bde4-1a77bd4535f5#-contribuci%C3%B3n)
+> **Plataforma SaaS inteligente de cumplimiento ISO 27001:2022** que automatiza el proceso de certificación mediante IA generativa, análisis de brechas en tiempo real y gestión documental asistida.
 
 ---
 
-## 📌 Descripción General
+## Tabla de Contenidos
 
-**DANI** es una plataforma SaaS de cumplimiento normativo que centraliza, automatiza y visualiza el estado de cumplimiento ISO 27001 en tiempo real. Forma parte del ecosistema de automatización inteligente de  **Alloxentric IA** , empresa cuya misión es liberar el potencial humano de tareas mecánicas y repetitivas.
-
-La plataforma integra un asistente de IA (Dani AI) que actúa como mentor dentro del sistema, ayudando a los equipos de seguridad a redactar políticas, interpretar controles técnicos complejos y gestionar evidencias de forma autónoma — sin necesidad de ser consultores expertos.
-
-> **Objetivo clave:** Reducir el tiempo de implementación de ISO 27001 en un  **60%** , transformando un proceso burocrático y agotador en un flujo de trabajo inteligente, colaborativo y auditable.
-
----
-
-## 🔍 El Problema que Resuelve
-
-La certificación ISO 27001 ha sido históricamente un proceso árido:
-
-* 📁 Carpetas infinitas de documentos desconectados
-* 📊 Hojas de cálculo confusas y propensas a errores
-* 😓 "Fatiga de cumplimiento" en los equipos de tecnología
-* ⏰ Auditorías de último minuto llenas de estrés
-* 🔍 Falta de visibilidad en tiempo real del estado de cumplimiento
-
-DANI convierte este laberinto en un proceso transparente, automatizado y colaborativo.
+- [Descripción General](#descripción-general)
+- [El Problema que Resuelve](#el-problema-que-resuelve)
+- [Stack Tecnológico](#stack-tecnológico)
+- [Arquitectura del Sistema](#arquitectura-del-sistema)
+- [Módulos Implementados](#módulos-implementados)
+- [Instalación Local](#instalación-local)
+- [Variables de Entorno](#variables-de-entorno)
+- [Scripts de Inicialización](#scripts-de-inicialización)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Despliegue en Producción](#despliegue-en-producción)
+- [Credenciales por Defecto](#credenciales-por-defecto)
+- [Equipo](#equipo)
 
 ---
 
-## ✨ Características Principales
+## Descripción General
 
-| Funcionalidad                              | Descripción                                                             |
-| ------------------------------------------ | ------------------------------------------------------------------------ |
-| 📊**Dashboard en Tiempo Real**       | Health Score visual del cumplimiento, KPIs y alertas de integración     |
-| 🔍**Gap Analysis Inteligente**       | Diagnóstico inicial con formato wizard en lenguaje natural              |
-| 📄**Generador de Documentos con IA** | Redacción asistida de políticas y procedimientos alineados a ISO 27001 |
-| ⚠️**Mapa de Riesgos Dinámico**    | Visualización matricial de riesgos con controles sugeridos              |
-| 🗄️**Centro de Evidencias**         | Recolección automática desde sistemas conectados (AWS, etc.)           |
-| 📁**Gestor Documental**              | Control de versiones y firmas digitales de políticas                    |
-| 🔒**Audit Room**                     | Vista de solo lectura con búsqueda semántica para auditores externos   |
-| 🤖**Dani AI**                        | Asistente de IA integrado para soporte contextual en tiempo real         |
-| 🌐**Multiidioma (i18n)**             | Soporte nativo en Español, Inglés y Portugués                         |
-| 🌙**Dark/Light Mode**                | Temas visuales con variables CSS y soporte de alto contraste             |
-| ⌨️**Command Palette**              | Navegación rápida con atajo `Cmd+K`                                  |
-| 👥**RBAC Granular**                  | Control de acceso por roles: Admin, Auditor, Técnico, Consulta          |
+**DANI** es una plataforma de cumplimiento normativo que centraliza, automatiza y visualiza el estado de cumplimiento ISO 27001 en tiempo real. Integra un motor de IA (DeepSeek) con arquitectura RAG (Retrieval-Augmented Generation) sobre documentación ISO 27001:2022 e ISO 27002:2022 para asistir a los equipos de seguridad en la redacción de políticas, evaluación de controles y gestión de evidencias.
+
+> **Objetivo:** Reducir el tiempo de implementación ISO 27001 transformando un proceso burocrático en un flujo de trabajo inteligente, colaborativo y auditable.
 
 ---
 
-## 🛠️ Stack Tecnológico
+## El Problema que Resuelve
+
+- Carpetas infinitas de documentos desconectados entre sí
+- Hojas de cálculo manuales propensas a errores
+- Falta de visibilidad en tiempo real del estado de cumplimiento
+- Auditorías de último minuto llenas de estrés
+- Dificultad para mapear controles técnicos a la normativa
+
+---
+
+## Stack Tecnológico
 
 ### Frontend
 
-```
-Framework:        React 18 + TypeScript + Vite
-State Management: Zustand + React Query
-UI Components:    Lucide React (iconografía)
-Estilos:          CSS Custom Properties (tokens de diseño)
-i18n:             Sistema de traducciones dinámico (ES / EN / PT)
-```
+| Componente | Tecnología |
+|---|---|
+| Framework | React 19 + Create React App |
+| Routing | React Router v7 |
+| Iconografía | Lucide React |
+| Estilos | CSS-in-JS (inline styles con variables de tema) |
+| Estado | Context API (AuthContext, ThemeContext) |
+| i18n | Sistema de traducciones propio (ES / EN / PT) |
+| PDF Export | html2pdf.js |
 
 ### Backend
 
-```
-Runtime:          Node.js 20 LTS con TypeScript
-Framework:        Fastify (alto rendimiento)
-Base de Datos:    PostgreSQL 16 + pgvector (embeddings)
-Cache:            Redis (sesiones, rate limiting, colas)
-ORM:              Prisma con migraciones automáticas
-Queue:            BullMQ (generación asíncrona de documentos)
-```
-
-### Inteligencia Artificial
-
-```
-LLM:              OpenAI GPT-4 / Anthropic Claude via LangChain
-Vector Store:     Pinecone o pgvector (RAG - Retrieval Augmented Generation)
-```
+| Componente | Tecnología |
+|---|---|
+| Framework | FastAPI 0.109 + Uvicorn |
+| Base de Datos | PostgreSQL (Neon.tech) + pgvector 0.2.5 |
+| ORM | SQLAlchemy 2.0 async + asyncpg |
+| Autenticación | JWT (HS256) + bcrypt |
+| IA / LLM | DeepSeek (`deepseek-chat`) vía SDK de OpenAI |
+| Embeddings | FastEmbed (384 dimensiones) |
+| RAG | pgvector (cosine distance) sobre evidencias + normativa |
+| PDF Parsing | PyMuPDF + pypdf |
 
 ### Infraestructura
 
+| Componente | Tecnología |
+|---|---|
+| Frontend | Vercel |
+| Backend | Render.com |
+| Base de Datos | Neon.tech (PostgreSQL serverless) |
+| API Keys | DeepSeek API |
+
+---
+
+## Arquitectura del Sistema
+
 ```
-Cloud:            AWS (S3, Lambda, SQS, Bedrock opcional)
-Seguridad:        JWT con claims RBAC, 2FA
-Arquitectura:     Multi-tenancy con aislamiento lógico por client_id
-```
-
----
-
-## 🏗️ Arquitectura del Sistema
-
-### Multi-Tenancy
-
-La plataforma opera como SaaS con  **aislamiento lógico** : la infraestructura es compartida, pero los datos y configuraciones de cada organización están estrictamente particionados mediante un `client_id` único en cada transacción de base de datos y llamada a API.
-
-### Feature Gating (Control de Acceso Comercial)
-
-Un middleware de backend evalúa el **Tier comercial** del cliente antes de resolver solicitudes. Las funcionalidades premium (Dani AI, módulos avanzados) retornan `403 Forbidden` o `402 Payment Required` si el plan no las contempla. El frontend reacciona dinámicamente deshabilitando componentes no disponibles.
-
-### RBAC (Control de Acceso Basado en Roles)
-
-Los tokens JWT transportan claims de permisos granulares (ej. `write:vulnerabilities`), permitiendo decisiones de autorización tanto en backend como en frontend, sin depender solo del estado de autenticación.
-
----
-
-## 📦 Módulos de la Plataforma
-
-### 1. 📊 Dashboard — Centro de Mando
-
-Responde en segundos a: *¿Estamos listos para la auditoría?*
-
-* **Health Score:** Gráfico circular con porcentaje de preparación
-* **Controles:** Barra de progreso (ej. 92/114 controles implementados)
-* **Acciones Pendientes:** Lista priorizada con fechas límite
-* **Alertas:** Notificaciones de fallos en recolección de evidencias
-* **Timeline:** Línea de tiempo hacia la fecha de auditoría
-
-### 2. 🔍 Gap Analysis — Diagnóstico Inteligente
-
-* Formato **wizard paso a paso** con preguntas en lenguaje natural
-* Genera automáticamente el borrador del **SOA (Statement of Applicability)**
-* Barra lateral dinámica que muestra el impacto de cada respuesta en el alcance
-
-### 3. 📝 Doc Generator — Generador de Documentos
-
-* Redacción asistida por IA de políticas y procedimientos ISO 27001
-* Plantillas alineadas a la norma con control de versiones
-* Flujo de aprobación y firma digital integrado
-
-### 4. ⚠️ Risk Map — Mapa de Riesgos
-
-* Visualización en **matriz** o **lista**
-* Risk Score calculado por probabilidad × impacto
-* Controles sugeridos automáticamente por Dani AI
-
-### 5. 🗄️ Evidence Center — Centro de Evidencias
-
-* **Conectores automáticos** con entornos cloud (AWS, etc.)
-* Carga manual de evidencias con drag & drop
-* Métricas: total de evidencias, auto-recolectadas vs. manuales
-
-### 6. 📁 Document Manager — Gestor Documental
-
-* Control de estado: Aprobado / En Revisión / Borrador
-* Historial de versiones y firmas digitales
-* Búsqueda semántica con IA
-
-### 7. 🔒 Audit Room — Sala de Auditoría
-
-* Vista de **solo lectura** exclusiva para auditores externos
-* Búsqueda semántica potenciada por IA
-* Descarga de **Audit Pack** completo
-
-### 8. 🤖 Dani AI — Asistente Inteligente
-
-* Procesamiento de lenguaje natural para soporte contextual
-* Ayuda a redactar políticas en lenguaje accesible
-* Explica controles técnicos complejos sin jerga especializada
-
----
-
-## 🎨 Diseño UX/UI
-
-### Principios de Diseño
-
-* **Confianza y Claridad:** Interfaz limpia, tipografía sans-serif (Inter/Roboto), alto uso de espacio en blanco
-* **Automatización Visible:** Indicadores de sincronización en tiempo real
-* **Accesibilidad:** Cumplimiento de estándares internacionales de contraste
-
-### Paleta de Colores Semántica
-
-| Color                        | Significado                           |
-| ---------------------------- | ------------------------------------- |
-| 🔵 Azul Marino / Gris Oscuro | Elementos estructurales y navegación |
-| 🟢 Verde Esmeralda           | Cumplimiento / Listo para auditar     |
-| 🟡 Ámbar / Naranja          | Atención requerida / En progreso     |
-| 🔴 Rojo Suave                | No cumplimiento / Riesgo crítico     |
-
-### Arquitectura de Información (Sidebar)
-
-El flujo de navegación sigue el ciclo de mejora continua  **PDCA** :
-
-1. Dashboard
-2. Gap Analysis
-3. Generador de Documentos
-4. Mapa de Riesgos
-5. Centro de Evidencias
-6. Gestor Documental
-7. Audit Room
-8. Portal de Empleados
-9. Configuración & Usuarios
-
----
-
-## 🚀 Instalación y Configuración
-
-> ⚠️ **Nota:** Este documento describe la arquitectura de referencia. El Manual de Deployment detallado (dependencias, variables de entorno, configuración de servidores) debe ser completado como parte de los entregables del proyecto.
-
-### Requisitos del Sistema (Cliente)
-
-| Componente  | Mínimo                             | Recomendado                  |
-| ----------- | ----------------------------------- | ---------------------------- |
-| Navegador   | Chrome 90+, Firefox 88+, Safari 14+ | Chrome/Edge última versión |
-| Resolución | 1280 × 720 px                      | 1920 × 1080 px              |
-| Conexión   | 5 Mbps                              | 25 Mbps                      |
-| JavaScript  | Habilitado                          | Habilitado                   |
-
-### Variables de Entorno Requeridas (Backend)
-
-```env
-# Base de Datos
-DATABASE_URL=postgresql://...
-REDIS_URL=redis://...
-
-# IA
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-PINECONE_API_KEY=...
-
-# Autenticación
-JWT_SECRET=...
-JWT_EXPIRES_IN=24h
-
-# AWS
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-AWS_REGION=us-east-1
-AWS_S3_BUCKET=...
+┌─────────────────────────────────────────────────────────┐
+│                    FRONTEND (React)                       │
+│  Dashboard · Gap Analysis · Doc Generator · Risk Map     │
+│  Evidence Center · Documents · Audit Room · Employee     │
+└───────────────────────┬─────────────────────────────────┘
+                        │ HTTPS / JWT
+┌───────────────────────▼─────────────────────────────────┐
+│                 BACKEND (FastAPI)                         │
+│  /api/auth · /api/users · /api/risks · /api/evidence    │
+│  /api/compliance · /api/gap-analysis · /api/chat        │
+│  /api/documents                                          │
+└────────┬───────────────────┬────────────────────────────┘
+         │                   │
+┌────────▼───────┐  ┌────────▼──────────────────────────┐
+│  Neon.tech DB  │  │  DeepSeek API (deepseek-chat)      │
+│  PostgreSQL +  │  │  · Análisis de riesgos             │
+│  pgvector      │  │  · Generación de documentos SGSI   │
+│  · Controles   │  │  · Evaluación de controles (SOA)   │
+│  · Evidencias  │  │  · Chat RAG con contexto ISO       │
+│  · Normativa   │  └───────────────────────────────────┘
+└────────────────┘
 ```
 
-### Pasos de Instalación
+### RBAC (Control de Acceso por Roles)
+
+| Rol | Dashboard | Gap Analysis | Doc Generator | Risk Map | Usuarios |
+|---|---|---|---|---|---|
+| admin | ✅ | ✅ | ✅ | ✅ | ✅ |
+| manager | ✅ | ✅ | ✅ | ✅ | ❌ |
+| auditor | ✅ | ✅ | ✅ | ✅ | ❌ |
+| employee | ✅ | ❌ | ❌ | ❌ | ❌ |
+
+---
+
+## Módulos Implementados
+
+### Dashboard
+- Health Score visual conectado a `GET /api/gap-analysis/score`
+- Estadísticas de riesgos en tiempo real (`GET /api/risks/statistics`)
+- Banner de Gap Analysis con control de acceso por rol
+- Exportación de reporte vía `window.print()`
+
+### Gap Analysis
+- Wizard de evaluación en 4 fases (cláusulas 4-10 ISO 27001)
+- SOA (Statement of Applicability) interactiva con 93 controles del Anexo A
+- Scores por cláusula calculados desde el estado real de controles en BD
+- Auditoría individual de controles: DeepSeek evalúa un documento contra un control
+- Auditoría masiva RAG: embeddings + cosine similarity + DeepSeek (límite 10 controles por sesión para respetar timeouts de Render.com)
+- Vista de Resultados: score general, brechas por cláusula, plan de remediación, KPIs
+
+### Doc Generator
+- Genera capítulos completos del Manual SGSI (capítulos 4-10 ISO 27001)
+- Prompt de auditor ISO Lead Implementer con 800+ palabras por capítulo (`max_tokens=3000`)
+- Guardado en BD con control de versiones automático al publicar
+- Flujo de aprobación con RBAC (solo admin/manager/auditor pueden publicar)
+- Exportación a PDF con html2pdf.js
+
+### Risk Map
+- Matriz de riesgos interactiva (probabilidad × impacto)
+- Análisis de riesgos con DeepSeek + prompts dinámicos desde BD
+- Simulador de controles con reducción de riesgo calculada
+- Fallback inteligente si la API de IA no responde
+
+### Evidence Center
+- Carga de evidencias con metadatos
+- Generación de embeddings automática al subir documentos
+- Exportación de evidencias en ZIP
+
+### Gestión de Usuarios
+- CRUD completo (crear, editar, desactivar, eliminar)
+- Modal de edición con campos: nombre, email, rol, estado activo
+- Protegido por RBAC (solo admin)
+
+### Employee Portal
+- Vista de políticas publicadas con acuse de recibo digital
+- Filtrado por estado de lectura
+
+### Chat DANI AI
+- RAG bidireccional: evidencias internas + normativa ISO oficial (pgvector)
+- Fallback con respuesta simulada si la API no responde
+- Autenticación JWT requerida
+
+### Sidebar
+- Anillos de progreso por dominio ISO (Personas / Tecnología / Físico / Procesos)
+- Scores calculados desde `GET /api/gap-analysis/domains`
+
+---
+
+## Instalación Local
+
+### Prerrequisitos
+
+- Python 3.9+
+- Node.js 18+
+- Git
+
+### 1. Clonar el repositorio
 
 ```bash
-# 1. Clonar el repositorio
-git clone https://github.com/alloxentric/dani-platform.git
-cd dani-platform
+git clone <url-del-repositorio>
+cd Dani-ISO27001
+```
 
-# 2. Instalar dependencias (Frontend)
-cd frontend
+### 2. Backend
+
+```bash
+cd Producto/dani-project-back
+
+# Crear entorno virtual
+python -m venv venv
+
+# Activar entorno virtual
+# Windows:
+venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Configurar variables de entorno (ver sección siguiente)
+cp .env.example .env   # o crear .env manualmente
+
+# Iniciar el servidor
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+El backend queda disponible en `http://localhost:8000`.
+Documentación interactiva: `http://localhost:8000/docs`
+
+### 3. Frontend
+
+```bash
+cd Producto/dani-project-front
+
+# Instalar dependencias
 npm install
 
-# 3. Instalar dependencias (Backend)
-cd ../backend
-npm install
+# Iniciar en desarrollo
+npm start
+```
 
-# 4. Configurar variables de entorno
-cp .env.example .env
-# Editar .env con los valores correspondientes
+El frontend queda disponible en `http://localhost:3000`.
 
-# 5. Ejecutar migraciones de base de datos
-npx prisma migrate deploy
+---
 
-# 6. Iniciar en desarrollo
-npm run dev
+## Variables de Entorno
+
+Crear el archivo `.env` en `Producto/dani-project-back/`:
+
+```env
+# Base de Datos (PostgreSQL con pgvector)
+DATABASE_URL=postgresql+asyncpg://usuario:password@host/dbname?ssl=require
+
+# Seguridad JWT
+SECRET_KEY=tu_secreto_de_al_menos_32_caracteres
+
+# IA — DeepSeek (https://platform.deepseek.com)
+DEEPSEEK_API_KEY=sk-...
+
+# Alternativa: Groq (fallback automático si DEEPSEEK_API_KEY no está)
+# GROQ_API_KEY=gsk_...
+
+# Google Cloud (solo si se usa Cloud Storage — puede dejarse como dummy)
+GOOGLE_CLOUD_PROJECT=dummy-project
+GOOGLE_APPLICATION_CREDENTIALS=dummy.json
+CLOUD_STORAGE_BUCKET=dummy-bucket
+
+# Vector Store (no requerido si se usa pgvector)
+VECTOR_STORE_API_KEY=dummy-vector-key
+```
+
+> **Nota:** La aplicación funciona sin Redis. El `REDIS_URL` no es requerido para la demo.
+
+---
+
+## Scripts de Inicialización
+
+Ejecutar en orden desde `Producto/dani-project-back/` con el venv activo:
+
+```bash
+# 1. Crear todas las tablas en la BD (incluyendo extensión pgvector)
+python scripts/create_tables.py
+
+# 2. Cargar los 93 controles del Anexo A de ISO 27001:2022
+python scripts/load_iso_controls.py
+
+# 3. Cargar los prompts de IA en la BD
+python scripts/load_prompts.py
+
+# 4. Inicializar datos base del Gap Analysis (KPIs, análisis inicial)
+python scripts/init_gap_analysis.py
+
+# 5. (Opcional) Ingerir PDFs normativos ISO 27001/27002 para el RAG del chat
+#    Requiere los PDFs en la carpeta /Documentación
+python scripts/ingest_normativa.py
+```
+
+### Verificar conectividad antes de la demo
+
+```bash
+# Verificar conexión a la BD
+python tests/check_db.py
+
+# Verificar que DeepSeek responde
+python tests/test_deepseek.py
 ```
 
 ---
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
-dani-platform/
-├── frontend/
-│   ├── src/
-│   │   ├── components/         # Componentes React reutilizables
-│   │   │   ├── Dashboard/
-│   │   │   ├── GapAnalysis/
-│   │   │   ├── DocGenerator/
-│   │   │   ├── RiskMap/
-│   │   │   ├── EvidenceCenter/
-│   │   │   ├── AuditRoom/
-│   │   │   └── shared/
-│   │   ├── contexts/           # ThemeContext, AuthContext
-│   │   ├── hooks/              # Custom hooks
-│   │   ├── i18n/               # Traducciones (ES, EN, PT)
-│   │   ├── store/              # Zustand stores
-│   │   └── types/              # Definiciones TypeScript
-│   └── public/
-├── backend/
-│   ├── src/
-│   │   ├── routes/             # Endpoints de la API
-│   │   ├── middleware/         # Auth, RBAC, Feature Gating
-│   │   ├── services/           # Lógica de negocio
-│   │   ├── agents/             # Agentes IA (LangChain)
-│   │   └── prisma/             # Schema y migraciones
-│   └── tests/
-├── docs/
-│   ├── Especificación de Proyecto.docx
-│   ├── Documento de Diseño UX.docx
-│   ├── Plan de Desarrollo v2.docx
-│   ├── Manual de Usuario v3.docx
-│   └── Estándares Transversales.docx
-└── wireframes/
-    └── dani_platform_wireframe.html
+Dani-ISO27001/
+├── Producto/
+│   ├── dani-project-back/          # Backend FastAPI
+│   │   ├── app/
+│   │   │   ├── main.py             # Entrypoint, CORS, lifespan
+│   │   │   ├── config.py           # Settings (Pydantic BaseSettings)
+│   │   │   ├── dependencies/
+│   │   │   │   ├── auth.py         # get_current_user, require_admin
+│   │   │   │   └── database.py     # AsyncSession, engine
+│   │   │   ├── models/             # Modelos SQLAlchemy
+│   │   │   │   ├── user.py
+│   │   │   │   ├── risk.py
+│   │   │   │   ├── iso_controls.py
+│   │   │   │   ├── gap_analysis.py
+│   │   │   │   ├── document.py
+│   │   │   │   ├── evidence.py
+│   │   │   │   ├── evidence_chunk.py
+│   │   │   │   └── normative_chunk.py
+│   │   │   ├── routes/             # Endpoints REST
+│   │   │   │   ├── auth.py
+│   │   │   │   ├── users.py
+│   │   │   │   ├── risk.py
+│   │   │   │   ├── compliance.py
+│   │   │   │   ├── gap_analysis.py
+│   │   │   │   ├── documents.py
+│   │   │   │   ├── evidence.py
+│   │   │   │   └── chat.py
+│   │   │   └── services/           # Lógica de negocio
+│   │   │       ├── ai_service.py       # DeepSeek: chat, generate, evaluate
+│   │   │       ├── deepseek_service.py # DeepSeek: análisis de riesgos
+│   │   │       ├── gap_analyzer.py     # Scores reales desde BD
+│   │   │       ├── embedding_service.py
+│   │   │       └── auth_service.py
+│   │   ├── scripts/                # Inicialización de datos
+│   │   │   ├── create_tables.py
+│   │   │   ├── load_iso_controls.py
+│   │   │   ├── load_prompts.py
+│   │   │   ├── init_gap_analysis.py
+│   │   │   └── ingest_normativa.py
+│   │   ├── tests/
+│   │   │   ├── check_db.py
+│   │   │   └── test_deepseek.py
+│   │   └── requirements.txt
+│   │
+│   └── dani-project-front/         # Frontend React
+│       └── src/
+│           ├── pages/              # Pantallas principales
+│           │   ├── Dashboard.jsx
+│           │   ├── GapAnalysisScreen.jsx
+│           │   ├── DocGeneratorScreen.jsx
+│           │   ├── RiskMapScreen.jsx
+│           │   ├── EvidenceCenterScreen.jsx
+│           │   ├── DocumentsScreen.jsx
+│           │   ├── AuditRoomScreen.jsx
+│           │   ├── UserManagementScreen.jsx
+│           │   ├── EmployeePortal.jsx
+│           │   └── Login.jsx
+│           ├── components/         # Componentes reutilizables
+│           │   ├── Sidebar.jsx
+│           │   └── CAPATracker.jsx
+│           ├── contexts/
+│           │   ├── AuthContext.jsx
+│           │   └── ThemeContext.jsx
+│           ├── services/
+│           │   ├── api.js          # Todos los clientes REST
+│           │   └── gapAnalysisAPI.js
+│           └── translations/
+│               └── controls.js     # Nombres de controles ISO en ES/EN/PT
+└── README.md
 ```
 
 ---
 
-## 📅 Plan de Desarrollo
+## Despliegue en Producción
 
-El proyecto sigue metodología **Scrum** con sprints de 2 semanas.
+| Componente | Plataforma | URL |
+|---|---|---|
+| Frontend | Vercel | `https://*.vercel.app` |
+| Backend | Render.com | `https://dani-iso27001-backend.onrender.com` |
+| Base de Datos | Neon.tech | PostgreSQL serverless |
 
-| Métrica                | Valor           |
-| ----------------------- | --------------- |
-| Total de Sprints        | 10 (20 semanas) |
-| Story Points Totales    | 420 SP          |
-| Velocidad Estimada      | 42 SP/sprint    |
-| Tickets Backend         | 38              |
-| Tickets Frontend        | 36              |
-| **Total Tickets** | **74**    |
+> **Importante — Cold Start:** Render.com (plan gratuito) duerme el servidor tras 15 minutos de inactividad. El primer request puede tardar 40-60 segundos. Abrir el backend manualmente antes de la demo haciendo login o llamando a `GET /health`.
 
-### Módulos Críticos en Desarrollo Activo
-
-* [ ] **Centro de Evidencias** — refinamiento de interacciones UX
-* [ ] **Audit Room** — completar funcionalidades avanzadas
-* [ ] **Dark Mode** — soporte completo en todos los componentes
-* [ ] **i18n** — validación de multiidioma en todos los módulos
-* [ ] **Manual de Deployment** — documentación técnica de producción
-* [ ] **Manual de Usuario** — capturas reales de pantalla (v3 actualizado)
+El frontend detecta el entorno automáticamente:
+```js
+// api.js — selección automática de URL
+export const API_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:8000'
+  : 'https://dani-iso27001-backend.onrender.com';
+```
 
 ---
 
-## 👥 Equipo y Roles
+## Credenciales por Defecto
 
-| Rol                                     | Especialización                 | Responsabilidades                         |
-| --------------------------------------- | ------------------------------- | ----------------------------------------- |
-| Backend Junior (Elías Vicencio)         | Node.js, PostgreSQL, LLM APIs   | Arquitectura, Auth, Core APIs, Agentes IA |
-| Lider de proyecto (Jordy Mondaca)       | Node.js, MongoDB, Integraciones | Conectores, Evidencias, Reportes          |
-| Frontend Junior (Génesis Valdebeito)    | React, CSS, Accesibilidad       | Pantallas, Formularios, i18n, a11y        |
+El servidor crea automáticamente un usuario administrador al iniciar:
 
----
-
-## 🏢 Contexto: Ecosistema Alloxentric
-
-DANI es un componente del ecosistema de automatización inteligente de  **Alloxentric IA** . La plataforma se conecta mediante APIs con entornos cloud y sistemas internos para recolectar evidencias de seguridad de forma automática, y utiliza los flujos de comunicación proactiva de Alloxentric para alertar a responsables cuando un riesgo cambia de nivel o un documento crítico necesita revisión.
-
-> *"Cada proceso que logramos automatizar con éxito es tiempo que le devolvemos a un trabajador para realizar tareas con mayor propósito."* — Filosofía Alloxentric
+| Campo | Valor |
+|---|---|
+| Email | `admin@dani27001.com` |
+| Contraseña | `admin123` |
+| Rol | `admin` |
 
 ---
 
-## 🤝 Contribución
+## Equipo
 
-Este proyecto es parte del programa de formación técnica de Alloxentric. Los estudiantes asignados deben:
+| Rol | Nombre | Responsabilidades |
+|---|---|---|
+| Líder de Proyecto / Backend | Jordy Mondaca | Arquitectura, Auth, Integración IA, Despliegue |
+| Backend | Elías Vicencio | APIs, Modelos BD, Scripts de ingesta |
+| Frontend | Génesis Valdebeito | Pantallas, Componentes, i18n |
 
-1. **Perfeccionar** el código base hacia una versión de producción estable
-2. **Actualizar** el Manual de Usuario con capturas reales de pantalla
-3. **Completar** el Manual de Deployment técnico
-4. **Documentar** el Debug Log con desafíos encontrados y soluciones
-5. **Validar** el impacto cuantitativo de la automatización implementada
-
----
-
-## 📄 Licencia
-
-Proyecto propietario de  **Alloxentric IA** . Uso interno y educativo bajo los términos acordados en el programa de transferencia tecnológica.
+Proyecto desarrollado para **Alloxentric IA** como parte del programa de formación técnica DUOC UC.
 
 ---
 
 <div align="center">
-**DANI Platform** · Desarrollado por Alloxentric IA
 
+**DANI Platform** · Desarrollado por Alloxentric IA  
 *Humanizando la ciberseguridad, un control a la vez.*
 
 </div>
