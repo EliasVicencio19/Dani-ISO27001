@@ -73,6 +73,7 @@ async def get_risks(
     risk_level: Optional[RiskLevel] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Obtener lista de riesgos con filtros"""
