@@ -7,14 +7,12 @@ import json
 
 from app.models.gap_analysis import GapAnalysis, RemediationAction, ControlImplementation, KPI, PriorityLevel, GapStatus
 from app.models.iso_controls import ISOCControl
-from app.services.iso_compliance_analyzer import ISOComplianceAnalyzer
 
 class GapAnalyzer:
     """Analizador de brechas ISO 27001"""
-    
+
     def __init__(self, db_session: AsyncSession):
         self.db = db_session
-        self.iso_analyzer = ISOComplianceAnalyzer()
     
     async def generate_complete_gap_analysis(self) -> Dict[str, Any]:
         """Generar análisis de brecha completo"""
@@ -80,68 +78,98 @@ class GapAnalyzer:
         
         return results
     
+    def _calc_score(self, controls: list) -> float:
+        """Implementado=1pt, Planificado=0.5pt, No Implementado=0pt"""
+        if not controls:
+            return 0.0
+        points = sum(
+            1.0 if c.status == "Implementado" else (0.5 if c.status == "Planificado" else 0.0)
+            for c in controls
+        )
+        return round((points / len(controls)) * 100, 1)
+
+    async def _get_all_applicable_controls(self) -> list:
+        """Retorna todos los controles aplicables de la BD"""
+        result = await self.db.execute(
+            select(ISOCControl).where(ISOCControl.applies == True)
+        )
+        return result.scalars().all()
+
     async def _evaluate_clause(self, clause_id: str) -> float:
-        """Evaluar una cláusula específica"""
-        # Mapeo de scores por cláusula (desde el gap analysis manual)
-        clause_scores = {
-            "4": 80,
-            "5": 70,
-            "6": 60,
-            "7": 75,
-            "8": 55,
-            "9": 50,
-            "10": 45
+        """Calcula el score real de una cláusula desde el estado de los controles en BD"""
+        from sqlalchemy import or_
+
+        # Prefijos de control_id del Anexo A que corresponden a cada cláusula ISO 27001
+        clause_control_map = {
+            "4": [],              # Contexto → sin Anexo A directo, usa promedio general
+            "5": ["5."],          # Liderazgo → controles organizacionales
+            "6": ["5."],          # Planificación → planificación de riesgos (mismos controles org.)
+            "7": ["6."],          # Soporte → controles de personas
+            "8": ["7.", "8."],    # Operación → físicos + tecnológicos
+            "9": ["8."],          # Evaluación del desempeño → monitoreo tecnológico
+            "10": ["5.", "8."],   # Mejora → organizacionales + tecnológicos
         }
-        return clause_scores.get(clause_id, 50)
+
+        prefixes = clause_control_map.get(clause_id, [])
+        all_applicable = await self._get_all_applicable_controls()
+
+        if not prefixes:
+            # Cláusula 4 y fallback: score general de todos los controles aplicables
+            return self._calc_score(all_applicable) if all_applicable else 50.0
+
+        controls = [
+            c for c in all_applicable
+            if any(c.control_id.startswith(p) for p in prefixes)
+        ]
+
+        if not controls:
+            return self._calc_score(all_applicable) if all_applicable else 50.0
+
+        return self._calc_score(controls)
     
     async def _analyze_controls(self) -> Dict:
-        """Analizar brechas de controles"""
-        # Obtener todos los controles ISO
-        controls_data = self.iso_analyzer.get_all_controls()
-        controls = controls_data.get("controls", [])
-        
-        # Mapeo de prioridades
-        high_priority = ["5.1", "5.15", "5.16", "8.7", "8.8", "8.13", "5.24"]
-        medium_priority = ["5.2", "5.3", "6.3", "8.1", "8.2", "8.15", "8.20"]
-        
-        results = {
+        """Analizar brechas de controles desde la BD"""
+        result = await self.db.execute(select(ISOCControl))
+        all_controls = result.scalars().all()
+
+        applicable = [c for c in all_controls if c.applies]
+        implemented = [c for c in applicable if c.status == "Implementado"]
+        planned = [c for c in applicable if c.status == "Planificado"]
+        pending = [c for c in applicable if c.status not in ("Implementado", "Planificado")]
+
+        # Agrupar por categoría
+        by_category: Dict = {}
+        for c in applicable:
+            cat = (c.category or "organizational").lower()
+            if cat not in by_category:
+                by_category[cat] = {"total": 0, "implemented": 0, "percentage": 0}
+            by_category[cat]["total"] += 1
+            if c.status == "Implementado":
+                by_category[cat]["implemented"] += 1
+
+        for cat in by_category:
+            t = by_category[cat]["total"]
+            i = by_category[cat]["implemented"]
+            by_category[cat]["percentage"] = round((i / t) * 100, 1) if t > 0 else 0
+
+        # Prioridades: controles críticos que aún no están implementados
+        critical_ids = ["5.15", "5.16", "8.7", "8.8", "8.13", "5.24"]
+        high_ids = ["5.2", "5.3", "6.3", "8.1", "8.2", "8.15", "8.20"]
+        control_id_set = {c.control_id: c.status for c in all_controls}
+
+        return {
             "by_priority": {
-                "critical": [],
-                "high": [],
+                "critical": [cid for cid in critical_ids if control_id_set.get(cid) != "Implementado"],
+                "high": [cid for cid in high_ids if control_id_set.get(cid) != "Implementado"],
                 "medium": [],
                 "low": []
             },
-            "by_category": {
-                "organizational": {"total": 0, "implemented": 0, "percentage": 0},
-                "people": {"total": 0, "implemented": 0, "percentage": 0},
-                "physical": {"total": 0, "implemented": 0, "percentage": 0},
-                "technological": {"total": 0, "implemented": 0, "percentage": 0}
-            },
-            "total_controls": len(controls),
-            "implemented_controls": 3,  # Desde el gap analysis
-            "partial_controls": 90,
-            "pending_controls": 0
+            "by_category": by_category,
+            "total_controls": len(all_controls),
+            "implemented_controls": len(implemented),
+            "partial_controls": len(planned),
+            "pending_controls": len(pending)
         }
-        
-        for control in controls:
-            cat = control["category"]
-            results["by_category"][cat]["total"] += 1
-            
-            # Contar implementados
-            if control["id"] in high_priority:
-                results["by_priority"]["critical"].append(control["id"])
-            elif control["id"] in medium_priority:
-                results["by_priority"]["high"].append(control["id"])
-            else:
-                results["by_priority"]["medium"].append(control["id"])
-        
-        # Calcular porcentajes
-        for cat in results["by_category"]:
-            implemented = 3 if cat == "organizational" else 0
-            results["by_category"][cat]["implemented"] = implemented
-            results["by_category"][cat]["percentage"] = round((implemented / results["by_category"][cat]["total"]) * 100, 1)
-        
-        return results
     
     async def _calculate_maturity(self) -> Dict:
         """Calcular matriz de madurez"""
