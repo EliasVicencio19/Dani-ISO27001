@@ -37,12 +37,20 @@ async def chat_endpoint(
         
         # 2. Consultar similitud de coseno en pgvector - Evidencias del cliente
         try:
+            from app.models.evidence import Evidence
+            
             ev_stmt = (
                 select(EvidenceChunk)
+                .join(EvidenceChunk.evidence)
                 .options(selectinload(EvidenceChunk.evidence))
-                .order_by(EvidenceChunk.embedding.cosine_distance(query_vector))
-                .limit(3)
             )
+            
+            # 🛡️ Control de Accesos (RBAC): Empleados solo pueden extraer fragmentos de las evidencias que ellos mismos subieron
+            if current_user.get("role") == "employee":
+                ev_stmt = ev_stmt.where(Evidence.uploaded_by == current_user["user_id"])
+                
+            ev_stmt = ev_stmt.order_by(EvidenceChunk.embedding.cosine_distance(query_vector)).limit(3)
+            
             ev_result = await db.execute(ev_stmt)
             ev_chunks = ev_result.scalars().all()
             for chunk in ev_chunks:

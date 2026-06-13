@@ -21,3 +21,15 @@ async def require_admin(current_user = Depends(get_current_user)):
             detail="Admin privileges required"
         )
     return current_user
+
+class RequireRole:
+    def __init__(self, allowed_roles: list):
+        self.allowed_roles = allowed_roles
+
+    async def __call__(self, current_user: dict = Depends(get_current_user)):
+        if current_user.get("role") not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permisos suficientes para esta acción."
+            )
+        return current_user
