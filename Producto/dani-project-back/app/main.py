@@ -12,7 +12,9 @@ from app.config import settings
 from app.dependencies.database import engine, Base, AsyncSessionLocal
 from app.routes import auth, risk, evidence, documents, users
 from app.routes import compliance
+from app.routes import capa
 from app.models.iso_controls import ISOCControl
+from app.models.capa import CAPA
 
 
 logging.basicConfig(level=logging.INFO)
@@ -88,8 +90,9 @@ app.include_router(risk.router)
 app.include_router(evidence.router)
 app.include_router(documents.router)
 app.include_router(compliance.router)
-app.include_router(chat.router)  
-app.include_router(gap_analysis.router)        
+app.include_router(chat.router)
+app.include_router(gap_analysis.router)
+app.include_router(capa.router)
 
 @app.get("/")
 async def root():

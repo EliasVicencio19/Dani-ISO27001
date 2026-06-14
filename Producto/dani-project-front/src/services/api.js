@@ -426,6 +426,51 @@ export const riskAPI = {
 };
 
 // ============================================
+// 🚨 CAPA API
+// ============================================
+export const capaAPI = {
+  getAll: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/capas/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.json();
+  },
+
+  create: async (data) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/capas/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Error al crear CAPA');
+    return response.json();
+  },
+
+  updateStatus: async (dbId, status, progress = null) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/capas/${dbId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ status, progress })
+    });
+    if (!response.ok) throw new Error('Error al actualizar estado');
+    return response.json();
+  },
+
+  delete: async (dbId) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/capas/${dbId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('Error al eliminar CAPA');
+    return response.json();
+  }
+};
+
+// ============================================
 // 🔧 FUNCIONES HELPER
 // ============================================
 export const authFetch = async (endpoint, options = {}) => {
