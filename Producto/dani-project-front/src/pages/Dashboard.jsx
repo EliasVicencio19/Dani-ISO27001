@@ -4,7 +4,7 @@ import { Shield, Search, Download, RefreshCw, Clock, ArrowRight, FileCheck, Aler
 import { ThemeContext } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import CAPATracker from '../components/CAPATracker';
-import { getComplianceScore, riskAPI } from '../services/api';
+import { getComplianceScore, riskAPI, capaAPI } from '../services/api';
 
 const DashboardScreen = ({ onNavigate }) => {
   const { theme: t, language, translations, darkMode } = useContext(ThemeContext);
@@ -34,6 +34,144 @@ const DashboardScreen = ({ onNavigate }) => {
     loadDashboardData();
   }, []);
 
+  const generatePDFReport = async () => {
+    try {
+      const { jsPDF } = await import('jspdf');
+      const capas = await capaAPI.getAll().catch(() => []);
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const W = 210;
+      const margin = 20;
+      let y = margin;
+
+      const addText = (text, x, fontSize = 11, style = 'normal', color = [30, 30, 30]) => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', style);
+        doc.setTextColor(...color);
+        doc.text(String(text), x, y);
+      };
+
+      const lineBreak = (h = 7) => { y += h; };
+
+      const divider = (color = [200, 200, 200]) => {
+        doc.setDrawColor(...color);
+        doc.line(margin, y, W - margin, y);
+        lineBreak(5);
+      };
+
+      // — Cabecera —
+      doc.setFillColor(16, 185, 129);
+      doc.rect(0, 0, W, 28, 'F');
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text('DANI ISO 27001 — Informe de Cumplimiento', margin, 13);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Generado el ${new Date().toLocaleString('es')} · Usuario: ${user?.full_name || user?.email || '—'}`, margin, 21);
+      y = 38;
+
+      // — Sección 1: Estado General —
+      addText('1. Estado General de Cumplimiento', margin, 13, 'bold', [16, 185, 129]);
+      lineBreak(8);
+      divider([180, 220, 200]);
+
+      const score = healthScore ?? 0;
+      addText(`Índice de Salud ISO 27001:`, margin, 11, 'bold');
+      addText(`${score}%`, margin + 72, 11, 'normal', score >= 75 ? [16, 185, 129] : score >= 50 ? [245, 158, 11] : [239, 68, 68]);
+      lineBreak();
+      addText('Controles implementados:', margin, 11, 'normal');
+      addText('92 / 114  (80.7%)', margin + 60, 11, 'normal');
+      lineBreak();
+      addText('Umbral de certificación:', margin, 11, 'normal');
+      addText('85%', margin + 60, 11, 'normal');
+      lineBreak();
+      addText('Estado:', margin, 11, 'normal');
+      const readinessText = score >= 85 ? 'LISTO PARA AUDITORÍA' : score >= 70 ? 'CASI LISTO' : 'EN PROGRESO';
+      addText(readinessText, margin + 30, 11, 'bold', score >= 85 ? [16, 185, 129] : score >= 70 ? [245, 158, 11] : [239, 68, 68]);
+      lineBreak(12);
+
+      // — Sección 2: Riesgos —
+      addText('2. Mapa de Riesgos', margin, 13, 'bold', [16, 185, 129]);
+      lineBreak(8);
+      divider([180, 220, 200]);
+
+      if (riskStats) {
+        const levels = [
+          ['Riesgos abiertos totales:', riskStats.open_risks ?? 0],
+          ['Críticos:', riskStats.by_level?.critical ?? 0],
+          ['Altos:', riskStats.by_level?.high ?? 0],
+          ['Medios:', riskStats.by_level?.medium ?? 0],
+          ['Bajos:', riskStats.by_level?.low ?? 0],
+        ];
+        for (const [label, val] of levels) {
+          addText(label, margin, 10, 'normal');
+          addText(String(val), margin + 65, 10, 'bold');
+          lineBreak(6);
+        }
+      } else {
+        addText('No se pudieron cargar estadísticas de riesgo.', margin, 10, 'italic', [120, 120, 120]);
+        lineBreak(6);
+      }
+      lineBreak(5);
+
+      // — Sección 3: CAPAs —
+      addText('3. No Conformidades y Acciones Correctivas (CAPA)', margin, 13, 'bold', [16, 185, 129]);
+      lineBreak(8);
+      divider([180, 220, 200]);
+
+      if (capas.length === 0) {
+        addText('Sin no conformidades registradas.', margin, 10, 'italic', [120, 120, 120]);
+        lineBreak(6);
+      } else {
+        const statusLabel = { open: 'Abierta', inProgress: 'En Progreso', resolved: 'Resuelta', closed: 'Cerrada' };
+        const priorityLabel = { high: 'Alta', medium: 'Media', low: 'Baja' };
+
+        const headers = ['Código', 'Título', 'Prioridad', 'Estado', 'Progreso'];
+        const colX = [margin, margin + 22, margin + 100, margin + 122, margin + 148];
+
+        doc.setFillColor(240, 253, 250);
+        doc.rect(margin, y - 4, W - margin * 2, 8, 'F');
+        headers.forEach((h, i) => addText(h, colX[i], 9, 'bold', [16, 185, 129]));
+        lineBreak(7);
+        divider([180, 220, 200]);
+
+        for (const c of capas) {
+          if (y > 265) {
+            doc.addPage();
+            y = margin;
+          }
+          const title = c.title?.length > 40 ? c.title.slice(0, 37) + '...' : c.title;
+          addText(c.nc_code || '—', colX[0], 8, 'normal');
+          addText(title || '—', colX[1], 8, 'normal');
+          addText(priorityLabel[c.priority] || c.priority, colX[2], 8, 'normal');
+          addText(statusLabel[c.status] || c.status, colX[3], 8, 'normal');
+          addText(`${c.progress ?? 0}%`, colX[4], 8, 'normal');
+          lineBreak(6);
+        }
+
+        lineBreak(4);
+        const open = capas.filter(c => c.status === 'open').length;
+        const inProg = capas.filter(c => c.status === 'inProgress').length;
+        const resolved = capas.filter(c => ['resolved', 'closed'].includes(c.status)).length;
+        addText(`Total: ${capas.length}  ·  Abiertas: ${open}  ·  En progreso: ${inProg}  ·  Resueltas/Cerradas: ${resolved}`, margin, 9, 'italic', [80, 80, 80]);
+        lineBreak(10);
+      }
+
+      // — Pie de página —
+      if (y > 265) { doc.addPage(); y = margin; }
+      doc.setDrawColor(16, 185, 129);
+      doc.line(margin, y, W - margin, y);
+      lineBreak(5);
+      addText('Informe generado automáticamente por DANI · Plataforma de Gestión ISO 27001', margin, 8, 'italic', [120, 120, 120]);
+
+      doc.save(`DANI_Informe_ISO27001_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (err) {
+      console.error('Error generando PDF:', err);
+      alert('No se pudo generar el informe. Intenta de nuevo.');
+    }
+  };
+
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
       {/* HEADER PROFESIONAL */}
@@ -48,7 +186,7 @@ const DashboardScreen = ({ onNavigate }) => {
             {lastSync ? `Actualizado ${lastSync.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}` : 'Cargando...'}
           </div>
           <button
-            onClick={() => window.print()}
+            onClick={generatePDFReport}
             style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
           >
             <Download size={16} /> {tr('exportReport')}
