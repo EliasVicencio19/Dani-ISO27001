@@ -84,18 +84,9 @@ function EvidenceCenterScreen() {
 
   const l = labels[language] || labels.en;
 
-  const evidences_hardcoded = [
-    { id: 1, name: 'AWS S3 Encryption Config', control: 'A.8.24', type: 'automatic', source: 'AWS', sourceIcon: '☁️', lastUpdated: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), validityDays: 30, status: 'fresh', apiData: { endpoint: 'GET /s3/bucket-encryption', timestamp: '2024-12-13T14:32:00Z', response: { ServerSideEncryptionConfiguration: { Rules: [{ ApplyServerSideEncryptionByDefault: { SSEAlgorithm: 'aws:kms' } }] } } } },
-    { id: 2, name: 'Azure AD MFA Status Report', control: 'A.5.17', type: 'automatic', source: 'Azure', sourceIcon: '🔷', lastUpdated: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), validityDays: 7, status: 'fresh', apiData: { endpoint: 'GET /reports/authenticationMethods', timestamp: '2024-12-10T09:15:00Z', response: { totalMfaEnabled: 245, totalUsers: 250, complianceRate: '98%' } } },
-    { id: 3, name: 'Backup Verification Log', control: 'A.8.13', type: 'manual', source: 'Manual', sourceIcon: '📄', lastUpdated: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000), validityDays: 30, status: 'expired' },
-    { id: 4, name: 'Jira Security Training Tickets', control: 'A.6.3', type: 'automatic', source: 'Jira', sourceIcon: '📋', lastUpdated: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), validityDays: 90, status: 'fresh', apiData: { endpoint: 'GET /rest/api/3/search', timestamp: '2024-12-14T11:00:00Z', response: { total: 45 } } },
-    { id: 5, name: 'Okta Access Review Export', control: 'A.5.18', type: 'automatic', source: 'Okta', sourceIcon: '🔐', lastUpdated: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000), validityDays: 30, status: 'expiring', apiData: { endpoint: 'GET /api/v1/users', timestamp: '2024-11-20T16:45:00Z', response: { totalActiveUsers: 250 } } },
-    { id: 6, name: 'Penetration Test Report Q4', control: 'A.8.8', type: 'manual', source: 'Manual', sourceIcon: '📄', lastUpdated: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), validityDays: 365, status: 'fresh' },
-    { id: 7, name: 'GitHub Branch Protection Rules', control: 'A.8.9', type: 'automatic', source: 'GitHub', sourceIcon: '🐙', lastUpdated: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), validityDays: 30, status: 'expired', apiData: { endpoint: 'GET /repos/{owner}/{repo}/branches/{branch}/protection', timestamp: '2024-10-15T08:30:00Z', response: { required_pull_request_reviews: { required_approving_review_count: 2 } } } }
-  ];
-
-  const [evidences, setEvidences] = useState(evidences_hardcoded); // Comenzamos con los mock mientras cargan los reales
+  const [evidences, setEvidences] = useState([]); 
   const [isUploading, setIsUploading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Cargar evidencias reales
   const loadEvidences = async () => {
@@ -108,8 +99,7 @@ function EvidenceCenterScreen() {
           ...e,
           lastUpdated: new Date(e.lastUpdated)
         }));
-        // Combinamos las reales con los ejemplos para que no quede vacía la demo
-        setEvidences([...mapped, ...evidences_hardcoded]);
+        setEvidences(mapped);
       }
     } catch (error) {
       console.error("Error loading real evidences:", error);
@@ -161,19 +151,14 @@ function EvidenceCenterScreen() {
     }
   };
 
-  const [requests, setRequests] = useState([
-    { id: 1, title: 'HR Policy Acknowledgment Records', control: 'A.6.2', assignee: 'María López', department: 'HR', dueDate: '2024-12-20', status: 'pending', magicLink: 'https://dani.app/upload/abc123' },
-    { id: 2, title: 'Physical Access Logs - Data Center', control: 'A.7.2', assignee: 'Carlos Ruiz', department: 'Facilities', dueDate: '2024-12-18', status: 'overdue', magicLink: 'https://dani.app/upload/def456' },
-    { id: 3, title: 'Vendor Security Assessments', control: 'A.5.19', assignee: 'Ana García', department: 'Procurement', dueDate: '2024-12-25', status: 'pending', magicLink: 'https://dani.app/upload/ghi789' },
-    { id: 4, title: 'Employee Background Check Records', control: 'A.6.1', assignee: 'Pedro Sánchez', department: 'HR', dueDate: '2024-12-15', status: 'submitted', magicLink: 'https://dani.app/upload/jkl012' }
-  ]);
+  const [requests, setRequests] = useState([]); // Eliminados los mocks
 
   const connectors = [
-    { id: 'aws', name: 'AWS', icon: '☁️', status: 'connected', lastSync: '5 min ago', evidences: 12, color: '#FF9900' },
-    { id: 'azure', name: 'Azure', icon: '🔷', status: 'connected', lastSync: '2 min ago', evidences: 28, color: '#0078D4' },
-    { id: 'jira', name: 'Jira', icon: '📋', status: 'connected', lastSync: '1 min ago', evidences: 45, color: '#0052CC' },
-    { id: 'okta', name: 'Okta', icon: '🔐', status: 'connected', lastSync: '3 min ago', evidences: 18, color: '#007DC1' },
-    { id: 'github', name: 'GitHub', icon: '🐙', status: 'error', lastSync: 'Failed 2h ago', evidences: 8, color: '#333' },
+    { id: 'aws', name: 'AWS', icon: '☁️', status: 'pending', lastSync: 'Not configured', evidences: 0, color: '#FF9900' },
+    { id: 'azure', name: 'Azure', icon: '🔷', status: 'pending', lastSync: 'Not configured', evidences: 0, color: '#0078D4' },
+    { id: 'jira', name: 'Jira', icon: '📋', status: 'pending', lastSync: 'Not configured', evidences: 0, color: '#0052CC' },
+    { id: 'okta', name: 'Okta', icon: '🔐', status: 'pending', lastSync: 'Not configured', evidences: 0, color: '#007DC1' },
+    { id: 'github', name: 'GitHub', icon: '🐙', status: 'pending', lastSync: 'Not configured', evidences: 0, color: '#333' },
     { id: 'slack', name: 'Slack', icon: '💬', status: 'pending', lastSync: 'Not configured', evidences: 0, color: '#4A154B' }
   ];
 
@@ -190,11 +175,23 @@ function EvidenceCenterScreen() {
   };
 
   const filteredEvidences = evidences.filter(e => {
-    if (filterStatus === 'all') return true;
-    if (filterStatus === 'automatic') return e.type === 'automatic';
-    if (filterStatus === 'manual') return e.type === 'manual';
-    if (filterStatus === 'expired') return getFreshnessStatus(e) === 'expired';
-    if (filterStatus === 'expiring') return getFreshnessStatus(e) === 'expiring';
+    // Filtrado por status
+    if (filterStatus !== 'all') {
+      if (filterStatus === 'automatic' && e.type !== 'automatic') return false;
+      if (filterStatus === 'manual' && e.type !== 'manual') return false;
+      if (filterStatus === 'expired' && getFreshnessStatus(e) !== 'expired') return false;
+      if (filterStatus === 'expiring' && getFreshnessStatus(e) !== 'expiring') return false;
+    }
+    
+    // Filtrado por busqueda
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchName = e.name && e.name.toLowerCase().includes(q);
+      const matchControl = e.control && e.control.toLowerCase().includes(q);
+      const matchSource = e.source && e.source.toLowerCase().includes(q);
+      if (!matchName && !matchControl && !matchSource) return false;
+    }
+    
     return true;
   });
 
@@ -258,7 +255,7 @@ function EvidenceCenterScreen() {
             </div>
             <div style={{ position: 'relative' }}>
               <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: t.textDim }} />
-              <input placeholder={l.searchEvidences} style={{ padding: '8px 12px 8px 36px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '13px', width: '250px', outline: 'none' }} />
+              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={l.searchEvidences} style={{ padding: '8px 12px 8px 36px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '13px', width: '250px', outline: 'none' }} />
             </div>
           </div>
           <div style={{ overflowX: 'auto' }}>
