@@ -319,10 +319,25 @@ class GapAnalyzer:
             return kpi.get("category", "")
         return getattr(kpi, "category", "")
 
-    def _format_kpis(self, kpis: List) -> Dict:
+    def _kpi_to_dict(self, kpi) -> Dict:
+        if isinstance(kpi, dict):
+            return kpi
         return {
-            "strategic": [k for k in kpis if self._get_kpi_category(k) == "strategic"],
-            "operational": [k for k in kpis if self._get_kpi_category(k) == "operational"],
-            "security": [k for k in kpis if self._get_kpi_category(k) == "security"],
+            "id": str(getattr(kpi, "id", "")),
+            "name": getattr(kpi, "name", ""),
+            "category": getattr(kpi, "category", ""),
+            "target_value": getattr(kpi, "target_value", 0),
+            "current_value": getattr(kpi, "current_value", 0),
+            "unit": getattr(kpi, "unit", ""),
+            "frequency": getattr(kpi, "frequency", ""),
+            "status": getattr(kpi, "status", ""),
+        }
+
+    def _format_kpis(self, kpis: List) -> Dict:
+        serialized = [self._kpi_to_dict(k) for k in kpis]
+        return {
+            "strategic": [k for k in serialized if k.get("category") == "strategic"],
+            "operational": [k for k in serialized if k.get("category") == "operational"],
+            "security": [k for k in serialized if k.get("category") == "security"],
             "timestamp": datetime.utcnow().isoformat()
         }
