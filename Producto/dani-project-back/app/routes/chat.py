@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -62,6 +62,7 @@ async def chat_endpoint(
                 )
         except Exception as ev_err:
             print(f"⚠️ Error al consultar EvidenceChunk en RAG: {ev_err}")
+            raise HTTPException(status_code=503, detail="Servicio Analítico Degradado: Fallo en consulta de evidencias (RAG).")
 
         # 3. Consultar similitud de coseno en pgvector - Base Normativa ISO Oficial
         try:
@@ -79,13 +80,17 @@ async def chat_endpoint(
                 )
         except Exception as norm_err:
             print(f"⚠️ Error al consultar NormativeChunk en RAG: {norm_err}")
+            raise HTTPException(status_code=503, detail="Servicio Analítico Degradado: Fallo en consulta de normativa (RAG).")
             
         if context_blocks:
             context = "\n\n".join(context_blocks)
             print(f"🔍 RAG: Contexto combinado inyectado con éxito ({len(context_blocks)} fragmentos).")
             
+    except HTTPException:
+        raise
     except Exception as rag_err:
         print(f"⚠️ Error general al recuperar contexto RAG: {rag_err}")
+        raise HTTPException(status_code=503, detail="Servicio Analítico Degradado: Fallo general en el motor RAG.")
 
     # 4. Enviar a la IA (DeepSeek) enriqueciendo el prompt con todo el contexto recuperado
     reply = await ai_service.chat(request.message, context=context if context else None)
