@@ -37,138 +37,423 @@ const DashboardScreen = ({ onNavigate }) => {
   const generatePDFReport = async () => {
     try {
       const { jsPDF } = await import('jspdf');
-      const capas = await capaAPI.getAll().catch(() => []);
+
+      // Llamar al endpoint que reúne datos reales + análisis IA
+      const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+      const { API_URL } = await import('../services/api');
+      const res = await fetch(`${API_URL}/api/reports/executive`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Error al obtener datos del informe');
+      const report = await res.json();
+      const d = report.data;
 
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const W = 210;
-      const margin = 20;
-      let y = margin;
+      const M = 18; // margen
+      let y = 0;
+      let pageNum = 1;
 
-      const addText = (text, x, fontSize = 11, style = 'normal', color = [30, 30, 30]) => {
+      // ── Helpers ──────────────────────────────────────────────────────────
+      const setColor = (...rgb) => { doc.setTextColor(...rgb); };
+      const setFill  = (...rgb) => { doc.setFillColor(...rgb); };
+      const setDraw  = (...rgb) => { doc.setDrawColor(...rgb); };
+
+      const txt = (text, x, fontSize = 10, style = 'normal', color = [30, 30, 30]) => {
         doc.setFontSize(fontSize);
         doc.setFont('helvetica', style);
-        doc.setTextColor(...color);
-        doc.text(String(text), x, y);
+        setColor(...color);
+        doc.text(String(text ?? ''), x, y);
       };
 
-      const lineBreak = (h = 7) => { y += h; };
+      const lb = (h = 6) => { y += h; };
 
-      const divider = (color = [200, 200, 200]) => {
-        doc.setDrawColor(...color);
-        doc.line(margin, y, W - margin, y);
-        lineBreak(5);
+      const hr = (colorRGB = [200, 200, 200], thick = 0.3) => {
+        setDraw(...colorRGB);
+        doc.setLineWidth(thick);
+        doc.line(M, y, W - M, y);
+        lb(5);
       };
 
-      // — Cabecera —
-      doc.setFillColor(16, 185, 129);
-      doc.rect(0, 0, W, 28, 'F');
-      doc.setFontSize(18);
+      const sectionHeader = (num, title) => {
+        if (y > 255) newPage();
+        lb(4);
+        setFill(16, 185, 129);
+        doc.rect(M, y - 4, W - M * 2, 9, 'F');
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        setColor(255, 255, 255);
+        doc.text(`${num}. ${title}`, M + 3, y + 2);
+        lb(10);
+      };
+
+      const addWrappedText = (text, x, maxWidth, fontSize = 9, style = 'normal', color = [50, 50, 50]) => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', style);
+        setColor(...color);
+        const lines = doc.splitTextToSize(String(text ?? ''), maxWidth);
+        for (const line of lines) {
+          if (y > 270) newPage();
+          doc.text(line, x, y);
+          lb(fontSize * 0.45);
+        }
+        lb(2);
+      };
+
+      const footer = () => {
+        setFill(240, 253, 250);
+        doc.rect(0, 284, W, 13, 'F');
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'italic');
+        setColor(100, 100, 100);
+        doc.text('DANI ISO 27001 — Informe de Auditoría Interna · Confidencial', M, 290);
+        doc.text(`Pág. ${pageNum}`, W - M - 10, 290);
+        doc.text(`Generado: ${new Date().toLocaleString('es')}`, W / 2 - 18, 290);
+      };
+
+      const newPage = () => {
+        footer();
+        doc.addPage();
+        pageNum++;
+        y = M;
+      };
+
+      // ════════════════════════════════════════════════════════════════════
+      // PÁGINA 1 — PORTADA
+      // ════════════════════════════════════════════════════════════════════
+      setFill(16, 185, 129);
+      doc.rect(0, 0, W, 60, 'F');
+
+      // Logo textual
+      doc.setFontSize(32);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(255, 255, 255);
-      doc.text('DANI ISO 27001 — Informe de Cumplimiento', margin, 13);
+      setColor(255, 255, 255);
+      doc.text('DANI', M, 28);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Plataforma de Gestión ISO 27001', M, 37);
+
+      // Línea decorativa
+      setDraw(255, 255, 255);
+      doc.setLineWidth(0.5);
+      doc.line(M, 42, W - M, 42);
+
+      doc.setFontSize(9);
+      doc.text(`ISO/IEC 27001:2022  ·  Sistema de Gestión de Seguridad de la Información`, M, 50);
+
+      y = 80;
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      setColor(20, 20, 40);
+      doc.text('INFORME DE AUDITORÍA INTERNA', M, y); lb(12);
+      doc.setFontSize(15);
+      setColor(16, 185, 129);
+      doc.text('Evaluación del Estado del SGSI', M, y); lb(12);
+
+      hr([180, 220, 200], 0.5);
+
+      // Metadatos portada
+      const meta = [
+        ['Fecha de generación', new Date().toLocaleDateString('es', { year:'numeric', month:'long', day:'numeric' })],
+        ['Preparado por',       report.generated_by || '—'],
+        ['Modelo IA utilizado', report.ai_model || 'deepseek-chat'],
+        ['Clasificación',       'Confidencial — Uso interno'],
+        ['Versión',             '1.0'],
+        ['Norma de referencia', 'ISO/IEC 27001:2022'],
+      ];
+      for (const [label, val] of meta) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        setColor(80, 80, 80);
+        doc.text(label + ':', M, y);
+        doc.setFont('helvetica', 'normal');
+        setColor(20, 20, 40);
+        doc.text(String(val), M + 55, y);
+        lb(7);
+      }
+      lb(10);
+
+      // Score destacado en portada
+      const score = d.overall_score?.overall_score ?? 0;
+      const scoreColor = score >= 85 ? [16, 185, 129] : score >= 70 ? [245, 158, 11] : [239, 68, 68];
+      setFill(...scoreColor);
+      doc.roundedRect(M, y, 80, 28, 3, 3, 'F');
+      doc.setFontSize(26);
+      doc.setFont('helvetica', 'bold');
+      setColor(255, 255, 255);
+      doc.text(`${score.toFixed(1)}%`, M + 8, y + 17);
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Generado el ${new Date().toLocaleString('es')} · Usuario: ${user?.full_name || user?.email || '—'}`, margin, 21);
-      y = 38;
+      doc.text('Índice de Salud ISO 27001', M + 8, y + 24);
 
-      // — Sección 1: Estado General —
-      addText('1. Estado General de Cumplimiento', margin, 13, 'bold', [16, 185, 129]);
-      lineBreak(8);
-      divider([180, 220, 200]);
+      setFill(245, 245, 245);
+      doc.roundedRect(M + 85, y, 85, 28, 3, 3, 'F');
+      const readiness = score >= 85 ? 'LISTO PARA CERTIFICACIÓN' : score >= 70 ? 'CASI LISTO' : score >= 50 ? 'EN PROGRESO' : 'ETAPA INICIAL';
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      setColor(...scoreColor);
+      doc.text(readiness, M + 88, y + 10);
+      doc.setFont('helvetica', 'normal');
+      setColor(80, 80, 80);
+      doc.text(`Controles: ${d.control_gaps?.implemented_controls ?? 0}/${d.control_gaps?.total_controls ?? 114}`, M + 88, y + 17);
+      doc.text(`Umbral certificación: 85%`, M + 88, y + 23);
 
-      const score = healthScore ?? 0;
-      addText(`Índice de Salud ISO 27001:`, margin, 11, 'bold');
-      addText(`${score}%`, margin + 72, 11, 'normal', score >= 75 ? [16, 185, 129] : score >= 50 ? [245, 158, 11] : [239, 68, 68]);
-      lineBreak();
-      addText('Controles implementados:', margin, 11, 'normal');
-      addText('92 / 114  (80.7%)', margin + 60, 11, 'normal');
-      lineBreak();
-      addText('Umbral de certificación:', margin, 11, 'normal');
-      addText('85%', margin + 60, 11, 'normal');
-      lineBreak();
-      addText('Estado:', margin, 11, 'normal');
-      const readinessText = score >= 85 ? 'LISTO PARA AUDITORÍA' : score >= 70 ? 'CASI LISTO' : 'EN PROGRESO';
-      addText(readinessText, margin + 30, 11, 'bold', score >= 85 ? [16, 185, 129] : score >= 70 ? [245, 158, 11] : [239, 68, 68]);
-      lineBreak(12);
+      footer();
 
-      // — Sección 2: Riesgos —
-      addText('2. Mapa de Riesgos', margin, 13, 'bold', [16, 185, 129]);
-      lineBreak(8);
-      divider([180, 220, 200]);
+      // ════════════════════════════════════════════════════════════════════
+      // PÁGINA 2 — RESUMEN EJECUTIVO (IA)
+      // ════════════════════════════════════════════════════════════════════
+      newPage();
+      sectionHeader('1', 'Resumen Ejecutivo');
+      addWrappedText(report.executive_summary, M, W - M * 2, 9.5, 'normal', [30, 30, 50]);
 
-      if (riskStats) {
-        const levels = [
-          ['Riesgos abiertos totales:', riskStats.open_risks ?? 0],
-          ['Críticos:', riskStats.by_level?.critical ?? 0],
-          ['Altos:', riskStats.by_level?.high ?? 0],
-          ['Medios:', riskStats.by_level?.medium ?? 0],
-          ['Bajos:', riskStats.by_level?.low ?? 0],
-        ];
-        for (const [label, val] of levels) {
-          addText(label, margin, 10, 'normal');
-          addText(String(val), margin + 65, 10, 'bold');
-          lineBreak(6);
+      // ════════════════════════════════════════════════════════════════════
+      // PÁGINA 3 — ANÁLISIS POR CLÁUSULA
+      // ════════════════════════════════════════════════════════════════════
+      if (y > 180) newPage(); else lb(8);
+      sectionHeader('2', 'Análisis de Cumplimiento por Cláusula ISO 27001:2022');
+
+      // Encabezado tabla
+      const colCl = [M, M + 18, M + 50, M + 80, M + 108, M + 134, M + 155];
+      setFill(16, 185, 129);
+      doc.rect(M, y - 4, W - M * 2, 8, 'F');
+      const hdrs = ['Cláusula', 'Nombre', 'Score', 'Brecha', 'Peso', 'Prioridad'];
+      hdrs.forEach((h, i) => {
+        doc.setFontSize(8); doc.setFont('helvetica', 'bold'); setColor(255, 255, 255);
+        doc.text(h, colCl[i], y + 1);
+      });
+      lb(9);
+
+      const clauseNames = { '4':'Contexto', '5':'Liderazgo', '6':'Planificación', '7':'Soporte', '8':'Operación', '9':'Evaluación', '10':'Mejora' };
+      const prioColor = { critical: [239,68,68], high: [245,158,11], medium: [59,130,246], low: [16,185,129] };
+
+      for (let i = 0; i < (d.clause_gaps || []).length; i++) {
+        const c = d.clause_gaps[i];
+        if (y > 265) newPage();
+        if (i % 2 === 0) { setFill(248, 253, 250); doc.rect(M, y-3, W-M*2, 7, 'F'); }
+        const sc = c.current_score ?? 0;
+        const scCol = sc >= 75 ? [16,185,129] : sc >= 50 ? [245,158,11] : [239,68,68];
+        txt(c.clause_id, colCl[0], 8.5, 'bold', [20,20,40]);
+        txt(c.clause_name || clauseNames[c.clause_id] || '—', colCl[1], 8, 'normal');
+        txt(`${sc.toFixed(0)}%`, colCl[2], 8.5, 'bold', scCol);
+        txt(`${(c.gap ?? 0).toFixed(0)} pts`, colCl[3], 8, 'normal', [239,68,68]);
+        txt(`${((c.weight ?? 0)*100).toFixed(0)}%`, colCl[4], 8, 'normal');
+        txt(c.priority || '—', colCl[5], 8, 'bold', prioColor[c.priority] || [80,80,80]);
+        lb(7);
+      }
+
+      // Barra de progreso por cláusula
+      lb(5);
+      txt('Visualización de scores por cláusula:', M, 9, 'bold', [50, 50, 80]);
+      lb(7);
+      for (const c of (d.clause_gaps || [])) {
+        if (y > 265) newPage();
+        const sc = c.current_score ?? 0;
+        const barW = W - M * 2 - 45;
+        const filled = (sc / 100) * barW;
+        const bColor = sc >= 75 ? [16,185,129] : sc >= 50 ? [245,158,11] : [239,68,68];
+        txt(`C${c.clause_id}`, M, 8, 'bold', [60,60,80]);
+        setFill(220, 220, 220); doc.rect(M + 12, y - 4, barW, 5, 'F');
+        setFill(...bColor); doc.rect(M + 12, y - 4, filled, 5, 'F');
+        txt(`${sc.toFixed(0)}%`, M + 14 + barW, 7.5, 'normal', [80,80,80]);
+        lb(7);
+      }
+
+      // ════════════════════════════════════════════════════════════════════
+      // PÁGINA 4 — ANÁLISIS TÉCNICO (IA) + RIESGOS
+      // ════════════════════════════════════════════════════════════════════
+      newPage();
+      sectionHeader('3', 'Análisis Técnico de Brechas');
+      addWrappedText(report.technical_analysis, M, W - M * 2, 9.5, 'normal', [30, 30, 50]);
+
+      lb(5);
+      sectionHeader('4', 'Mapa de Riesgos');
+
+      const rs = d.risk_summary || {};
+      // Resumen numérico
+      const riskCols = [
+        { label: 'Total', val: rs.total ?? 0, color: [80,80,80] },
+        { label: 'Abiertos', val: rs.open ?? 0, color: [245,158,11] },
+        { label: 'Críticos', val: rs.critical ?? 0, color: [239,68,68] },
+        { label: 'Altos', val: rs.high ?? 0, color: [249,115,22] },
+        { label: 'Medios', val: rs.medium ?? 0, color: [59,130,246] },
+        { label: 'Bajos', val: rs.low ?? 0, color: [16,185,129] },
+      ];
+      const blockW = (W - M * 2) / riskCols.length;
+      riskCols.forEach((rc, i) => {
+        if (y > 265) newPage();
+        const bx = M + i * blockW;
+        setFill(...rc.color.map(v => Math.min(v + 180, 255)));
+        doc.roundedRect(bx, y - 5, blockW - 2, 16, 2, 2, 'F');
+        doc.setFontSize(14); doc.setFont('helvetica', 'bold'); setColor(...rc.color);
+        doc.text(String(rc.val), bx + 3, y + 5);
+        doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); setColor(80, 80, 80);
+        doc.text(rc.label, bx + 3, y + 10);
+      });
+      lb(22);
+
+      // Top riesgos
+      if ((rs.top_risks || []).length > 0) {
+        txt('Riesgos críticos y altos prioritarios:', M, 9, 'bold', [50, 50, 80]);
+        lb(7);
+        for (const r of rs.top_risks) {
+          if (y > 265) newPage();
+          const lvlColor = r.level?.includes('critical') || r.level?.includes('crítico') ? [239,68,68] : [249,115,22];
+          setFill(...lvlColor);
+          doc.rect(M, y - 4, 2, 6, 'F');
+          txt(`[${(r.level || '').toUpperCase()}]`, M + 4, 8, 'bold', lvlColor);
+          txt(r.title || '', M + 22, 8, 'bold', [20, 20, 40]);
+          lb(5);
+          if (r.description) addWrappedText(r.description, M + 4, W - M * 2 - 4, 8, 'normal', [80, 80, 80]);
+          lb(2);
+        }
+      }
+
+      // ════════════════════════════════════════════════════════════════════
+      // PÁGINA 5 — NO CONFORMIDADES (CAPA)
+      // ════════════════════════════════════════════════════════════════════
+      newPage();
+      sectionHeader('5', 'No Conformidades y Acciones Correctivas (CAPA)');
+
+      const cs = d.capa_summary || {};
+      const capaStats = [
+        ['Total registradas', cs.total ?? 0],
+        ['Abiertas', cs.open ?? 0],
+        ['En progreso', cs.in_progress ?? 0],
+        ['Resueltas', cs.resolved ?? 0],
+        ['Cerradas', cs.closed ?? 0],
+      ];
+      for (const [lbl, val] of capaStats) {
+        txt(lbl + ':', M, 9.5, 'normal');
+        txt(String(val), M + 55, 9.5, 'bold', [16, 185, 129]);
+        lb(6);
+      }
+      lb(5);
+
+      if ((cs.list || []).length > 0) {
+        const colC = [M, M + 24, M + 88, M + 108, M + 128, M + 150];
+        setFill(16, 185, 129);
+        doc.rect(M, y - 4, W - M * 2, 8, 'F');
+        ['Código', 'Título', 'Prioridad', 'Estado', 'Progreso', 'Asignado'].forEach((h, i) => {
+          doc.setFontSize(8); doc.setFont('helvetica', 'bold'); setColor(255, 255, 255);
+          doc.text(h, colC[i], y + 1);
+        });
+        lb(9);
+
+        const statusLbl = { open: 'Abierta', inProgress: 'En Prog.', resolved: 'Resuelta', closed: 'Cerrada' };
+        const prioLbl   = { high: 'Alta', medium: 'Media', low: 'Baja' };
+        const prioC2    = { high: [239,68,68], medium: [245,158,11], low: [16,185,129] };
+
+        for (let i = 0; i < cs.list.length; i++) {
+          const c = cs.list[i];
+          if (y > 265) newPage();
+          if (i % 2 === 0) { setFill(248,253,250); doc.rect(M, y-3, W-M*2, 7, 'F'); }
+          const title = (c.title || '').length > 32 ? c.title.slice(0, 29) + '…' : c.title;
+          const assignee = (c.assignee || 'Sin asignar').length > 16 ? c.assignee.slice(0,13) + '…' : (c.assignee || 'Sin asignar');
+          txt(c.nc_code || '—',            colC[0], 8, 'bold', [20,20,40]);
+          txt(title,                        colC[1], 7.5, 'normal');
+          txt(prioLbl[c.priority] || c.priority || '—', colC[2], 8, 'bold', prioC2[c.priority] || [80,80,80]);
+          txt(statusLbl[c.status] || c.status || '—',   colC[3], 7.5, 'normal');
+          txt(`${c.progress ?? 0}%`,        colC[4], 8, 'bold', [16,185,129]);
+          txt(assignee,                     colC[5], 7.5, 'normal', [80,80,80]);
+          lb(7);
         }
       } else {
-        addText('No se pudieron cargar estadísticas de riesgo.', margin, 10, 'italic', [120, 120, 120]);
-        lineBreak(6);
+        addWrappedText('Sin no conformidades registradas en el sistema.', M, W - M * 2, 9, 'italic', [120, 120, 120]);
       }
-      lineBreak(5);
 
-      // — Sección 3: CAPAs —
-      addText('3. No Conformidades y Acciones Correctivas (CAPA)', margin, 13, 'bold', [16, 185, 129]);
-      lineBreak(8);
-      divider([180, 220, 200]);
+      // ════════════════════════════════════════════════════════════════════
+      // PÁGINA 6 — RECOMENDACIONES TÉCNICAS (IA) + PLAN DE REMEDIACIÓN
+      // ════════════════════════════════════════════════════════════════════
+      newPage();
+      sectionHeader('6', 'Recomendaciones Técnicas Prioritarias');
 
-      if (capas.length === 0) {
-        addText('Sin no conformidades registradas.', margin, 10, 'italic', [120, 120, 120]);
-        lineBreak(6);
-      } else {
-        const statusLabel = { open: 'Abierta', inProgress: 'En Progreso', resolved: 'Resuelta', closed: 'Cerrada' };
-        const priorityLabel = { high: 'Alta', medium: 'Media', low: 'Baja' };
+      // Parsear recomendaciones estructuradas del texto IA
+      const rawRecs = report.recommendations_raw || '';
+      const recBlocks = rawRecs.split(/RECOMENDACION_\d+:/i).filter(b => b.trim());
+      if (recBlocks.length > 0) {
+        for (let i = 0; i < recBlocks.length; i++) {
+          if (y > 240) newPage();
+          const block = recBlocks[i].trim();
+          const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+          const titleLine = lines[0] || `Recomendación ${i + 1}`;
+          const rest      = lines.slice(1);
 
-        const headers = ['Código', 'Título', 'Prioridad', 'Estado', 'Progreso'];
-        const colX = [margin, margin + 22, margin + 100, margin + 122, margin + 148];
+          setFill(240, 253, 250);
+          doc.roundedRect(M, y - 3, W - M * 2, 9 + rest.length * 5.5, 3, 3, 'F');
+          setDraw(16, 185, 129);
+          doc.setLineWidth(0.4);
+          doc.roundedRect(M, y - 3, W - M * 2, 9 + rest.length * 5.5, 3, 3, 'S');
 
-        doc.setFillColor(240, 253, 250);
-        doc.rect(margin, y - 4, W - margin * 2, 8, 'F');
-        headers.forEach((h, i) => addText(h, colX[i], 9, 'bold', [16, 185, 129]));
-        lineBreak(7);
-        divider([180, 220, 200]);
-
-        for (const c of capas) {
-          if (y > 265) {
-            doc.addPage();
-            y = margin;
+          txt(`${i + 1}. ${titleLine}`, M + 4, 10, 'bold', [16, 120, 100]);
+          lb(7);
+          for (const ln of rest) {
+            const colon = ln.indexOf(':');
+            if (colon > 0) {
+              const key = ln.slice(0, colon).trim();
+              const val = ln.slice(colon + 1).trim();
+              txt(`${key}:`, M + 4, 8.5, 'bold', [80, 80, 80]);
+              addWrappedText(val, M + 4 + doc.getStringUnitWidth(key + ': ') * 8.5 * 0.352 + 2, W - M * 2 - 10, 8.5, 'normal', [40, 40, 60]);
+            } else {
+              addWrappedText(ln, M + 4, W - M * 2 - 8, 8, 'normal', [60, 60, 80]);
+            }
           }
-          const title = c.title?.length > 40 ? c.title.slice(0, 37) + '...' : c.title;
-          addText(c.nc_code || '—', colX[0], 8, 'normal');
-          addText(title || '—', colX[1], 8, 'normal');
-          addText(priorityLabel[c.priority] || c.priority, colX[2], 8, 'normal');
-          addText(statusLabel[c.status] || c.status, colX[3], 8, 'normal');
-          addText(`${c.progress ?? 0}%`, colX[4], 8, 'normal');
-          lineBreak(6);
+          lb(6);
         }
-
-        lineBreak(4);
-        const open = capas.filter(c => c.status === 'open').length;
-        const inProg = capas.filter(c => c.status === 'inProgress').length;
-        const resolved = capas.filter(c => ['resolved', 'closed'].includes(c.status)).length;
-        addText(`Total: ${capas.length}  ·  Abiertas: ${open}  ·  En progreso: ${inProg}  ·  Resueltas/Cerradas: ${resolved}`, margin, 9, 'italic', [80, 80, 80]);
-        lineBreak(10);
+      } else {
+        addWrappedText(rawRecs, M, W - M * 2, 9, 'normal', [40, 40, 60]);
       }
 
-      // — Pie de página —
-      if (y > 265) { doc.addPage(); y = margin; }
-      doc.setDrawColor(16, 185, 129);
-      doc.line(margin, y, W - margin, y);
-      lineBreak(5);
-      addText('Informe generado automáticamente por DANI · Plataforma de Gestión ISO 27001', margin, 8, 'italic', [120, 120, 120]);
+      // Plan de remediación
+      if (d.remediation_plan?.sprint_1) {
+        if (y > 220) newPage();
+        lb(5);
+        sectionHeader('7', 'Plan de Remediación Estimado');
+        const s1 = d.remediation_plan.sprint_1;
+        const s2 = d.remediation_plan.sprint_2;
+        txt('Sprint 1 (P0 – Controles Críticos)', M, 10, 'bold', [239, 68, 68]);
+        lb(6);
+        txt(`Duración: ${s1.duration_days} días | Horas estimadas: ${s1.total_hours}h`, M, 9, 'normal');
+        lb(6);
+        for (const ctrl of (s1.controls || [])) {
+          txt(`• [${ctrl.id}] ${ctrl.title} — ${ctrl.hours}h (${ctrl.responsible})`, M + 3, 8.5, 'normal');
+          lb(5.5);
+        }
+        lb(4);
+        if (s2) {
+          txt('Sprint 2 (P1 – Controles de Alta Prioridad)', M, 10, 'bold', [245, 158, 11]);
+          lb(6);
+          txt(`Duración: ${s2.duration_days} días | Horas estimadas: ${s2.total_hours}h`, M, 9, 'normal');
+          lb(6);
+          for (const ctrl of (s2.controls || [])) {
+            txt(`• [${ctrl.id}] ${ctrl.title} — ${ctrl.hours}h (${ctrl.responsible})`, M + 3, 8.5, 'normal');
+            lb(5.5);
+          }
+        }
+        lb(4);
+        txt(`Costo total estimado: USD ${(d.remediation_plan.estimated_cost_usd || 0).toLocaleString()}`, M, 9, 'bold', [80, 80, 80]);
+        lb(6);
+        txt(`Fecha estimada de completitud: ${new Date(d.remediation_plan.estimated_completion || Date.now()).toLocaleDateString('es')}`, M, 9, 'normal');
+        lb(6);
+      }
 
+      // ── Última línea de cierre ──────────────────────────────────────────
+      if (y > 265) newPage();
+      lb(8);
+      hr([16, 185, 129], 0.5);
+      addWrappedText(
+        'Este informe ha sido generado automáticamente por el sistema DANI (Plataforma de Gestión ISO 27001) '
+        + `combinando datos reales del SGSI con análisis narrativo del modelo ${report.ai_model}. `
+        + 'El contenido refleja el estado del sistema a la fecha de generación y debe ser validado por el '
+        + 'responsable del SGSI antes de su uso en procesos formales de auditoría.',
+        M, W - M * 2, 8, 'italic', [100, 100, 100]
+      );
+
+      footer();
       doc.save(`DANI_Informe_ISO27001_${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (err) {
       console.error('Error generando PDF:', err);
-      alert('No se pudo generar el informe. Intenta de nuevo.');
+      alert('No se pudo generar el informe: ' + err.message);
     }
   };
 

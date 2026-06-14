@@ -14,6 +14,7 @@ from app.routes import auth, risk, evidence, documents, users
 from app.routes import compliance
 from app.routes import capa
 from app.routes import notifications
+from app.routes import report
 from app.models.iso_controls import ISOCControl
 from app.models.capa import CAPA
 
@@ -95,6 +96,7 @@ app.include_router(chat.router)
 app.include_router(gap_analysis.router)
 app.include_router(capa.router)
 app.include_router(notifications.router)
+app.include_router(report.router)
 
 @app.get("/")
 async def root():
