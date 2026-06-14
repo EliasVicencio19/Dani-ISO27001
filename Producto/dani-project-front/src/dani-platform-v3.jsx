@@ -45,6 +45,19 @@ export default function DaniPlatform() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const unreadNotifications = 3; // Simulado para coincidir con la alerta visual
+
+  // Keyboard shortcut para Command Palette (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const languages = [
     { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -65,6 +78,7 @@ export default function DaniPlatform() {
         setActiveScreen={handleNavigate}
         sidebarCollapsed={sidebarCollapsed}
         setSidebarCollapsed={setSidebarCollapsed}
+        setCommandPaletteOpen={setCommandPaletteOpen}
       />
 
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -107,8 +121,13 @@ export default function DaniPlatform() {
 
           {/* Notificaciones */}
           <div style={{ position: 'relative' }}>
-            <button onClick={() => setNotificationsOpen(!notificationsOpen)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, cursor: 'pointer' }}>
+            <button onClick={() => setNotificationsOpen(!notificationsOpen)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, cursor: 'pointer', position: 'relative' }}>
               <Bell size={20} />
+              {unreadNotifications > 0 && (
+                <div style={{ position: 'absolute', top: '6px', right: '6px', width: '18px', height: '18px', background: '#ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: 'white' }}>
+                  {unreadNotifications}
+                </div>
+              )}
             </button>
             <NotificationCenter isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
           </div>

@@ -83,7 +83,7 @@ function SidebarProgressRings({ theme: t, language, collapsed }) {
 
 import { useAuth } from '../contexts/AuthContext';
 
-const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCollapsed }) => {
+const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCollapsed, setCommandPaletteOpen }) => {
   const { theme: t, language, translations } = useTheme();
   const { user } = useAuth();
   const l = translations[language];
@@ -111,8 +111,20 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
         {!sidebarCollapsed && <div><div style={{ fontWeight: 700, fontSize: '20px' }}>Dani</div><div style={{ fontSize: '11px', color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px' }}>ISO 27001</div></div>}
       </div>
 
+      {/* Command Palette Trigger */}
+      {!sidebarCollapsed && setCommandPaletteOpen && (
+        <button 
+          onClick={() => setCommandPaletteOpen(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.textDim, fontSize: '13px', cursor: 'pointer', marginBottom: '20px', width: '100%', textAlign: 'left' }}
+        >
+          <Search size={16} />
+          <span style={{ flex: 1 }}>{language === 'es' ? 'Buscar...' : 'Search...'}</span>
+          <kbd style={{ padding: '2px 6px', background: t.hoverBg || 'rgba(0,0,0,0.05)', borderRadius: '4px', fontSize: '10px', fontFamily: 'monospace' }}>⌘K</kbd>
+        </button>
+      )}
+
       <nav style={{ flex: 1 }}>
-        {navItems.map((item) => {
+        {navItems.filter(i => i.id !== 'employee-portal').map((item) => {
           const isActive = activeScreen === item.id;
           return (
             <button key={item.id} onClick={() => setActiveScreen(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: sidebarCollapsed ? '12px' : '12px 16px', marginBottom: '6px', background: isActive ? 'rgba(16, 185, 129, 0.15)' : 'transparent', border: 'none', borderRadius: '12px', color: isActive ? '#10b981' : t.textMuted, cursor: 'pointer', transition: 'all 0.2s ease', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
@@ -121,6 +133,18 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
             </button>
           );
         })}
+
+        {/* Employee Portal Link con estilo especial (dashed) */}
+        {navItems.find(i => i.id === 'employee-portal') && (() => {
+          const item = navItems.find(i => i.id === 'employee-portal');
+          const isActive = activeScreen === item.id;
+          return (
+            <button onClick={() => setActiveScreen(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: sidebarCollapsed ? '12px' : '12px 16px', marginBottom: '6px', marginTop: '16px', background: isActive ? 'rgba(16, 185, 129, 0.15)' : 'transparent', border: `1px dashed ${t.border}`, borderRadius: '12px', color: isActive ? '#10b981' : t.textDim, cursor: 'pointer', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
+              <item.icon size={20} />
+              {!sidebarCollapsed && <span style={{ fontSize: '14px', fontWeight: isActive ? 600 : 500 }}>{item.label}</span>}
+            </button>
+          );
+        })()}
       </nav>
 
       <SidebarProgressRings theme={t} language={language} collapsed={sidebarCollapsed} />
