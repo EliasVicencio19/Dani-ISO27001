@@ -25,7 +25,7 @@ async def ingest_normative_docs():
         
     # 2. Definir rutas a los PDFs
     backend_root = Path(__file__).parent.parent
-    workspace_root = backend_root.parent # Dani-ISO27001
+    workspace_root = backend_root.parent.parent # Dani-ISO27001 (subiendo un nivel más para salir de 'Producto')
     docs_dir = workspace_root / "Documentación"
     
     pdf_files = {
