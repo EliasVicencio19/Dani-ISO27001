@@ -39,7 +39,7 @@ const DashboardScreen = ({ onNavigate }) => {
       const { jsPDF } = await import('jspdf');
 
       // Llamar al endpoint que reúne datos reales + análisis IA
-      const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const { API_URL } = await import('../services/api');
       const res = await fetch(`${API_URL}/api/reports/executive`, {
         headers: { Authorization: `Bearer ${token}` }
