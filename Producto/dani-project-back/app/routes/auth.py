@@ -151,3 +151,32 @@ async def get_current_user_info(
         "role": current_user.get("role"),
         "is_active": current_user.get("is_active")
     }
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/change-password")
+async def change_password(
+    data: ChangePasswordRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Cambiar contraseña del usuario autenticado"""
+    result = await db.execute(select(User).where(User.id == current_user["id"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if not AuthService.verify_password(data.current_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta")
+
+    pwd = data.new_password
+    if len(pwd) < 8:
+        raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 8 caracteres")
+
+    user.hashed_password = AuthService.get_password_hash(data.new_password)
+    await db.commit()
+    return {"message": "Contraseña actualizada correctamente"}

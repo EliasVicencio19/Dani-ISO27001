@@ -45,7 +45,7 @@ export default function DaniPlatform() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const unreadNotifications = 3; // Simulado para coincidir con la alerta visual
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   // Keyboard shortcut para Command Palette (Cmd+K / Ctrl+K)
   useEffect(() => {
@@ -129,7 +129,7 @@ export default function DaniPlatform() {
                 </div>
               )}
             </button>
-            <NotificationCenter isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+            <NotificationCenter isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} onCountChange={setUnreadNotifications} />
           </div>
 
           {/* Settings */}
