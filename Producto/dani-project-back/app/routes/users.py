@@ -77,6 +77,46 @@ async def create_user(
     
     return {"message": "Usuario creado exitosamente", "id": new_user.id}
 
+
+class PreferencesRequest(BaseModel):
+    audit_cycle_day: Optional[int] = None
+    twofa_enabled: Optional[bool] = None
+
+
+@router.get("/me/preferences")
+async def get_my_preferences(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(User).where(User.id == current_user["id"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return user.preferences or {}
+
+
+@router.patch("/me/preferences")
+async def update_my_preferences(
+    data: PreferencesRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(User).where(User.id == current_user["id"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    prefs = dict(user.preferences or {})
+    if data.audit_cycle_day is not None:
+        prefs["audit_cycle_day"] = data.audit_cycle_day
+    if data.twofa_enabled is not None:
+        prefs["twofa_enabled"] = data.twofa_enabled
+
+    user.preferences = prefs
+    await db.commit()
+    return {"message": "Preferencias guardadas", "preferences": prefs}
+
+
 @router.get("/{user_id}")
 async def get_user_by_id(
     user_id: str,
@@ -152,47 +192,6 @@ async def update_user(
             "is_active": user.is_active
         }
     }
-
-class PreferencesRequest(BaseModel):
-    audit_cycle_day: Optional[int] = None
-    twofa_enabled: Optional[bool] = None
-
-
-@router.patch("/me/preferences")
-async def update_my_preferences(
-    data: PreferencesRequest,
-    current_user: dict = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Guardar preferencias del usuario autenticado"""
-    result = await db.execute(select(User).where(User.id == current_user["id"]))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-    prefs = dict(user.preferences or {})
-    if data.audit_cycle_day is not None:
-        prefs["audit_cycle_day"] = data.audit_cycle_day
-    if data.twofa_enabled is not None:
-        prefs["twofa_enabled"] = data.twofa_enabled
-
-    user.preferences = prefs
-    await db.commit()
-    return {"message": "Preferencias guardadas", "preferences": prefs}
-
-
-@router.get("/me/preferences")
-async def get_my_preferences(
-    current_user: dict = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Obtener preferencias del usuario autenticado"""
-    result = await db.execute(select(User).where(User.id == current_user["id"]))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    return user.preferences or {}
-
 
 @router.delete("/{user_id}")
 async def delete_user(
