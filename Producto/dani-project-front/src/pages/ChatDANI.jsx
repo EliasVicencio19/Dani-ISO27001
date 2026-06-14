@@ -33,10 +33,14 @@ const ChatDANI = ({ isOpen, onClose }) => {
 
     try {
       const data = await chatAPI.sendMessage(textToSend);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: data.reply || data.response || "Análisis completado de forma exitosa." 
-      }]);
+      if (data.error) {
+        setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${data.error}` }]);
+      } else {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: data.reply || data.response || "Análisis completado de forma exitosa." 
+        }]);
+      }
     } catch (error) {
       console.error("Error en Chat DANI:", error);
       setMessages(prev => [...prev, { 
@@ -124,10 +128,12 @@ const ChatDANI = ({ isOpen, onClose }) => {
             value={chatQuery} 
             onChange={(e) => setChatQuery(e.target.value)} 
             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Pregunta sobre tus evidencias e ISO 27001..." 
+            placeholder={isThinking ? "DANI está escribiendo..." : "Pregunta sobre tus evidencias e ISO 27001..."} 
+            disabled={isThinking}
             style={{ 
-              flex: 1, padding: '12px 16px', background: t.inputBg, border: `1px solid ${t.border}`, 
-              borderRadius: '12px', color: t.text, fontSize: '13px', outline: 'none' 
+              flex: 1, padding: '12px 16px', background: isThinking ? t.background : t.inputBg, border: `1px solid ${t.border}`, 
+              borderRadius: '12px', color: t.text, fontSize: '13px', outline: 'none',
+              opacity: isThinking ? 0.7 : 1
             }} 
           />
           <button 

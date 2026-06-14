@@ -89,20 +89,43 @@ export const userAPI = {
 // 📌 CHAT API
 // ============================================
 export const chatAPI = {
-  sendMessage: async (message, token = null) => {
+  sendMessage: async (message, token = null, signal = null) => {
     try {
       const resolvedToken = token || localStorage.getItem('token');
+      
+      let effectiveSignal = signal;
+      let timeoutId = null;
+      if (!effectiveSignal) {
+        const controller = new AbortController();
+        effectiveSignal = controller.signal;
+        timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      }
+
       const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
         },
-        body: JSON.stringify({ message })
+        body: JSON.stringify({ message }),
+        signal: effectiveSignal
       });
+      
+      if (timeoutId) clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 503) {
+            throw new Error(errorData.detail || "Servicio Analítico Degradado: El motor de IA no está disponible.");
+        }
+        throw new Error(errorData.detail || `Error HTTP: ${response.status}`);
+      }
       return await response.json();
     } catch (error) {
       console.error('Chat API error:', error);
+      if (error.name === 'AbortError') {
+        return { error: 'Tiempo de espera agotado (Timeout de 30s). DANI tardó demasiado en responder.' };
+      }
       return { error: error.message };
     }
   }
