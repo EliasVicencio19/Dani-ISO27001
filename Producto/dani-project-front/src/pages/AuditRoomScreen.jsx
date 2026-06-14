@@ -1,11 +1,12 @@
 // src/pages/AuditRoomScreen.jsx
-import React, { useState, useContext } from 'react';
-import { 
+import React, { useState, useContext, useEffect } from 'react';
+import {
   Search, Download, Folder, Eye, Lock, History, Sparkles,
   CheckCircle2, Clock, ExternalLink, FileText, X, Check,
   RefreshCw, Plus, Edit3, Trash2
 } from 'lucide-react';
 import { ThemeContext, useTranslation } from '../contexts/ThemeContext';
+import { API_URL } from '../services/api';
 
 const labels = {
   en: {
@@ -98,24 +99,117 @@ function AuditRoomScreen() {
 
   const l = labels[language] || labels.en;
 
-  const folders = [
-    { id: 1, name: '4. Context of the Organization', items: 8, status: 'complete', evidences: ['ISMS Scope Document', 'Stakeholder Analysis'] },
-    { id: 2, name: '5. Leadership', items: 12, status: 'complete', evidences: ['Information Security Policy', 'Management Commitment'] },
-    { id: 3, name: '6. Planning', items: 15, status: 'complete', evidences: ['Risk Assessment Methodology', 'Risk Treatment Plan'] },
-    { id: 4, name: '7. Support', items: 18, status: 'partial', evidences: ['Competence Records', 'Training Plan'] },
-    { id: 5, name: '8. Operation', items: 22, status: 'complete', evidences: ['Operational Procedures', 'Change Management'] },
-    { id: 6, name: '9. Performance Evaluation', items: 14, status: 'complete', evidences: ['Internal Audit Reports', 'KPI Dashboard'] },
-    { id: 7, name: '10. Improvement', items: 9, status: 'partial', evidences: ['Nonconformity Register', 'Improvement Log'] },
-    { id: 8, name: 'Annex A Controls', items: 93, status: 'partial', evidences: ['Statement of Applicability', 'Control Evidence'] }
+  const CLAUSE_NAMES = {
+    '4': '4. Context of the Organization',
+    '5': '5. Leadership',
+    '6': '6. Planning',
+    '7': '7. Support',
+    '8': '8. Operation',
+    '9': '9. Performance Evaluation',
+    '10': '10. Improvement'
+  };
+
+  const DEFAULT_FOLDERS = [
+    { id: 1, name: '4. Context of the Organization', items: 0, status: 'partial' },
+    { id: 2, name: '5. Leadership', items: 0, status: 'partial' },
+    { id: 3, name: '6. Planning', items: 0, status: 'partial' },
+    { id: 4, name: '7. Support', items: 0, status: 'partial' },
+    { id: 5, name: '8. Operation', items: 0, status: 'partial' },
+    { id: 6, name: '9. Performance Evaluation', items: 0, status: 'partial' },
+    { id: 7, name: '10. Improvement', items: 0, status: 'partial' },
+    { id: 8, name: 'Annex A Controls', items: 93, status: 'partial' }
   ];
 
-  const auditTrailEntries = [
-    { id: 1, timestamp: '2024-12-15 14:32', user: 'María García', role: 'CISO', action: 'approved', resource: 'InfoSec Policy v2.1', ip: '192.168.1.45', details: 'Approved for publication' },
-    { id: 2, timestamp: '2024-12-15 14:28', user: 'Carlos López', role: 'Security Mgr', action: 'modified', resource: 'Risk Assessment Q4', ip: '192.168.1.102', details: 'Updated risk scores' },
-    { id: 3, timestamp: '2024-12-15 13:45', user: 'Ana Martínez', role: 'Compliance', action: 'created', resource: 'Vendor Assessment', ip: '192.168.1.78', details: 'New assessment uploaded' },
-    { id: 4, timestamp: '2024-12-14 16:45', user: 'Ana Martínez', role: 'Compliance', action: 'modified', resource: 'Statement of Applicability', ip: '192.168.1.78', details: 'Updated A.8.24 justification' },
-    { id: 5, timestamp: '2024-12-14 11:00', user: 'María García', role: 'CISO', action: 'approved', resource: 'Access Control Policy v1.3', ip: '192.168.1.45', details: 'Approved with comments' }
-  ];
+  const [folders, setFolders] = useState(DEFAULT_FOLDERS);
+  const [auditTrailEntries, setAuditTrailEntries] = useState([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const headers = { Authorization: `Bearer ${token}` };
+
+    Promise.all([
+      fetch(`${API_URL}/api/gap-analysis/full`, { headers }).then(r => r.json()).catch(() => null),
+      fetch(`${API_URL}/api/evidence`, { headers }).then(r => r.json()).catch(() => []),
+      fetch(`${API_URL}/api/documents`, { headers }).then(r => r.json()).catch(() => ({ documents: [] }))
+    ]).then(([gapData, evidences, docsData]) => {
+      const evArray = Array.isArray(evidences) ? evidences : [];
+      const docArray = docsData?.documents || [];
+
+      // Contar evidencias por cláusula (control "8.1" → cláusula "8"; "A.5.x" → Annex A)
+      const evByClause = {};
+      evArray.forEach(ev => {
+        const ctrl = ev.control || '';
+        const match = ctrl.match(/^(\d+)\./);
+        const key = match ? match[1] : null;
+        if (key) evByClause[key] = (evByClause[key] || 0) + 1;
+      });
+      const annexACount = evArray.filter(ev => (ev.control || '').startsWith('A.')).length;
+
+      // Construir carpetas desde scores reales del gap analysis
+      if (gapData?.clause_gaps) {
+        const newFolders = gapData.clause_gaps.map((c, i) => {
+          const docCount = docArray.filter(d => (d.chapter_id || '').startsWith(c.clause_id)).length;
+          const evCount = evByClause[c.clause_id] || 0;
+          return {
+            id: i + 1,
+            name: CLAUSE_NAMES[c.clause_id] || `${c.clause_id}. ${c.clause_name}`,
+            items: evCount + docCount,
+            status: c.current_score >= 75 ? 'complete' : 'partial',
+            score: Math.round(c.current_score)
+          };
+        });
+        newFolders.push({
+          id: 8,
+          name: 'Annex A Controls',
+          items: annexACount || 93,
+          status: 'partial',
+          score: null
+        });
+        setFolders(newFolders);
+      }
+
+      // Construir audit trail desde documentos y evidencias reales
+      const trail = [];
+      let trailId = 1;
+
+      docArray.forEach(doc => {
+        const action = doc.status === 'published' ? 'approved'
+          : doc.status === 'archived' ? 'deleted'
+          : doc.status === 'draft' ? 'created'
+          : 'modified';
+        trail.push({
+          id: trailId++,
+          timestamp: doc.updated || 'Reciente',
+          user: 'Equipo SGSI',
+          role: 'Manager',
+          action,
+          resource: doc.name,
+          ip: '—',
+          details: `Documento ${doc.status} · v${doc.version || '1.0'}`
+        });
+      });
+
+      evArray.slice(0, 15).forEach(ev => {
+        const ts = ev.lastUpdated
+          ? new Date(ev.lastUpdated).toLocaleDateString('es-CL')
+          : 'Reciente';
+        trail.push({
+          id: trailId++,
+          timestamp: ts,
+          user: 'Centro Evidencias',
+          role: 'Sistema',
+          action: 'created',
+          resource: ev.name,
+          ip: '—',
+          details: `Evidencia subida · Control ${ev.control || 'General'}`
+        });
+      });
+
+      if (trail.length > 0) setAuditTrailEntries(trail);
+      setLoadingData(false);
+    }).catch(() => setLoadingData(false));
+  }, []);
 
   const getActionColor = (action) => {
     switch (action) { case 'created': return '#10b981'; case 'modified': return '#3b82f6'; case 'deleted': return '#ef4444'; case 'approved': return '#8b5cf6'; case 'exported': return '#f59e0b'; case 'viewed': return '#6b7280'; default: return t.textDim; }
@@ -242,24 +336,33 @@ function AuditRoomScreen() {
 
       {/* Folders Tab */}
       {activeTab === 'folders' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-          {folders.map((folder) => (
-            <div key={folder.id} style={{ background: t.cardBg, borderRadius: '16px', padding: '20px', border: `1px solid ${t.border}`, cursor: 'pointer' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(168, 85, 247, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Folder size={24} color="#a855f7" /></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '20px', background: folder.status === 'complete' ? '#10b98115' : '#f59e0b15', fontSize: '11px', fontWeight: 600, color: folder.status === 'complete' ? '#10b981' : '#f59e0b' }}>
-                  {folder.status === 'complete' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                  {folder.status === 'complete' ? l.complete : l.partial}
+        loadingData ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px', color: t.textDim, gap: '12px' }}>
+            <RefreshCw size={20} style={{ animation: 'spin 1s linear infinite' }} />
+            <span style={{ fontSize: '14px' }}>{language === 'es' ? 'Cargando datos reales...' : 'Loading real data...'}</span>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+            {folders.map((folder) => (
+              <div key={folder.id} style={{ background: t.cardBg, borderRadius: '16px', padding: '20px', border: `1px solid ${t.border}`, cursor: 'pointer' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(168, 85, 247, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Folder size={24} color="#a855f7" /></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '20px', background: folder.status === 'complete' ? '#10b98115' : '#f59e0b15', fontSize: '11px', fontWeight: 600, color: folder.status === 'complete' ? '#10b981' : '#f59e0b' }}>
+                    {folder.status === 'complete' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                    {folder.status === 'complete' ? l.complete : l.partial}
+                  </div>
+                </div>
+                <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', lineHeight: '1.4', color: t.text }}>{folder.name}</h4>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '12px', color: t.textDim }}>{folder.items} {l.items}</span>
+                  {folder.score != null && (
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: folder.score >= 75 ? '#10b981' : '#f59e0b' }}>{folder.score}%</span>
+                  )}
                 </div>
               </div>
-              <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', lineHeight: '1.4', color: t.text }}>{folder.name}</h4>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '12px', color: t.textDim }}>{folder.items} {l.items}</span>
-                <ExternalLink size={14} color={t.textDim} />
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )
       )}
 
       {/* Audit Trail Tab */}
@@ -292,6 +395,11 @@ function AuditRoomScreen() {
                 </tr>
               </thead>
               <tbody>
+                {filteredTrail.length === 0 && (
+                  <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: t.textDim, fontSize: '13px' }}>
+                    {language === 'es' ? 'Sin actividad registrada en este período.' : 'No activity recorded in this period.'}
+                  </td></tr>
+                )}
                 {filteredTrail.map((entry) => {
                   const ActionIcon = getActionIcon(entry.action);
                   const actionColor = getActionColor(entry.action);
