@@ -241,41 +241,49 @@ const RiskMapScreen = () => {
                 if (cellRisks.length > 0) riskCount = cellRisks.length;
               }
 
+              const score = prob * impact;
+              const levelLabel = score >= 15 ? 'Crítico' : score >= 10 ? 'Alto' : score >= 5 ? 'Medio' : 'Bajo';
+
               return (
-                <div 
-                  key={`${prob}-${impact}`} 
+                <div
+                  key={`${prob}-${impact}`}
+                  title={`Probabilidad ${prob} · Impacto ${impact} · ${levelLabel}${riskCount ? ` · ${riskCount} riesgo(s)` : ' · Click para agregar'}`}
                   onClick={() => {
-                    // Si hacemos clic y la BD trajo riesgos, cargamos el simulador con el primer riesgo de esa celda
                     if (cellRisks.length > 0) {
                       const r = cellRisks[0];
-                      // Mapeamos los campos del backend a los que usa el panel (name, prob, impact)
-                      setSelectedRisk({
-                        ...r,
-                        name: r.title,
-                        prob: r.likelihood || r.prob,
-                        impact: r.impact
-                      });
+                      setSelectedRisk({ ...r, name: r.title, prob: r.likelihood || r.prob, impact: r.impact });
                       setAppliedControls([]);
+                    } else {
+                      // Celda vacía: abrir modal pre-rellenado con prob e impact de esta celda
+                      setNewRisk(prev => ({ ...prev, likelihood: prob, impact }));
+                      setShowAddModal(true);
                     }
                   }}
-                  style={{ 
-                    aspectRatio: '1', 
-                    background: getMatrixCellColor(prob, impact), 
-                    borderRadius: '12px', 
+                  style={{
+                    aspectRatio: '1',
+                    background: getMatrixCellColor(prob, impact),
+                    borderRadius: '12px',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: `1px solid rgba(255,255,255,0.02)`
+                    border: `1px solid rgba(255,255,255,0.06)`,
+                    cursor: 'pointer',
+                    transition: 'transform 0.1s ease, filter 0.1s ease',
+                    position: 'relative',
                   }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.filter = 'brightness(1.3)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'brightness(1)'; }}
                 >
-                  {riskCount && (
-                    <div style={{ 
-                      width: '36px', height: '36px', borderRadius: '8px', 
-                      background: getRiskBadgeColor(prob * impact), 
-                      color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                      fontSize: '16px', fontWeight: 800, boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                      cursor: 'pointer'
+                  {riskCount ? (
+                    <div style={{
+                      width: '36px', height: '36px', borderRadius: '8px',
+                      background: getRiskBadgeColor(score),
+                      color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '16px', fontWeight: 800, boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
                     }}>
                       {riskCount}
                     </div>
+                  ) : (
+                    <div style={{ opacity: 0, fontSize: '18px', color: 'white', fontWeight: 700, transition: 'opacity 0.15s' }}
+                      className="cell-plus">+</div>
                   )}
                 </div>
               );
@@ -289,7 +297,8 @@ const RiskMapScreen = () => {
           {!selectedRisk && (
             <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '48px 24px', textAlign: 'center', color: t.textDim }}>
               <Target size={36} style={{ marginBottom: '12px', opacity: 0.4 }} />
-              <p style={{ fontSize: '14px' }}>Haz clic en un riesgo de la matriz para ver el simulador</p>
+              <p style={{ fontSize: '14px', marginBottom: '8px' }}>Haz clic en cualquier celda de la matriz</p>
+              <p style={{ fontSize: '12px', opacity: 0.6 }}>Celdas con riesgos → simulador · Celdas vacías → agregar riesgo</p>
             </div>
           )}
 
