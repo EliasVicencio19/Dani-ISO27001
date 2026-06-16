@@ -2,6 +2,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import Dict, Any, List, Optional
+from datetime import datetime
 import uuid
 
 from app.models.risk import Risk, RiskLevel, RiskStatus
@@ -16,6 +17,9 @@ class RiskRepository:
         if "id" not in risk_data:
             risk_data["id"] = str(uuid.uuid4())
             
+        if "created_at" not in risk_data:
+            risk_data["created_at"] = datetime.utcnow()
+
         new_risk = Risk(**risk_data)
         self.db.add(new_risk)
         await self.db.commit()
