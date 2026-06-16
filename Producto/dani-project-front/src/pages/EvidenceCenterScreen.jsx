@@ -1,5 +1,5 @@
 // src/pages/EvidenceCenterScreen.jsx
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { 
   Database, Zap, Upload, Clock, Search, Eye, RefreshCw, 
   CheckCircle2, XCircle, X, Send, Plus, ExternalLink,
