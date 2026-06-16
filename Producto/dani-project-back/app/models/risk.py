@@ -1,6 +1,8 @@
 from sqlalchemy import Column, String, Text, Integer, Float, Enum, ForeignKey, JSON, DateTime
 from sqlalchemy.orm import relationship
+from datetime import datetime
 import enum
+import uuid
 from app.dependencies.database import Base
 
 class RiskLevel(str, enum.Enum):
@@ -41,6 +43,7 @@ class Risk(Base):
     owner = Column(String(100), nullable=False)  # Email del responsable
     due_date = Column(DateTime, nullable=True)
     closed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     # Relaciones
     created_by = Column(String(36), ForeignKey("users.id"))
