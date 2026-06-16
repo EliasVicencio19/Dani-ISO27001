@@ -360,6 +360,16 @@ export const evidenceAPI = {
     return response.json();
   },
 
+  download: async (evidenceId, token) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/evidence/${evidenceId}/download`, {
+      headers: { ...(activeToken && { Authorization: `Bearer ${activeToken}` }) }
+    });
+    if (!response.ok) throw new Error('Error al descargar evidencia');
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  },
+
   exportZip: async (token) => {
     const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/evidence/export/zip`, {

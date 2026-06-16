@@ -109,11 +109,21 @@ const RiskMapScreen = () => {
       setAppliedControls([]);
     } catch (error) {
       console.error("Error analizando con IA:", error);
-      // Fallback visual robusto si el backend falla o no hay datos
-      setSelectedRisk(prev => ({ ...prev, controls: [
-        { id: 'ai1', name: 'Implementar MFA estricto (FIDO2) - Sugerido por IA', reduction: 5 },
-        { id: 'ai2', name: 'Rotación automática de credenciales - Sugerido por IA', reduction: 4 }
-      ]}));
+      const cat = selectedRisk?.category || 'security';
+      const fallbackControls = cat.includes('privacy') ? [
+        { id: 'ai1', name: 'Cifrado AES-256 en datos personales en reposo (A.8.24)', reduction: 5 },
+        { id: 'ai2', name: 'Política de retención y borrado seguro (A.5.12)', reduction: 4 },
+        { id: 'ai3', name: 'Anonimización de BD de desarrollo (A.8.33)', reduction: 3 }
+      ] : cat.includes('operational') ? [
+        { id: 'ai1', name: 'Respaldo automatizado en la nube 3-2-1 (A.8.13)', reduction: 6 },
+        { id: 'ai2', name: 'Monitoreo continuo de disponibilidad (A.8.16)', reduction: 4 },
+        { id: 'ai3', name: 'Plan de Continuidad del Negocio BCP (A.5.30)', reduction: 5 }
+      ] : [
+        { id: 'ai1', name: 'Autenticación multifactor MFA obligatorio (A.8.5)', reduction: 5 },
+        { id: 'ai2', name: 'Rotación automática de credenciales (A.5.17)', reduction: 4 },
+        { id: 'ai3', name: 'Segmentación de red y microsegmentación (A.8.22)', reduction: 3 }
+      ];
+      setSelectedRisk(prev => ({ ...prev, controls: fallbackControls }));
       setAppliedControls([]);
     } finally {
       setIsAnalyzing(false);
@@ -177,16 +187,29 @@ const RiskMapScreen = () => {
           <div style={{ padding: '24px' }}>
             {/* Filtros */}
             <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-              <button style={{ padding: '8px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textMuted, fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Todas las Fuentes (12)</button>
-              <button style={{ padding: '8px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textMuted, fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><Cloud size={14} /> AWS (4)</button>
-              <button style={{ padding: '8px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textMuted, fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><Layers size={14} color="#3b82f6" /> Azure AD (2)</button>
-              <button style={{ padding: '8px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textMuted, fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><FileText size={14} color="#f59e0b" /> Jira (2)</button>
-              <button style={{ padding: '8px 16px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981', borderRadius: '8px', color: '#10b981', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><Globe size={14} /> Network Scan (4)</button>
+              {[
+                { key: 'all',     label: 'Todas las Fuentes', count: assets.length, icon: null },
+                { key: 'cloud',   label: 'AWS',         count: assets.filter(a => a.source === 'cloud').length,   icon: <Cloud size={14} /> },
+                { key: 'azure',   label: 'Azure AD',    count: assets.filter(a => a.source === 'azure').length,   icon: <Layers size={14} color="#3b82f6" /> },
+                { key: 'jira',    label: 'Jira',        count: assets.filter(a => a.source === 'jira').length,    icon: <FileText size={14} color="#f59e0b" /> },
+                { key: 'network', label: 'Network Scan',count: assets.filter(a => a.source === 'network').length, icon: <Globe size={14} /> },
+              ].map(({ key, label, count, icon }) => {
+                const active = activeAssetSource === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setActiveAssetSource(key)}
+                    style={{ padding: '8px 16px', background: active ? 'rgba(16,185,129,0.1)' : t.inputBg, border: active ? '1px solid #10b981' : `1px solid ${t.border}`, borderRadius: '8px', color: active ? '#10b981' : t.textMuted, fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                  >
+                    {icon} {label} ({count})
+                  </button>
+                );
+              })}
             </div>
 
             {/* Tarjetas de Activos */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-              {assets.map((asset, idx) => (
+              {assets.filter(a => activeAssetSource === 'all' || a.source === activeAssetSource).map((asset, idx) => (
                 <div key={idx} style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                     <Globe size={16} color="#06b6d4" />
@@ -214,12 +237,8 @@ const RiskMapScreen = () => {
               let cellRisks = [];
               
               if (risks.length > 0) {
-                cellRisks = risks.filter(r => r.prob === prob && r.impact === impact);
+                cellRisks = risks.filter(r => (r.likelihood || r.prob || 0) === prob && (r.impact || 0) === impact);
                 if (cellRisks.length > 0) riskCount = cellRisks.length;
-              } else {
-                // Fallback de diseño para mantener la maqueta intacta
-                if (prob === 2 && impact === 4) riskCount = 4;
-                if (prob === 2 && impact === 5) riskCount = 1;
               }
 
               return (

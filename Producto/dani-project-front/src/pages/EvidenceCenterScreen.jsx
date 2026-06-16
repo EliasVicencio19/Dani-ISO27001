@@ -122,7 +122,7 @@ function EvidenceCenterScreen() {
       formData.append("file", files[0]);
       formData.append("control", "ISO-GEN");
       formData.append("source", "Portal");
-      formData.append("validityDays", "90");
+      formData.append("validityDays", 90);
       
       await evidenceAPI.upload(formData);
       await loadEvidences();
@@ -301,7 +301,7 @@ function EvidenceCenterScreen() {
                       <td style={{ padding: '16px 20px' }}><span style={{ fontSize: '13px', color: t.textMuted }}>{daysAgo} {l.daysAgo}</span></td>
                       <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          {freshnessStatus === 'expired' && <button style={{ padding: '6px 12px', background: '#ef444420', border: '1px solid #ef444440', borderRadius: '6px', color: '#ef4444', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><RefreshCw size={12} /> {l.updateNow}</button>}
+                          {freshnessStatus === 'expired' && <button onClick={(e) => { e.stopPropagation(); loadEvidences(); }} style={{ padding: '6px 12px', background: '#ef444420', border: '1px solid #ef444440', borderRadius: '6px', color: '#ef4444', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><RefreshCw size={12} /> {l.updateNow}</button>}
                           <button onClick={(e) => handleViewEvidence(evidence, e)} style={{ padding: '6px 12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '6px', color: t.textMuted, fontSize: '11px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><Eye size={12} /> {l.view}</button>
                         </div>
                       </td>
