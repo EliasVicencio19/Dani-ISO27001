@@ -258,13 +258,21 @@ class GapAnalyzer:
         # Score general
         overall = (weighted_sum + control_score) / 2
         
+        gap = max(0, 85 - overall)
+        months_needed = max(1, gap / 10)
+        estimated_date = datetime.utcnow() + timedelta(days=int(months_needed * 30))
+
         return {
             "overall_score": round(overall, 1),
             "clause_score": weighted_sum,
             "control_score": control_score,
+            "implemented_controls": control_analysis["implemented_controls"],
+            "total_controls": control_analysis["total_controls"],
             "required_for_certification": 85,
             "gap_to_certification": round(85 - overall, 1),
-            "trend": "up" if overall > 50 else "down"
+            "trend": "up" if overall > 50 else "down",
+            "estimated_certification_date": estimated_date.strftime("%b %d, %Y"),
+            "days_to_certification": max(0, (estimated_date - datetime.utcnow()).days),
         }
     
     def _get_priority(self, gap: float) -> str:

@@ -210,7 +210,9 @@ function GapAnalysisScreen() {
   const [activeMainTab, setActiveMainTab] = useState('assessment');
   const [currentPhase, setCurrentPhase] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState({});
+  const [answers, setAnswers] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('dani_gap_answers') || '{}'); } catch { return {}; }
+  });
   const [controls, setControls] = useState([]);
   const [isLoading, setIsLoading] = useState(true); // ✅ Agregar esto
   const [error, setError] = useState(null); // ✅ Agregar esto para errores
@@ -223,6 +225,10 @@ function GapAnalysisScreen() {
   const [isAuditing, setIsAuditing] = useState(false);
   const [isBulkAuditing, setIsBulkAuditing] = useState(false);
   const [fullAnalysis, setFullAnalysis] = useState(null);
+
+  useEffect(() => {
+    try { localStorage.setItem('dani_gap_answers', JSON.stringify(answers)); } catch {}
+  }, [answers]);
   const [overallScore, setOverallScore] = useState(null);
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
 

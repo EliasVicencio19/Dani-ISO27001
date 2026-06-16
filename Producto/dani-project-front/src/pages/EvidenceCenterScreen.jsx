@@ -151,7 +151,13 @@ function EvidenceCenterScreen() {
     }
   };
 
-  const [requests, setRequests] = useState([]); // Eliminados los mocks
+  const [requests, setRequests] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('dani_evidence_requests') || '[]'); } catch { return []; }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem('dani_evidence_requests', JSON.stringify(requests)); } catch {}
+  }, [requests]);
 
   const connectors = [
     { id: 'aws', name: 'AWS', icon: '☁️', status: 'pending', lastSync: 'Not configured', evidences: 0, color: '#FF9900' },

@@ -14,6 +14,7 @@ const DashboardScreen = ({ onNavigate }) => {
 
   const [healthScore, setHealthScore] = useState(null);
   const [riskStats, setRiskStats] = useState(null);
+  const [controlStats, setControlStats] = useState(null);
   const [lastSync, setLastSync] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -25,7 +26,17 @@ const DashboardScreen = ({ onNavigate }) => {
           getComplianceScore(),
           riskAPI.getStatistics()
         ]);
-        if (scoreData && !scoreData.detail) setHealthScore(Math.round(scoreData.overall_score ?? scoreData.score ?? 0));
+        if (scoreData && !scoreData.detail) {
+          setHealthScore(Math.round(scoreData.overall_score ?? scoreData.score ?? 0));
+          if (scoreData.implemented_controls != null) {
+            setControlStats({
+              implemented: scoreData.implemented_controls,
+              total: scoreData.total_controls,
+              daysTo: scoreData.days_to_certification,
+              certDate: scoreData.estimated_certification_date,
+            });
+          }
+        }
         if (statsData && !statsData.detail) setRiskStats(statsData);
         setLastSync(new Date());
       } catch (_) {}
@@ -505,9 +516,12 @@ const DashboardScreen = ({ onNavigate }) => {
             <div style={{ width: '36px', height: '36px', background: 'rgba(59, 130, 246, 0.15)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Shield size={18} color="#3b82f6" /></div>
             <span style={{ fontSize: '13px', color: t.textMuted }}>{tr('controlsImplemented')}</span>
           </div>
-          <div style={{ fontSize: '36px', fontWeight: 700, marginBottom: '8px' }}>92<span style={{ fontSize: '20px', color: t.textDim }}>/114</span></div>
+          <div style={{ fontSize: '36px', fontWeight: 700, marginBottom: '8px' }}>
+            {isLoading ? '...' : controlStats ? controlStats.implemented : '--'}
+            <span style={{ fontSize: '20px', color: t.textDim }}>/{isLoading ? '' : controlStats ? controlStats.total : '114'}</span>
+          </div>
           <div style={{ background: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
-            <div style={{ width: '80.7%', height: '100%', background: 'linear-gradient(90deg, #3b82f6, #60a5fa)', borderRadius: '3px' }} />
+            <div style={{ width: `${controlStats ? (controlStats.implemented / controlStats.total * 100).toFixed(1) : 0}%`, height: '100%', background: 'linear-gradient(90deg, #3b82f6, #60a5fa)', borderRadius: '3px' }} />
           </div>
         </div>
 
@@ -531,8 +545,12 @@ const DashboardScreen = ({ onNavigate }) => {
             <div style={{ width: '36px', height: '36px', background: 'rgba(168, 85, 247, 0.15)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FileCheck size={18} color="#a855f7" /></div>
             <span style={{ fontSize: '13px', color: t.textMuted }}>{tr('daysToAudit')}</span>
           </div>
-          <div style={{ fontSize: '36px', fontWeight: 700, color: '#a855f7', marginBottom: '4px' }}>47</div>
-          <div style={{ fontSize: '13px', color: t.textDim }}>Aug 15, 2025</div>
+          <div style={{ fontSize: '36px', fontWeight: 700, color: '#a855f7', marginBottom: '4px' }}>
+            {isLoading ? '...' : controlStats?.daysTo ?? '--'}
+          </div>
+          <div style={{ fontSize: '13px', color: t.textDim }}>
+            {isLoading ? '' : controlStats?.certDate ?? 'Calculando...'}
+          </div>
         </div>
       </div>
 
