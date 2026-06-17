@@ -1,12 +1,13 @@
-# backend/api/index.py
-import sys
-from pathlib import Path
+from flask import Flask, request, jsonify
+# o el framework que estés usando
 
-# Agregar la carpeta backend al path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+app = Flask(__name__)
 
-from mangum import Mangum
-from app.main import app
+@app.route('/api', defaults={'path': ''})
+@app.route('/api/<path:path>')
+def catch_all(path):
+    # Tu lógica aquí
+    return jsonify({"message": "API funcionando"})
 
-# Handler para Vercel
-handler = Mangum(app)
+# Esto es OBLIGATORIO para Vercel
+handler = app
