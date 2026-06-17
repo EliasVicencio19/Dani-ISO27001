@@ -9,7 +9,7 @@
       }
     },
     {
-      "src": "dani-project-back/api/index.py",
+      "src": "dani-project-back/app/api/index.py",
       "use": "@vercel/python",
       "config": {
         "runtime": "python3.12"
@@ -19,7 +19,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "dani-project-back/api/index.py"
+      "dest": "dani-project-back/app/api/index.py"
     },
     {
       "src": "/(.*)",
