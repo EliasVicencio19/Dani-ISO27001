@@ -25,11 +25,5 @@
       "src": "/(.*)",
       "dest": "frontend/build/$1"
     }
-  ],
-  "env": {
-    "DATABASE_URL": "@database-url",
-    "SECRET_KEY": "@secret-key",
-    "DEEPSEEK_API_KEY": "@deepseek-api-key",
-    "VITE_API_URL": "/api"
-  }
+  ]
 }
