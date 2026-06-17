@@ -1,16 +1,27 @@
 {
+  "version": 2,
   "buildCommand": "cd Producto/dani-project-front && npm install && CI=false npm run build",
   "outputDirectory": "Producto/dani-project-front/build",
   "installCommand": "cd Producto/dani-project-front && npm install",
   "framework": "create-react-app",
-  "env": {
-    "VITE_API_URL": "https://dani-iso27001-backend.onrender.com",
-    "REACT_APP_API_URL": "https://dani-iso27001-backend.onrender.com"
-  },
-  "rewrites": [
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/Producto/dani-project-front/build/index.html"
+      "src": "Producto/dani-project-front/build/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "Producto/dani-project-back/app/api/index.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "Producto/dani-project-back/app/api/index.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "Producto/dani-project-front/build/index.html"
     }
   ]
 }
