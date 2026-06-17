@@ -4,15 +4,10 @@
   "installCommand": "cd Producto/dani-project-front && npm install",
   "framework": "create-react-app",
   "env": {
-    "VITE_API_URL": "https://dani-iso27001.vercel.app",
-    "REACT_APP_API_URL": "https://dani-iso27001.vercel.app",
-    "DATABASE_URL": "postgresql+asyncpg://neondb_owner:npg_mpdzXq6TFQ3j@ep-green-block-amzbcsvu.c-5.us-east-1.aws.neon.tech/neondb?ssl=require"
+    "VITE_API_URL": "https://dani-iso27001-backend.onrender.com",
+    "REACT_APP_API_URL": "https://dani-iso27001-backend.onrender.com"
   },
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.py"
-    },
     {
       "source": "/(.*)",
       "destination": "/Producto/dani-project-front/build/index.html"
