@@ -27,3 +27,4 @@ python-dotenv==1.0.1
 pydantic-settings==2.1.0
 redis==5.0.3
 pgvector==0.2.5
+mangum==0.17.0
