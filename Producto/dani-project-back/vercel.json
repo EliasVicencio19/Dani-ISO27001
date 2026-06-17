@@ -3,7 +3,10 @@
   "builds": [
     {
       "src": "Producto/dani-project-back/app/api/index.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "runtime": "python3.12"
+      }
     }
   ],
   "routes": [
