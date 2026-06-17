@@ -2,11 +2,8 @@
   "version": 2,
   "builds": [
     {
-      "src": "dani-project-front/**",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dani-project-front/build"
-      }
+      "src": "dani-project-front/public/**",
+      "use": "@vercel/static"
     },
     {
       "src": "dani-project-back/app/api/**/*.py",
@@ -23,7 +20,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "dani-project-front/build/index.html"
+      "dest": "dani-project-front/public/index.html"
     }
   ]
 }
