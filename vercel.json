@@ -12,14 +12,14 @@
       "runtime": "python3.12"
     }
   },
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/Producto/dani-project-back/app/api/index.py"
+      "source": "/api/(.*)",
+      "destination": "/Producto/dani-project-back/app/api/index.py"
     },
     {
-      "src": "/(.*)",
-      "dest": "/Producto/dani-project-front/build/index.html"
+      "source": "/(.*)",
+      "destination": "/Producto/dani-project-front/build/index.html"
     }
   ]
 }
