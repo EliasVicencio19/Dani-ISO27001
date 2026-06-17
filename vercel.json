@@ -2,22 +2,11 @@
   "version": 2,
   "builds": [
     {
-      "src": "dani-project-front/public/**",
+      "src": "dani-project-front/public/index.html",
       "use": "@vercel/static"
-    },
-    {
-      "src": "dani-project-back/app/api/**/*.py",
-      "use": "@vercel/python",
-      "config": {
-        "runtime": "python3.12"
-      }
     }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "dani-project-back/app/api/index.py"
-    },
     {
       "src": "/(.*)",
       "dest": "dani-project-front/public/index.html"
