@@ -146,33 +146,111 @@ async def download_evidence(
 
 @router.get("/export/zip")
 async def export_evidences_zip(db: AsyncSession = Depends(get_db)):
-    """Exportar todas las evidencias reales en un archivo ZIP estructurado"""
-    query = select(Evidence)
-    result = await db.execute(query)
-    evidences = result.scalars().all()
-    
+    """Exportar paquete de auditoría ISO 27001 estructurado por cláusulas"""
+    from app.models.risk import Risk
+    from app.models.gap_analysis import GapAnalysis
+    import json
+
+    # Cargar datos reales de la BD
+    ev_result = await db.execute(select(Evidence))
+    evidences = ev_result.scalars().all()
+
+    risk_result = await db.execute(select(Risk))
+    risks = risk_result.scalars().all()
+
+    clause_folders = {
+        "4": "Clausula_4_Contexto",
+        "5": "Clausula_5_Liderazgo",
+        "6": "Clausula_6_Planificacion",
+        "7": "Clausula_7_Soporte",
+        "8": "Clausula_8_Operacion",
+        "9": "Clausula_9_Evaluacion",
+        "10": "Clausula_10_Mejora",
+        "A": "Anexo_A_Controles",
+    }
+
     zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, False) as zip_file:
-        added_files = 0
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, False) as zf:
+
+        # 1. Índice general
+        index_lines = [
+            "PAQUETE DE AUDITORÍA ISO 27001:2022",
+            f"Generado: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}",
+            "=" * 50,
+            "",
+            "CONTENIDO:",
+            f"  - Evidencias registradas: {len(evidences)}",
+            f"  - Riesgos identificados:  {len(risks)}",
+            "",
+            "ESTRUCTURA DE CARPETAS:",
+        ]
+        for key, folder in clause_folders.items():
+            index_lines.append(f"  {folder}/")
+        index_lines += ["  Riesgos/", "  Resumen/"]
+        zf.writestr("INDICE.txt", "\n".join(index_lines))
+
+        # 2. Evidencias organizadas por cláusula
         for ev in evidences:
-            if os.path.exists(ev.file_url):
-                # Organizar en carpetas por control
-                control_folder = ev.evidence_metadata.get("control", "General") if ev.evidence_metadata else "General"
-                control_folder = "".join(c for c in control_folder if c.isalnum() or c in " ._-")
-                file_path_in_zip = f"{control_folder}/{ev.file_name}"
-                zip_file.write(ev.file_url, file_path_in_zip)
-                added_files += 1
-                
-        if added_files == 0:
-            # Si no hay archivos, agregamos un leeme.txt para que el ZIP no sea inválido
-            zip_file.writestr("LEEME.txt", "No hay evidencias físicas disponibles para exportar.")
-                
+            ctrl = (ev.evidence_metadata or {}).get("control", "") if ev.evidence_metadata else ""
+            prefix = ctrl.split(".")[0] if ctrl else ""
+            folder = clause_folders.get(prefix, "Anexo_A_Controles" if ctrl.startswith("A") else "Evidencias_Generales")
+
+            content = "\n".join([
+                f"EVIDENCIA: {ev.title}",
+                f"Control ISO: {ctrl or 'N/A'}",
+                f"Tipo: {(ev.evidence_metadata or {}).get('type', 'manual')}",
+                f"Fuente: {(ev.evidence_metadata or {}).get('source', 'Manual')}",
+                f"Fecha: {ev.verified_at.strftime('%Y-%m-%d') if ev.verified_at else 'Sin fecha'}",
+                f"Descripcion: {ev.description or 'Sin descripcion'}",
+                f"Tamaño archivo: {ev.file_size or 0} bytes",
+            ])
+            safe_name = "".join(c for c in ev.title if c.isalnum() or c in " ._-")[:50]
+            zf.writestr(f"{folder}/{safe_name}.txt", content)
+
+            # Si existe el archivo físico, incluirlo también
+            if ev.file_url and os.path.exists(ev.file_url):
+                zf.write(ev.file_url, f"{folder}/{ev.file_name}")
+
+        # 3. Reporte de riesgos
+        risk_lines = [
+            "REGISTRO DE RIESGOS ISO 27001",
+            f"Total: {len(risks)} riesgos",
+            "=" * 50,
+            "",
+        ]
+        for r in risks:
+            risk_lines += [
+                f"ID: {r.id}",
+                f"Titulo: {r.title}",
+                f"Categoria: {r.category.value if r.category else 'N/A'}",
+                f"Probabilidad: {r.likelihood}/5  |  Impacto: {r.impact}/5",
+                f"Nivel: {r.risk_level.value if r.risk_level else 'N/A'}",
+                f"Estado: {r.status.value if r.status else 'N/A'}",
+                f"Responsable: {r.owner}",
+                f"Plan de mitigacion: {r.mitigation_plan or 'Sin plan'}",
+                "-" * 40,
+                "",
+            ]
+        zf.writestr("Riesgos/Registro_de_Riesgos.txt", "\n".join(risk_lines))
+
+        # 4. Resumen ejecutivo
+        resumen = "\n".join([
+            "RESUMEN EJECUTIVO - SGSI ISO 27001:2022",
+            f"Fecha: {datetime.utcnow().strftime('%Y-%m-%d')}",
+            "=" * 50,
+            "",
+            f"Evidencias documentadas: {len(evidences)}",
+            f"Riesgos identificados:   {len(risks)}",
+            f"Riesgos criticos:        {sum(1 for r in risks if r.risk_level and r.risk_level.value == 'critical')}",
+            f"Riesgos altos:           {sum(1 for r in risks if r.risk_level and r.risk_level.value == 'high')}",
+            "",
+            "Este paquete fue generado automaticamente por DANI ISO 27001.",
+        ])
+        zf.writestr("Resumen/Resumen_Ejecutivo.txt", resumen)
+
     zip_buffer.seek(0)
-    
     return StreamingResponse(
         zip_buffer,
         media_type="application/zip",
-        headers={
-            "Content-Disposition": "attachment; filename=ISO27001_Audit_Package.zip"
-        }
+        headers={"Content-Disposition": "attachment; filename=ISO27001_Audit_Package.zip"}
     )

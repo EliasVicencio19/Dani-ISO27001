@@ -342,25 +342,40 @@ function AuditRoomScreen() {
             <span style={{ fontSize: '14px' }}>{language === 'es' ? 'Cargando datos reales...' : 'Loading real data...'}</span>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-            {folders.map((folder) => (
-              <div key={folder.id} style={{ background: t.cardBg, borderRadius: '16px', padding: '20px', border: `1px solid ${t.border}`, cursor: 'pointer' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(168, 85, 247, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Folder size={24} color="#a855f7" /></div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '20px', background: folder.status === 'complete' ? '#10b98115' : '#f59e0b15', fontSize: '11px', fontWeight: 600, color: folder.status === 'complete' ? '#10b981' : '#f59e0b' }}>
-                    {folder.status === 'complete' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                    {folder.status === 'complete' ? l.complete : l.partial}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span style={{ fontSize: '13px', color: t.textDim }}>{selectedClauses.length} / {folders.length} {language === 'es' ? 'carpetas seleccionadas' : 'folders selected'}</span>
+              <button onClick={() => setSelectedClauses(selectedClauses.length === folders.length ? [] : folders.map(f => f.id))} style={{ background: 'none', border: 'none', color: '#a855f7', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                {selectedClauses.length === folders.length ? l.deselectAll : l.selectAll}
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+              {folders.map((folder) => {
+                const isSelected = selectedClauses.includes(folder.id);
+                return (
+                  <div key={folder.id} onClick={() => setSelectedClauses(prev => prev.includes(folder.id) ? prev.filter(id => id !== folder.id) : [...prev, folder.id])}
+                    style={{ background: t.cardBg, borderRadius: '16px', padding: '20px', border: `2px solid ${isSelected ? '#a855f7' : t.border}`, cursor: 'pointer', transition: 'border-color 0.15s', position: 'relative' }}>
+                    <div style={{ position: 'absolute', top: '12px', right: '12px', width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${isSelected ? '#a855f7' : t.border}`, background: isSelected ? '#a855f7' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                      {isSelected && <Check size={12} color="white" />}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: isSelected ? 'rgba(168, 85, 247, 0.2)' : 'rgba(168, 85, 247, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Folder size={24} color="#a855f7" /></div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '20px', background: folder.status === 'complete' ? '#10b98115' : '#f59e0b15', fontSize: '11px', fontWeight: 600, color: folder.status === 'complete' ? '#10b981' : '#f59e0b', marginRight: '28px' }}>
+                        {folder.status === 'complete' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                        {folder.status === 'complete' ? l.complete : l.partial}
+                      </div>
+                    </div>
+                    <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', lineHeight: '1.4', color: t.text }}>{folder.name}</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '12px', color: t.textDim }}>{folder.items} {l.items}</span>
+                      {folder.score != null && (
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: folder.score >= 75 ? '#10b981' : '#f59e0b' }}>{folder.score}%</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', lineHeight: '1.4', color: t.text }}>{folder.name}</h4>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '12px', color: t.textDim }}>{folder.items} {l.items}</span>
-                  {folder.score != null && (
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: folder.score >= 75 ? '#10b981' : '#f59e0b' }}>{folder.score}%</span>
-                  )}
-                </div>
-              </div>
-            ))}
+                );
+              })}
+            </div>
           </div>
         )
       )}
