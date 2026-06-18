@@ -96,6 +96,22 @@ export const createRemediationAction = async (gapId, actionData) => {
     headers: authHeaders(),
     body: JSON.stringify(actionData)
   });
-  
+
+  return response.json();
+};
+
+// Analizar documento con LLM contra controles ISO 27001
+export const analyzeDocument = async (documentText, documentName = 'Documento') => {
+  const response = await fetch(`${API_URL}/api/gap-analysis/analyze-document`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ document_text: documentText, document_name: documentName })
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Error al analizar el documento');
+  }
+
   return response.json();
 };
