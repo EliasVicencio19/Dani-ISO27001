@@ -223,7 +223,7 @@ def _make_pdf(title: str, subtitle: str, sections: list) -> bytes:
             if badge_info and label.lower() in ("nivel", "estado", "categoria"):
                 bcolor, btext = badge_info
                 bw = len(btext) * 5.5 + 12
-                page.draw_rect(fitz.Rect(200, y, 200 + bw, y + 14), color=None, fill=bcolor, radius=3)
+                page.draw_rect(fitz.Rect(200, y, 200 + bw, y + 14), color=None, fill=bcolor)
                 page.insert_text((204, y + 10), btext, fontsize=7, color=C_WHITE, fontname="helv")
             else:
                 # Valor normal (truncar si muy largo)
