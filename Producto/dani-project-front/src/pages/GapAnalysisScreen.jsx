@@ -6,7 +6,7 @@ import {
   AlertCircle, Activity, Shield, Edit3, FileCheck, Globe
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
-import { complianceAPI, documentsAPI } from '../services/api';
+import { complianceAPI, documentsAPI, API_URL } from '../services/api';
 import { getFullGapAnalysis, getComplianceScore } from '../services/gapAnalysisAPI';
 import { getControlName } from '../translations/controls';
 
@@ -558,7 +558,28 @@ function GapAnalysisScreen() {
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: t.text }}>{tText.soaTitle}</h3>
           <p style={{ fontSize: '12px', color: t.textDim }}>{appliesCount} {tText.soaApplicable} • {implementedCount} {tText.soaImplemented}</p>
         </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button onClick={async () => {
+            try {
+              const token = localStorage.getItem('token');
+              const res = await fetch(`${API_URL}/api/compliance/soa/export`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              if (!res.ok) throw new Error('Error al generar SOA');
+              const blob = await res.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'SOA_ISO27001_DANI.pdf';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+            } catch (e) {
+              alert('Error al exportar SOA: ' + e.message);
+            }
+          }} style={{ padding: '8px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '8px', color: 'white', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Download size={14} /> Exportar SOA PDF
+          </button>
           {[
             { id: 'all', label: tText.showAll },
             { id: 'applicable', label: tText.showApplicable },

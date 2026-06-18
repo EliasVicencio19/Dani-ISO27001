@@ -255,3 +255,147 @@ async def bulk_audit(
         "message": f"Auditoría Masiva completada. {len(results)} controles evaluados.",
         "results": results
     }
+
+@router.get("/soa/export")
+async def export_soa_pdf(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Genera y descarga la Declaración de Aplicabilidad (SOA) como PDF"""
+    import io
+    import fitz
+    from fastapi.responses import StreamingResponse
+
+    result = await db.execute(select(ISOCControl).order_by(ISOCControl.control_id))
+    controls = result.scalars().all()
+
+    C_GREEN  = (0.063, 0.725, 0.506)
+    C_DARK   = (0.086, 0.118, 0.157)
+    C_GRAY   = (0.42, 0.45, 0.50)
+    C_WHITE  = (1, 1, 1)
+    C_LINE   = (0.88, 0.90, 0.92)
+    C_AMBER  = (0.96, 0.62, 0.04)
+    C_RED    = (0.93, 0.27, 0.27)
+    C_PURPLE = (0.55, 0.36, 0.96)
+    W, H = 842, 595  # A4 landscape
+
+    doc = fitz.open()
+
+    def new_page():
+        p = doc.new_page(width=W, height=H)
+        p.draw_rect(fitz.Rect(0, 0, W, 56), color=None, fill=C_DARK)
+        p.insert_text((24, 22), "DANI ISO 27001", fontsize=12, color=C_WHITE, fontname="helv")
+        p.insert_text((24, 40), "Declaracion de Aplicabilidad (SOA) - ISO/IEC 27001:2022 Anexo A", fontsize=8, color=(0.6, 0.7, 0.6), fontname="helv")
+        fecha = datetime.utcnow().strftime("%d/%m/%Y")
+        p.insert_text((W - 80, 36), fecha, fontsize=8, color=C_GRAY, fontname="helv")
+        p.draw_rect(fitz.Rect(0, H - 22, W, H), color=None, fill=C_DARK)
+        p.insert_text((24, H - 7), "Documento Confidencial - Generado automaticamente por DANI GRC Platform", fontsize=7, color=(0.5, 0.5, 0.5), fontname="helv")
+        p.insert_text((W - 60, H - 7), f"Pag. {doc.page_count}", fontsize=7, color=(0.5, 0.5, 0.5), fontname="helv")
+        return p
+
+    # --- PORTADA ---
+    page = new_page()
+    applicable   = [c for c in controls if c.applies]
+    implemented  = [c for c in applicable if c.status == "Implementado"]
+    planned      = [c for c in applicable if c.status == "Planificado"]
+    not_impl     = [c for c in applicable if c.status not in ("Implementado", "Planificado")]
+    not_applicable = [c for c in controls if not c.applies]
+
+    page.draw_rect(fitz.Rect(24, 80, W - 24, 82), color=None, fill=C_GREEN)
+    page.insert_text((24, 110), "Declaracion de Aplicabilidad", fontsize=22, color=C_DARK, fontname="helv")
+    page.insert_text((24, 138), "Statement of Applicability (SOA) | ISO/IEC 27001:2022", fontsize=11, color=C_GRAY, fontname="helv")
+    page.draw_rect(fitz.Rect(24, 158), color=None, fill=C_LINE) if False else None
+
+    stats = [
+        ("Total controles Anexo A", str(len(controls)), C_DARK),
+        ("Aplicables",              str(len(applicable)), C_GREEN),
+        ("Implementados",           str(len(implemented)), C_GREEN),
+        ("Planificados",            str(len(planned)), C_AMBER),
+        ("No implementados",        str(len(not_impl)), C_RED),
+        ("No aplicables",           str(len(not_applicable)), C_GRAY),
+    ]
+    x = 24
+    for label, val, color in stats:
+        page.draw_rect(fitz.Rect(x, 180, x + 120, 240), color=None, fill=(0.95, 0.97, 0.96))
+        page.insert_text((x + 8, 212), val, fontsize=24, color=color, fontname="helv")
+        page.insert_text((x + 8, 230), label, fontsize=7, color=C_GRAY, fontname="helv")
+        x += 132
+
+    page.insert_text((24, 275), f"Generado: {datetime.utcnow().strftime('%d de %B de %Y')}   |   Clasificacion: CONFIDENCIAL   |   Version: 1.0", fontsize=8, color=C_GRAY, fontname="helv")
+
+    # --- TABLA DE CONTROLES (landscape, 6 columnas) ---
+    COL = {"id": 24, "title": 85, "cat": 310, "applies": 420, "status": 490, "just": 560}
+    HDR_H = 28
+    ROW_H = 22
+    TOP   = 68
+    BOT   = H - 30
+
+    page = new_page()
+    y = TOP
+
+    def draw_header(p, y):
+        p.draw_rect(fitz.Rect(24, y, W - 24, y + HDR_H), color=None, fill=C_DARK)
+        p.insert_text((COL["id"] + 4,    y + 18), "Control",       fontsize=8, color=C_WHITE, fontname="helv")
+        p.insert_text((COL["title"] + 4, y + 18), "Titulo",         fontsize=8, color=C_WHITE, fontname="helv")
+        p.insert_text((COL["cat"] + 4,   y + 18), "Categoria",      fontsize=8, color=C_WHITE, fontname="helv")
+        p.insert_text((COL["applies"] + 4,y + 18),"Aplica",         fontsize=8, color=C_WHITE, fontname="helv")
+        p.insert_text((COL["status"] + 4, y + 18), "Estado",        fontsize=8, color=C_WHITE, fontname="helv")
+        p.insert_text((COL["just"] + 4,   y + 18), "Justificacion", fontsize=8, color=C_WHITE, fontname="helv")
+        return y + HDR_H
+
+    y = draw_header(page, y)
+
+    for i, ctrl in enumerate(controls):
+        if y + ROW_H > BOT:
+            page = new_page()
+            y = TOP
+            y = draw_header(page, y)
+
+        row_bg = (0.97, 0.99, 0.98) if i % 2 == 0 else C_WHITE
+        page.draw_rect(fitz.Rect(24, y, W - 24, y + ROW_H), color=None, fill=row_bg)
+
+        # Control ID en morado
+        page.insert_text((COL["id"] + 4, y + 14), ctrl.control_id or "", fontsize=7, color=C_PURPLE, fontname="helv")
+
+        # Título (truncar)
+        title_txt = (ctrl.title or "")[:42]
+        page.insert_text((COL["title"] + 4, y + 14), title_txt, fontsize=7, color=C_DARK, fontname="helv")
+
+        # Categoría
+        cat_txt = (ctrl.category or "")[:18]
+        page.insert_text((COL["cat"] + 4, y + 14), cat_txt, fontsize=7, color=C_GRAY, fontname="helv")
+
+        # Aplica (badge)
+        if ctrl.applies:
+            page.draw_rect(fitz.Rect(COL["applies"] + 4, y + 4, COL["applies"] + 54, y + ROW_H - 4), color=None, fill=C_GREEN)
+            page.insert_text((COL["applies"] + 8, y + 14), "SI", fontsize=7, color=C_WHITE, fontname="helv")
+        else:
+            page.draw_rect(fitz.Rect(COL["applies"] + 4, y + 4, COL["applies"] + 54, y + ROW_H - 4), color=None, fill=C_GRAY)
+            page.insert_text((COL["applies"] + 8, y + 14), "NO", fontsize=7, color=C_WHITE, fontname="helv")
+
+        # Estado (badge de color)
+        if ctrl.applies:
+            s = ctrl.status or "No Implementado"
+            sc = C_GREEN if s == "Implementado" else (C_AMBER if s == "Planificado" else C_RED)
+            st = s[:14]
+            page.draw_rect(fitz.Rect(COL["status"] + 4, y + 4, COL["status"] + 80, y + ROW_H - 4), color=None, fill=sc)
+            page.insert_text((COL["status"] + 8, y + 14), st, fontsize=6, color=C_WHITE, fontname="helv")
+
+        # Justificación
+        just = (ctrl.justification or ("Incluido en alcance SGSI" if ctrl.applies else "Fuera de alcance"))[:28]
+        page.insert_text((COL["just"] + 4, y + 14), just, fontsize=6, color=C_GRAY, fontname="helv")
+
+        # Línea separadora
+        page.draw_rect(fitz.Rect(24, y + ROW_H, W - 24, y + ROW_H + 0.5), color=None, fill=C_LINE)
+        y += ROW_H
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    doc.close()
+    buf.seek(0)
+
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=SOA_ISO27001_DANI.pdf"}
+    )
