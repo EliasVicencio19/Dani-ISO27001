@@ -262,5 +262,35 @@ async def acknowledge_policy(
     )
     db.add(ack)
     await db.commit()
-    
+
+    # Registrar firma como evidencia en el Centro de Evidencias
+    try:
+        from app.models.evidence import Evidence, EvidenceType
+        doc_result2 = await db.execute(select(Document).filter(Document.id == document_id))
+        doc_obj = doc_result2.scalar_one_or_none()
+        doc_title = doc_obj.name if doc_obj else document_id
+        user_email = current_user.get("email", user_id)
+
+        evidence = Evidence(
+            title=f"Firma de lectura — {doc_title} — {user_email}",
+            description=f"El empleado {user_email} leyó y aceptó la política '{doc_title}' el {datetime.utcnow().strftime('%d/%m/%Y %H:%M')} UTC.",
+            evidence_type=EvidenceType.DOCUMENT,
+            file_url="",
+            file_name="",
+            file_size=0,
+            mime_type="text/plain",
+            verified_at=datetime.utcnow(),
+            evidence_metadata={
+                "control": "A.6.3",
+                "type": "automatic",
+                "source": "Portal Empleado",
+                "sourceIcon": "✍️",
+                "validityDays": 365
+            }
+        )
+        db.add(evidence)
+        await db.commit()
+    except Exception as e:
+        print(f"⚠️ No se pudo registrar evidencia de firma: {e}")
+
     return {"message": "Acknowledged successfully"}
