@@ -32,15 +32,21 @@ const RiskMapScreen = () => {
   // ==========================================
   useEffect(() => {
     const fetchRisks = async () => {
+      const demoRisks = [
+        { id: 'd1', title: 'Acceso no autorizado a sistemas críticos', description: 'Un atacante externo podría comprometer credenciales y acceder a sistemas sensibles.', likelihood: 4, impact: 5, category: 'security' },
+        { id: 'd2', title: 'Pérdida de datos por ransomware', description: 'Cifrado malicioso de archivos críticos sin backup disponible.', likelihood: 3, impact: 5, category: 'operational' },
+        { id: 'd3', title: 'Fuga de datos personales', description: 'Exposición de información personal de empleados o clientes.', likelihood: 2, impact: 4, category: 'privacy' },
+      ];
       try {
         const data = await riskAPI.getAll();
-        if (data && data.length > 0) {
-          setRisks(data);
-          const first = data[0];
-          setSelectedRisk({ ...first, name: first.title, prob: first.likelihood || first.prob });
-        }
+        const risksToUse = (data && data.length > 0) ? data : demoRisks;
+        setRisks(risksToUse);
+        const first = risksToUse[0];
+        setSelectedRisk({ ...first, name: first.title, prob: first.likelihood || first.prob });
       } catch (error) {
-        console.error("Error conectando con la API de Riesgos. Usando datos locales.", error);
+        console.error("Error conectando con la API de Riesgos. Usando datos demo.", error);
+        setRisks(demoRisks);
+        setSelectedRisk({ ...demoRisks[0], name: demoRisks[0].title, prob: demoRisks[0].likelihood });
       }
     };
 
