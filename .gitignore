@@ -19,3 +19,4 @@ dist/
 
 # Documentación local (no subir)
 Documentación/Guia_Defensa_Ejecucion_Local.md
+.venv/
