@@ -21,6 +21,7 @@
 - [Estructura del Proyecto](#estructura-del-proyecto)
 - [Despliegue en Producción](#despliegue-en-producción)
 - [Credenciales por Defecto](#credenciales-por-defecto)
+- [Pruebas](#pruebas)
 - [Equipo](#equipo)
 
 ---
@@ -129,6 +130,7 @@
 ### Gap Analysis
 - Wizard de evaluación en 4 fases (cláusulas 4-10 ISO 27001)
 - SOA (Statement of Applicability) interactiva con 93 controles del Anexo A
+- Exportación de SOA en PDF (`GET /api/compliance/soa/export`) con tabla completa de controles, badges de estado y portada con métricas
 - Scores por cláusula calculados desde el estado real de controles en BD
 - Auditoría individual de controles: DeepSeek evalúa un documento contra un control
 - Auditoría masiva RAG: embeddings + cosine similarity + DeepSeek (límite 10 controles por sesión para respetar timeouts de Render.com)
@@ -150,7 +152,12 @@
 ### Evidence Center
 - Carga de evidencias con metadatos
 - Generación de embeddings automática al subir documentos
-- Exportación de evidencias en ZIP
+- Exportación de evidencias en ZIP con PDFs profesionales por cláusula ISO, registro de riesgos y resumen ejecutivo (generados con PyMuPDF)
+
+### Sala de Auditoría
+- Carpetas seleccionables por cláusula ISO con indicador visual (borde + checkmark)
+- Contador de carpetas seleccionadas y opción de seleccionar/deseleccionar todo
+- Exportación de paquete ZIP con PDFs organizados por cláusula listos para el auditor
 
 ### Gestión de Usuarios
 - CRUD completo (crear, editar, desactivar, eliminar)
@@ -399,6 +406,44 @@ El servidor crea automáticamente un usuario administrador al iniciar:
 | Email | `admin@dani27001.com` |
 | Contraseña | `admin123` |
 | Rol | `admin` |
+
+---
+
+## Pruebas
+
+El proyecto incluye un plan de pruebas funcionales automatizadas con `pytest` que validan los flujos principales de la API.
+
+### Instalación
+
+```bash
+cd Producto/dani-project-back
+venv\Scripts\activate
+pip install pytest
+```
+
+### Ejecución
+
+> El backend debe estar corriendo en `http://localhost:8000` antes de ejecutar los tests.
+
+```bash
+pytest tests/test_api.py -v
+```
+
+### Casos de prueba
+
+| # | Caso | Resultado esperado |
+|---|------|--------------------|
+| 1 | Login con credenciales válidas | 200 + token JWT |
+| 2 | Login con contraseña incorrecta | 401 |
+| 3 | Login con usuario inexistente | 401 |
+| 4 | Acceso a endpoint protegido sin token | 401 / 403 |
+| 5 | Listar riesgos autenticado | 200 + lista |
+| 6 | Crear riesgo | 200 + datos correctos |
+| 7 | Estadísticas de riesgos | 200 |
+| 8 | Listar controles ISO 27001 | 200 + lista no vacía |
+| 9 | Estadísticas de cumplimiento | 200 |
+| 10 | Exportar SOA en PDF | 200 + content-type PDF |
+| 11 | Health check del servidor | 200 |
 
 ---
 
