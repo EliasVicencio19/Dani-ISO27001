@@ -88,21 +88,27 @@ function EvidenceCenterScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const demoEvidences = [
+    { id: 'd1', name: 'Política de Control de Acceso v2.0', control: 'A.5.15', source: 'Portal', type: 'manual', sourceIcon: '📄', lastUpdated: new Date(Date.now() - 2 * 86400000), validityDays: 365 },
+    { id: 'd2', name: 'Log de Accesos SSH — Junio 2026', control: 'A.8.15', source: 'Network Scan', type: 'automatic', sourceIcon: '🔐', lastUpdated: new Date(Date.now() - 1 * 86400000), validityDays: 90 },
+    { id: 'd3', name: 'Reporte de Vulnerabilidades Q2', control: 'A.8.8', source: 'Jira', type: 'automatic', sourceIcon: '📋', lastUpdated: new Date(Date.now() - 5 * 86400000), validityDays: 30 },
+    { id: 'd4', name: 'Certificado de Backup Exitoso', control: 'A.8.13', source: 'AWS', type: 'automatic', sourceIcon: '☁️', lastUpdated: new Date(Date.now() - 10 * 86400000), validityDays: 7 },
+  ];
+
   // Cargar evidencias reales
   const loadEvidences = async () => {
     try {
-      // Import evidenceAPI dynamically if not imported at top
       const { evidenceAPI } = await import('../services/api');
       const data = await evidenceAPI.getAll();
       if (Array.isArray(data) && data.length > 0) {
-        const mapped = data.map(e => ({
-          ...e,
-          lastUpdated: new Date(e.lastUpdated)
-        }));
+        const mapped = data.map(e => ({ ...e, lastUpdated: new Date(e.lastUpdated) }));
         setEvidences(mapped);
+      } else {
+        setEvidences(demoEvidences);
       }
     } catch (error) {
-      console.error("Error loading real evidences:", error);
+      console.error("Error loading evidences, using demo data.", error);
+      setEvidences(demoEvidences);
     }
   };
 
