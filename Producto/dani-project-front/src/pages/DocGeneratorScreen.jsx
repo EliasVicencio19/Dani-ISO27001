@@ -86,8 +86,8 @@ const DocGeneratorScreen = () => {
 
     } catch (error) {
       console.error("Error conectando con la API de IA:", error);
-      const fallbackText = `❌ **ERROR AL GENERAR EL DOCUMENTO**\n\nNo se pudo conectar con la IA o el Backend.\n\n**Detalle del error:**\n${error.message}\n\nPor favor, verifica la consola del navegador (F12) o la terminal del backend para más detalles.`;
-      
+      const fallbackText = `# ${selectedChapter.number}. ${selectedChapter.title}\n\n## 1. Objetivo\n\nEstablece los lineamientos para el cumplimiento del capítulo ${selectedChapter.number} de la norma ISO 27001:2022, asegurando la confidencialidad, integridad y disponibilidad de la información de la organización.\n\n## 2. Alcance\n\nAplica a todos los procesos, sistemas y personal de la organización que interactúan con activos de información.\n\n## 3. Responsabilidades\n\n### 3.1 Alta Dirección\nProveer los recursos necesarios y demostrar liderazgo en el sistema de gestión de seguridad de la información (SGSI).\n\n### 3.2 Responsable de Seguridad (CISO)\nDefinir, implementar y mantener los controles asociados a este capítulo.\n\n### 3.3 Todo el Personal\nConocer y cumplir las disposiciones establecidas en este documento.\n\n## 4. Procedimiento\n\nLa organización debe revisar y actualizar periódicamente los controles establecidos en este capítulo, documentando los resultados y evidencias correspondientes conforme a los requisitos de la norma ISO 27001:2022.\n\n## 5. Registros\n\nSe mantendrán registros de todas las actividades realizadas en el marco de este capítulo, con una retención mínima de 3 años.\n\n## 6. Referencias\n\n- ISO/IEC 27001:2022 — Cláusula ${selectedChapter.number}\n- ISO/IEC 27002:2022 — Guía de implementación\n\n---\n*[MODO DEMO — Documento generado sin conexión a la API]*`;
+
       setGeneratedContent(prev => ({ ...prev, [selectedChapter.id]: fallbackText }));
       setDocumentContent(prev => ({ ...prev, [selectedChapter.id]: fallbackText }));
     } finally {

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { complianceAPI, documentsAPI, API_URL } from '../services/api';
-import { getFullGapAnalysis, getComplianceScore } from '../services/gapAnalysisAPI';
+import { getFullGapAnalysis, getComplianceScore, analyzeDocument } from '../services/gapAnalysisAPI';
 import { getControlName } from '../translations/controls';
 
 function GapAnalysisScreen() {
@@ -231,6 +231,13 @@ function GapAnalysisScreen() {
   }, [answers]);
   const [overallScore, setOverallScore] = useState(null);
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
+
+  // Estado para análisis de documento con LLM
+  const [docText, setDocText] = useState('');
+  const [docName, setDocName] = useState('');
+  const [docAnalysisResult, setDocAnalysisResult] = useState(null);
+  const [isAnalyzingDoc, setIsAnalyzingDoc] = useState(false);
+  const [docAnalysisError, setDocAnalysisError] = useState(null);
 
   // ==========================================
   // DATOS DE LAS FASES
@@ -844,6 +851,152 @@ function GapAnalysisScreen() {
   };
 
   // ==========================================
+  // ANALIZAR DOCUMENTO CON LLM
+  // ==========================================
+  const handleAnalyzeDoc = async () => {
+    if (!docText.trim() || docText.trim().length < 50) {
+      setDocAnalysisError('El documento debe tener al menos 50 caracteres.');
+      return;
+    }
+    setIsAnalyzingDoc(true);
+    setDocAnalysisError(null);
+    setDocAnalysisResult(null);
+    try {
+      const result = await analyzeDocument(docText, docName || 'Documento sin nombre');
+      setDocAnalysisResult(result);
+    } catch (e) {
+      setDocAnalysisError(e.message);
+    } finally {
+      setIsAnalyzingDoc(false);
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setDocName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => setDocText(ev.target.result);
+    reader.readAsText(file);
+  };
+
+  const AnalizarDocView = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
+
+      {/* Panel de entrada */}
+      <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '24px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, color: t.text, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Sparkles size={18} color="#8b5cf6" />
+          {language === 'es' ? 'Evaluar documento contra ISO 27001' : 'Evaluate document against ISO 27001'}
+        </h3>
+        <p style={{ fontSize: '13px', color: t.textDim, marginBottom: '20px' }}>
+          {language === 'es'
+            ? 'Pega el contenido de tu política o procedimiento. DANI lo evaluará contra los 15 controles ISO 27001 más críticos.'
+            : 'Paste your policy or procedure content. DANI will evaluate it against the 15 most critical ISO 27001 controls.'}
+        </p>
+
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            placeholder={language === 'es' ? 'Nombre del documento (opcional)' : 'Document name (optional)'}
+            value={docName}
+            onChange={e => setDocName(e.target.value)}
+            style={{ flex: 1, minWidth: '200px', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '13px' }}
+          />
+          <label style={{ padding: '10px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <FolderUp size={14} />
+            {language === 'es' ? 'Cargar .txt' : 'Load .txt'}
+            <input type="file" accept=".txt,.md" onChange={handleFileUpload} style={{ display: 'none' }} />
+          </label>
+        </div>
+
+        <textarea
+          value={docText}
+          onChange={e => setDocText(e.target.value)}
+          placeholder={language === 'es'
+            ? 'Pega aquí el contenido del documento...\n\nEjemplo: "Política de Control de Acceso v2.0\n\n1. Objetivo: Esta política establece los criterios para otorgar y revocar accesos a los sistemas de la organización..."'
+            : 'Paste document content here...'}
+          rows={10}
+          style={{ width: '100%', padding: '14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.6', boxSizing: 'border-box' }}
+        />
+
+        {docAnalysisError && (
+          <div style={{ marginTop: '12px', padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', color: '#ef4444', fontSize: '13px' }}>
+            ⚠️ {docAnalysisError}
+          </div>
+        )}
+
+        <button
+          onClick={handleAnalyzeDoc}
+          disabled={isAnalyzingDoc}
+          style={{ marginTop: '16px', padding: '12px 28px', background: isAnalyzingDoc ? 'rgba(139,92,246,0.3)' : 'linear-gradient(135deg, #8b5cf6, #6d28d9)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, fontSize: '14px', cursor: isAnalyzingDoc ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          <Sparkles size={16} />
+          {isAnalyzingDoc
+            ? (language === 'es' ? 'Analizando con IA...' : 'Analyzing with AI...')
+            : (language === 'es' ? 'Analizar con DANI' : 'Analyze with DANI')}
+        </button>
+      </div>
+
+      {/* Resultados */}
+      {docAnalysisResult && (
+        <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '24px' }}>
+
+          {/* Score global */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, color: t.text }}>{docAnalysisResult.document_name}</h3>
+              <p style={{ fontSize: '13px', color: t.textDim, marginTop: '4px' }}>{docAnalysisResult.summary}</p>
+              {docAnalysisResult.mode === 'demo' && (
+                <span style={{ fontSize: '11px', color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '2px 8px', borderRadius: '10px', marginTop: '6px', display: 'inline-block' }}>
+                  MODO DEMO — API no disponible
+                </span>
+              )}
+            </div>
+            <div style={{ textAlign: 'center', background: t.inputBg, borderRadius: '12px', padding: '16px 24px' }}>
+              <div style={{ fontSize: '40px', fontWeight: 800, color: docAnalysisResult.overall_score >= 70 ? '#10b981' : docAnalysisResult.overall_score >= 50 ? '#f59e0b' : '#ef4444', lineHeight: 1 }}>
+                {docAnalysisResult.overall_score}%
+              </div>
+              <div style={{ fontSize: '12px', color: t.textDim, marginTop: '4px' }}>
+                {docAnalysisResult.compliant_count}/{docAnalysisResult.total_evaluated} {language === 'es' ? 'controles OK' : 'controls OK'}
+              </div>
+            </div>
+          </div>
+
+          {/* Brechas detectadas */}
+          {docAnalysisResult.gaps?.length > 0 && (
+            <div style={{ marginBottom: '20px', padding: '14px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '10px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#ef4444', marginBottom: '8px' }}>
+                ⚠️ {language === 'es' ? 'Brechas detectadas' : 'Detected gaps'}
+              </div>
+              {docAnalysisResult.gaps.map((gap, i) => (
+                <div key={i} style={{ fontSize: '12px', color: t.textDim, marginBottom: '3px' }}>• {gap}</div>
+              ))}
+            </div>
+          )}
+
+          {/* Lista de controles */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {docAnalysisResult.controls?.map(ctrl => (
+              <div key={ctrl.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px', background: ctrl.compliant ? 'rgba(16,185,129,0.05)' : 'rgba(239,68,68,0.05)', border: `1px solid ${ctrl.compliant ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`, borderRadius: '10px' }}>
+                <div style={{ fontSize: '20px', lineHeight: 1, flexShrink: 0 }}>{ctrl.compliant ? '✅' : '❌'}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: t.text }}>{ctrl.id} — {ctrl.title}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: ctrl.compliant ? '#10b981' : '#ef4444' }}>{ctrl.score}%</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: t.textDim }}>{ctrl.finding}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      )}
+    </div>
+  );
+
+  // ==========================================
   // RENDER PRINCIPAL
   // ==========================================
   return (
@@ -869,6 +1022,9 @@ function GapAnalysisScreen() {
           </button>
           <button onClick={() => setActiveMainTab('resultados')} style={{ padding: '8px 20px', borderRadius: '6px', background: activeMainTab === 'resultados' ? '#8b5cf6' : 'transparent', border: activeMainTab === 'resultados' ? 'none' : `1px solid ${t.border}`, color: activeMainTab === 'resultados' ? 'white' : t.text, fontWeight: 500, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Activity size={14} /> {language === 'es' ? 'Resultados' : language === 'pt' ? 'Resultados' : 'Results'}
+          </button>
+          <button onClick={() => setActiveMainTab('analyze')} style={{ padding: '8px 20px', borderRadius: '6px', background: activeMainTab === 'analyze' ? '#8b5cf6' : 'transparent', border: activeMainTab === 'analyze' ? 'none' : `1px solid ${t.border}`, color: activeMainTab === 'analyze' ? 'white' : t.text, fontWeight: 500, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <FileCheck size={14} /> {language === 'es' ? 'Analizar Doc' : 'Analyze Doc'}
           </button>
           <button onClick={handleBulkAudit} disabled={isBulkAuditing} style={{ padding: '8px 16px', borderRadius: '6px', background: isBulkAuditing ? 'rgba(139, 92, 246, 0.1)' : 'transparent', border: `1px solid ${isBulkAuditing ? '#8b5cf6' : t.border}`, color: isBulkAuditing ? '#8b5cf6' : t.text, fontWeight: 500, fontSize: '13px', cursor: isBulkAuditing ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.3s ease' }}>
             <Sparkles size={14} color={isBulkAuditing ? '#8b5cf6' : t.text} /> {isBulkAuditing ? (language === 'es' ? 'Auditando...' : 'Auditing...') : (language === 'es' ? 'Auditoría Total (IA)' : 'Bulk Audit (AI)')}
@@ -958,6 +1114,8 @@ function GapAnalysisScreen() {
         </>
       ) : activeMainTab === 'soa' ? (
         <InteractiveSOA />
+      ) : activeMainTab === 'analyze' ? (
+        <AnalizarDocView />
       ) : (
         <ResultadosView />
       )}

@@ -4,6 +4,8 @@ from sqlalchemy import select, func
 from typing import List, Dict, Any
 from datetime import datetime, timedelta
 import json
+import openai
+from app.config import settings
 
 from app.models.gap_analysis import GapAnalysis, RemediationAction, ControlImplementation, KPI, PriorityLevel, GapStatus
 from app.models.iso_controls import ISOCControl
@@ -348,4 +350,136 @@ class GapAnalyzer:
             "operational": [k for k in serialized if k.get("category") == "operational"],
             "security": [k for k in serialized if k.get("category") == "security"],
             "timestamp": datetime.utcnow().isoformat()
+        }
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # ANÁLISIS DE DOCUMENTO CON LLM (lo que pidió Max: evaluar si el documento
+    # del cliente cumple con los controles ISO 27001)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    # Controles ISO 27001:2022 descompuestos (trabajo que se hace una vez).
+    # Cada entrada: id, título, qué debe contener un documento para cumplirlo.
+    ISO_CONTROLS_CHECKLIST = [
+        {"id": "5.1",  "title": "Políticas de seguridad de la información",        "requires": "política aprobada por dirección, revisada periódicamente y comunicada"},
+        {"id": "5.2",  "title": "Roles y responsabilidades de seguridad",           "requires": "definición de roles CISO/responsable de seguridad y sus funciones"},
+        {"id": "5.15", "title": "Control de acceso",                                "requires": "política de control de acceso, criterios de otorgamiento y revocación"},
+        {"id": "5.16", "title": "Gestión de identidades",                           "requires": "procedimiento para crear, modificar y eliminar usuarios/cuentas"},
+        {"id": "5.24", "title": "Planificación de respuesta a incidentes",          "requires": "plan de respuesta a incidentes con roles, escalado y pasos de contención"},
+        {"id": "6.1",  "title": "Gestión de riesgos de seguridad",                 "requires": "metodología de evaluación de riesgos, criterios de aceptación y tratamiento"},
+        {"id": "7.2",  "title": "Competencia del personal",                         "requires": "requisitos de capacitación en seguridad, registros de formación"},
+        {"id": "7.3",  "title": "Concienciación en seguridad",                      "requires": "programa de concientización, materiales y frecuencia"},
+        {"id": "7.5",  "title": "Información documentada (control documental)",     "requires": "procedimiento de control de documentos: versiones, aprobación, distribución"},
+        {"id": "8.1",  "title": "Planificación y control operacional",              "requires": "procedimientos operativos documentados para procesos críticos"},
+        {"id": "8.7",  "title": "Protección contra malware",                        "requires": "política antimalware, herramientas utilizadas y frecuencia de actualización"},
+        {"id": "8.8",  "title": "Gestión de vulnerabilidades técnicas",             "requires": "proceso de escaneo, parcheo y seguimiento de vulnerabilidades"},
+        {"id": "8.13", "title": "Copia de seguridad (Backup)",                      "requires": "política de backup: frecuencia, retención, pruebas de restauración"},
+        {"id": "8.15", "title": "Registro de eventos (Logging)",                    "requires": "qué eventos se registran, retención de logs y revisión periódica"},
+        {"id": "8.20", "title": "Seguridad de redes",                               "requires": "arquitectura de red segmentada, cortafuegos y monitoreo de tráfico"},
+    ]
+
+    async def analyze_document_with_llm(self, document_text: str, document_name: str = "Documento") -> Dict[str, Any]:
+        """
+        Evalúa un documento del cliente contra los controles ISO 27001:2022.
+        Hace UNA llamada al LLM que evalúa todos los controles a la vez.
+        Retorna: qué controles cumple, cuáles no, score global y brechas detectadas.
+        """
+        controls_json = json.dumps(self.ISO_CONTROLS_CHECKLIST, ensure_ascii=False, indent=2)
+
+        system_prompt = (
+            "Eres un auditor experto en ISO 27001:2022. "
+            "Analizas documentos de clientes y determinas si cubren los controles de la norma. "
+            "Respondes ÚNICAMENTE con JSON válido, sin texto adicional, sin markdown."
+        )
+
+        user_prompt = f"""Analiza el siguiente documento llamado "{document_name}" y evalúa si cumple con cada uno de estos controles ISO 27001:2022.
+
+CONTROLES A EVALUAR:
+{controls_json}
+
+DOCUMENTO DEL CLIENTE:
+---
+{document_text[:6000]}
+---
+
+Responde con este JSON exacto (sin texto extra):
+{{
+  "document_name": "{document_name}",
+  "controls": [
+    {{
+      "id": "<id del control>",
+      "title": "<título>",
+      "compliant": true/false,
+      "score": <0-100>,
+      "finding": "<qué cubre o qué le falta en 1 oración>"
+    }}
+  ],
+  "overall_score": <promedio de scores 0-100>,
+  "compliant_count": <número de controles que pasan con score>=70>,
+  "total_evaluated": {len(self.ISO_CONTROLS_CHECKLIST)},
+  "gaps": ["<brecha 1>", "<brecha 2>", ...],
+  "summary": "<resumen ejecutivo en 2 oraciones>"
+}}"""
+
+        try:
+            client = openai.AsyncOpenAI(
+                api_key=settings.AI_API_KEY,
+                base_url=settings.AI_BASE_URL
+            )
+            response = await client.chat.completions.create(
+                model=settings.AI_MODEL,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.2
+            )
+            raw = response.choices[0].message.content.strip()
+            # Limpiar si viene con bloque markdown
+            if raw.startswith("```"):
+                raw = raw.split("```")[1]
+                if raw.startswith("json"):
+                    raw = raw[4:]
+            result = json.loads(raw)
+            result["analyzed_at"] = datetime.utcnow().isoformat()
+            result["mode"] = "llm"
+            return result
+
+        except json.JSONDecodeError:
+            return {
+                "document_name": document_name,
+                "error": "El LLM no devolvió JSON válido",
+                "raw_response": raw if 'raw' in dir() else "",
+                "mode": "error"
+            }
+        except Exception as e:
+            # Fallback demo si la API no responde
+            return self._demo_analysis(document_name, str(e))
+
+    def _demo_analysis(self, document_name: str, error: str) -> Dict[str, Any]:
+        """Respuesta demo cuando la API no está disponible."""
+        demo_controls = []
+        scores = []
+        for i, ctrl in enumerate(self.ISO_CONTROLS_CHECKLIST):
+            score = 85 if i % 3 != 0 else 30
+            scores.append(score)
+            demo_controls.append({
+                "id": ctrl["id"],
+                "title": ctrl["title"],
+                "compliant": score >= 70,
+                "score": score,
+                "finding": "✅ Cubierto en el documento." if score >= 70 else f"⚠️ Falta: {ctrl['requires']}."
+            })
+        overall = round(sum(scores) / len(scores), 1)
+        compliant = sum(1 for s in scores if s >= 70)
+        return {
+            "document_name": document_name,
+            "controls": demo_controls,
+            "overall_score": overall,
+            "compliant_count": compliant,
+            "total_evaluated": len(self.ISO_CONTROLS_CHECKLIST),
+            "gaps": [c["title"] for c in demo_controls if not c["compliant"]],
+            "summary": f"[MODO DEMO] El documento cubre {compliant}/{len(self.ISO_CONTROLS_CHECKLIST)} controles ISO 27001 evaluados con un score de {overall}%.",
+            "analyzed_at": datetime.utcnow().isoformat(),
+            "mode": "demo",
+            "api_error": error
         }

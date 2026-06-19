@@ -1,6 +1,7 @@
 # app/routes/gap_analysis.py
 from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, Any, List
+from pydantic import BaseModel
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from sqlalchemy import select
@@ -8,6 +9,11 @@ from app.dependencies.auth import get_current_user, RequireRole
 from app.dependencies.database import get_db
 from app.services.gap_analyzer import GapAnalyzer
 from app.models.gap_analysis import GapAnalysis, RemediationAction, ControlImplementation, KPI
+
+
+class DocumentAnalysisRequest(BaseModel):
+    document_text: str
+    document_name: Optional[str] = "Documento sin nombre"
 
 router = APIRouter(prefix="/api/gap-analysis", tags=["Gap Analysis"])
 
@@ -127,6 +133,27 @@ async def create_remediation_action(
     await db.refresh(action)
     
     return {"message": "Acción creada", "action": action}
+
+@router.post("/analyze-document")
+async def analyze_document(
+    request: DocumentAnalysisRequest,
+    current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    db = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Evalúa un documento del cliente contra los controles ISO 27001:2022 usando LLM.
+    Recibe el texto del documento y devuelve qué controles cumple, cuáles no, y el score global.
+    """
+    if not request.document_text or len(request.document_text.strip()) < 50:
+        raise HTTPException(status_code=400, detail="El documento debe tener al menos 50 caracteres de contenido.")
+
+    analyzer = GapAnalyzer(db)
+    result = await analyzer.analyze_document_with_llm(
+        document_text=request.document_text,
+        document_name=request.document_name
+    )
+    return result
+
 
 @router.post("/kpi/update")
 async def update_kpi(
