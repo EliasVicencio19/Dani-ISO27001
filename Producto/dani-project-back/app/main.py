@@ -18,6 +18,8 @@ from app.routes import notifications
 from app.routes import report
 from app.models.iso_controls import ISOCControl
 from app.models.capa import CAPA
+from app.models.document import Document, DocumentAcknowledgement
+from app.models.evidence import Evidence
 
 
 logging.basicConfig(level=logging.INFO)

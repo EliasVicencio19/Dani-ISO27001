@@ -99,6 +99,45 @@ class DocumentCreate(BaseModel):
 class DocumentStatusUpdate(BaseModel):
     status: str
 
+@router.get("/published/policies")
+async def get_published_policies(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    from app.models.document import DocumentAcknowledgement
+
+    result = await db.execute(select(Document).filter(Document.status == DocumentStatus.PUBLISHED))
+    documents = result.scalars().all()
+
+    user_id = current_user.get("user_id")
+    if not user_id:
+        from app.models.user import User
+        email = current_user.get("email")
+        if email:
+            user_query = await db.execute(select(User).where(User.email == email))
+            db_user = user_query.scalar_one_or_none()
+            if db_user:
+                user_id = str(db_user.id)
+
+    ack_doc_ids = set()
+    if user_id:
+        ack_result = await db.execute(select(DocumentAcknowledgement).filter(DocumentAcknowledgement.user_id == user_id))
+        acks = ack_result.scalars().all()
+        ack_doc_ids = {ack.document_id for ack in acks}
+
+    policies = []
+    for doc in documents:
+        policies.append({
+            "id": doc.id,
+            "chapter_id": doc.chapter_id,
+            "title": doc.title,
+            "version": doc.version,
+            "content": doc.content,
+            "is_acknowledged": doc.id in ack_doc_ids
+        })
+
+    return {"policies": policies}
+
 @router.get("/{chapter_id}")
 async def get_document(
     chapter_id: str,
@@ -187,36 +226,6 @@ async def update_document_status(
     
     return {"message": f"Status updated to {document.status.value}", "version": document.version}
 
-@router.get("/published/policies")
-async def get_published_policies(
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    from app.models.document import DocumentAcknowledgement
-    
-    # Obtenemos todos los documentos publicados
-    result = await db.execute(select(Document).filter(Document.status == DocumentStatus.PUBLISHED))
-    documents = result.scalars().all()
-    
-    # Obtenemos los acuses de recibo del usuario actual
-    user_id = current_user.get("id") or current_user.get("sub")
-    ack_result = await db.execute(select(DocumentAcknowledgement).filter(DocumentAcknowledgement.user_id == user_id))
-    acks = ack_result.scalars().all()
-    ack_doc_ids = {ack.document_id for ack in acks}
-    
-    policies = []
-    for doc in documents:
-        policies.append({
-            "id": doc.id,
-            "chapter_id": doc.chapter_id,
-            "title": doc.title,
-            "version": doc.version,
-            "content": doc.content,
-            "is_acknowledged": doc.id in ack_doc_ids
-        })
-        
-    return {"policies": policies}
-
 @router.post("/{document_id}/acknowledge")
 async def acknowledge_policy(
     document_id: str,
@@ -268,7 +277,7 @@ async def acknowledge_policy(
         from app.models.evidence import Evidence, EvidenceType
         doc_result2 = await db.execute(select(Document).filter(Document.id == document_id))
         doc_obj = doc_result2.scalar_one_or_none()
-        doc_title = doc_obj.name if doc_obj else document_id
+        doc_title = doc_obj.title if doc_obj else document_id
         user_email = current_user.get("email", user_id)
 
         evidence = Evidence(
