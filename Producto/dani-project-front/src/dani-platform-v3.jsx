@@ -46,6 +46,7 @@ export default function DaniPlatform() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [navParams, setNavParams] = useState(null);
 
   // Keyboard shortcut para Command Palette (Cmd+K / Ctrl+K)
   useEffect(() => {
@@ -65,8 +66,9 @@ export default function DaniPlatform() {
     { code: 'pt', name: 'Português', flag: '🇧🇷' }
   ];
 
- const handleNavigate = (screen) => {
+  const handleNavigate = (screen, params = null) => {
     setActiveScreen(screen);
+    setNavParams(params);
   };
 
   return (
@@ -146,8 +148,8 @@ export default function DaniPlatform() {
         {/* Contenido Dinámico de Pantallas */}
         <div style={{ flex: 1, padding: '32px 40px', overflow: 'auto' }}>
           {activeScreen === 'dashboard' && <DashboardScreen onNavigate={handleNavigate} />}
-          {activeScreen === 'gap-analysis' && <GapAnalysisScreen />}
-          {activeScreen === 'doc-generator' && <DocGeneratorScreen />}
+          {activeScreen === 'gap-analysis' && <GapAnalysisScreen onNavigate={handleNavigate} />}
+          {activeScreen === 'doc-generator' && <DocGeneratorScreen navParams={navParams} />}
           {activeScreen === 'risk-map' && <RiskMapScreen />}
           {activeScreen === 'evidence' && <EvidenceCenterScreen />}
           {activeScreen === 'documents' && <DocumentsScreen setActiveScreen={setActiveScreen} />}

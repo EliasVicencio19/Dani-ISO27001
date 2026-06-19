@@ -12,7 +12,7 @@ import { documentsAPI } from '../services/api';
 import html2pdf from 'html2pdf.js';
 import { useAuth } from '../contexts/AuthContext';
 
-const DocGeneratorScreen = () => {
+const DocGeneratorScreen = ({ navParams }) => {
   const { theme: t, darkMode } = useContext(ThemeContext);
   const { user } = useAuth();
   
@@ -58,6 +58,17 @@ const DocGeneratorScreen = () => {
 
   const totalGenerated = Object.keys(generatedContent).length;
   const progressPercent = Math.round((totalGenerated / chapters.length) * 100);
+
+  // NUEVO: Escuchar navParams para auto-seleccionar capítulo
+  useEffect(() => {
+    if (navParams && navParams.targetChapterNumber) {
+      const targetStr = String(navParams.targetChapterNumber);
+      const targetChapter = chapters.find(c => c.number === targetStr);
+      if (targetChapter) {
+        setSelectedChapter(targetChapter);
+      }
+    }
+  }, [navParams]);
 
   const handleGenerate = async () => {
     if (!selectedChapter) return;

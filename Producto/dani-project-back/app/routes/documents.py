@@ -263,6 +263,31 @@ async def acknowledge_policy(
     existing = result.scalar_one_or_none()
     
     if existing:
+        # Verificar si la evidencia de firma ya existe, si no crearla
+        from app.models.evidence import Evidence
+        ev_check = await db.execute(
+            select(Evidence).filter(Evidence.title.like(f"%{document_id}%").or_(Evidence.description.like(f"%{document_id}%")))
+        )
+        if not ev_check.scalar_one_or_none():
+            try:
+                from app.models.evidence import EvidenceType
+                doc_r = await db.execute(select(Document).filter(Document.id == document_id))
+                doc_o = doc_r.scalar_one_or_none()
+                doc_title = doc_o.title if doc_o else document_id
+                user_email = current_user.get("email", user_id)
+                evidence = Evidence(
+                    title=f"Firma de lectura — {doc_title} — {user_email}",
+                    description=f"El empleado {user_email} leyó y aceptó la política '{doc_title}'.",
+                    evidence_type=EvidenceType.DOCUMENT,
+                    file_url="", file_name="", file_size=0, mime_type="text/plain",
+                    verified_at=datetime.utcnow(),
+                    evidence_metadata={"control": "A.6.3", "type": "automatic", "source": "Portal Empleado", "sourceIcon": "✍️", "validityDays": 365}
+                )
+                db.add(evidence)
+                await db.commit()
+                print(f"✅ Evidencia de firma creada retroactivamente para {user_email}")
+            except Exception as e:
+                print(f"⚠️ Error creando evidencia retroactiva: {e}")
         return {"message": "Already acknowledged"}
         
     ack = DocumentAcknowledgement(

@@ -10,7 +10,7 @@ import { complianceAPI, documentsAPI, API_URL } from '../services/api';
 import { getFullGapAnalysis, getComplianceScore, analyzeDocument } from '../services/gapAnalysisAPI';
 import { getControlName } from '../translations/controls';
 
-function GapAnalysisScreen() {
+function GapAnalysisScreen({ onNavigate }) {
   const { theme: t, language, setLanguage } = useContext(ThemeContext);
 
   // ==========================================
@@ -771,6 +771,16 @@ function GapAnalysisScreen() {
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                       <span style={{ fontSize: '11px', color: t.textDim }}>{language === 'es' ? 'Brecha' : 'Gap'}: {c.gap}%</span>
                       <span style={{ fontSize: '13px', fontWeight: 700, color: getScoreColor(c.current_score) }}>{c.current_score}%</span>
+                      {c.gap > 0 && onNavigate && (
+                        <button 
+                          onClick={() => onNavigate('doc-generator', { targetChapterNumber: c.clause_id })}
+                          style={{ padding: '4px 10px', background: '#8b5cf6', border: 'none', borderRadius: '6px', color: 'white', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px' }}
+                          title={language === 'es' ? 'Generar documento con IA para cerrar esta brecha' : 'Generate AI document to close this gap'}
+                        >
+                          <Sparkles size={12} />
+                          {language === 'es' ? 'Remediar' : 'Remediate'}
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div style={{ height: '8px', background: t.inputBg, borderRadius: '4px', overflow: 'hidden' }}>
