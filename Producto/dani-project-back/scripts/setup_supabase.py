@@ -1,9 +1,4 @@
 # scripts/setup_supabase.py
-# CAMBIO: faltaban estas líneas. Python no encuentra el paquete "app" porque
-# al ejecutar `python scripts/setup_supabase.py`, el directorio que queda en
-# sys.path es "scripts/", no la raíz del proyecto (dani-project-back/), que
-# es donde vive la carpeta "app/". Insertamos la raíz manualmente, igual que
-# ya hacen tus otros scripts (create_tables.py, init_db.py).
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -14,6 +9,12 @@ from sqlalchemy import text, select
 from app.dependencies.database import engine, Base, AsyncSessionLocal
 from app.models.iso_controls import ISOCControl
 from app.models.capa import CAPA
+# CAMBIO: faltaba este import. SQLAlchemy solo crea las tablas de modelos que
+# ya fueron importados antes de llamar a Base.metadata.create_all(). Como
+# GapAnalysis, RemediationAction, ControlImplementation y KPI nunca se
+# importaban aquí, sus tablas (incluyendo "kpi") nunca se crearon en Supabase,
+# aunque el resto del setup corriera sin errores.
+from app.models.gap_analysis import GapAnalysis, RemediationAction, ControlImplementation, KPI
 from app.services.auth_service import AuthService
 from app.models.user import User, UserRole
 
