@@ -4,8 +4,8 @@
   "installCommand": "cd Producto/dani-project-front && npm install",
   "framework": "create-react-app",
   "env": {
-    "VITE_API_URL": "https://dani-iso27001-backend.onrender.com",
-    "REACT_APP_API_URL": "https://dani-iso27001-backend.onrender.com"
+    "VITE_API_URL": "https://dani27001backend-5t0sldjka-dani-iso-27001.vercel.app",
+    "REACT_APP_API_URL": "https://dani27001backend-5t0sldjka-dani-iso-27001.vercel.app"
   },
   "rewrites": [
     {
