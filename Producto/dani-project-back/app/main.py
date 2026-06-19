@@ -30,6 +30,11 @@ async def lifespan(app: FastAPI):
     # que tu entorno LOCAL (uvicorn) siga funcionando igual que hoy.
     # El setup equivalente para producción está en scripts/setup_supabase.py,
     # que corres UNA VEZ manualmente apuntando a la DATABASE_URL de Supabase.
+    if os.environ.get("VERCEL"):
+        logger.info("⚡ Entorno Vercel detectado: se omite el setup de arranque (ya ejecutado vía scripts/setup_supabase.py)")
+        yield
+        return
+    
     async with engine.begin() as conn:
         from sqlalchemy import text
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
@@ -81,7 +86,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
-        "https://dani-iso-27001.vercel.app/",  # <- dominio propio de la empresa, si aplica
+        "https://dani-iso-27001.vercel.app",  # <- dominio propio de la empresa, si aplica
     ],
     allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,

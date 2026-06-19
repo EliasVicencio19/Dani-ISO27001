@@ -25,7 +25,7 @@ pymupdf==1.23.26
 python-dotenv==1.0.1
 pydantic-settings==2.1.0
 redis==5.0.3
-mangum==0.17.0
+#mangum==0.17.0
 
 # CAMBIO: httpx agregado — lo usa app/services/storage_service.py para
 # hablar con la API REST de Supabase Storage.
