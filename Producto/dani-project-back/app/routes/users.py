@@ -88,7 +88,10 @@ async def get_my_preferences(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(select(User).where(User.id == current_user["id"]))
+    # CAMBIO: get_current_user devuelve la clave "user_id", no "id".
+    # Usar "id" aquí causaba un KeyError no controlado (crash duro de la
+    # función en Vercel: 500 sin headers CORS).
+    result = await db.execute(select(User).where(User.id == current_user["user_id"]))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -101,7 +104,8 @@ async def update_my_preferences(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(select(User).where(User.id == current_user["id"]))
+    # CAMBIO: mismo fix, "user_id" en vez de "id".
+    result = await db.execute(select(User).where(User.id == current_user["user_id"]))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -210,5 +214,3 @@ async def delete_user(
     await db.commit()
     
     return {"message": "Usuario eliminado exitosamente"}
-
-

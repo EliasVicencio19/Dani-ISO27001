@@ -141,15 +141,26 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
 
 @router.get("/me")
 async def get_current_user_info(
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Obtener información del usuario actual"""
+    # CAMBIO: get_current_user solo trae lo que viene en el JWT (email, role,
+    # user_id) — no full_name ni is_active. Antes esto devolvía "id": None,
+    # "full_name": None, "is_active": None siempre, sin crashear pero sin
+    # datos reales. Ahora consultamos la BD con el user_id del token para
+    # devolver el usuario completo de verdad.
+    result = await db.execute(select(User).where(User.id == current_user["user_id"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
     return {
-        "id": current_user.get("id"),
-        "email": current_user.get("email"),
-        "full_name": current_user.get("full_name"),
-        "role": current_user.get("role"),
-        "is_active": current_user.get("is_active")
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+        "is_active": user.is_active
     }
 
 
@@ -165,7 +176,8 @@ async def change_password(
     db: AsyncSession = Depends(get_db)
 ):
     """Cambiar contraseña del usuario autenticado"""
-    result = await db.execute(select(User).where(User.id == current_user["id"]))
+    # CAMBIO: get_current_user devuelve "user_id", no "id".
+    result = await db.execute(select(User).where(User.id == current_user["user_id"]))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
