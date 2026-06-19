@@ -71,13 +71,20 @@ async def upload_evidence(
         # clave/objeto dentro del bucket de Supabase Storage.
         storage_path = f"{uuid.uuid4()}_{file.filename}"
 
-        # CAMBIO: subimos directamente a Supabase Storage en vez de
-        # shutil.copyfileobj a disco local.
-        await storage_service.upload(
-            path=storage_path,
-            content=file_bytes,
-            content_type=file.content_type or "application/octet-stream",
-        )
+        # Intentar subir a Supabase Storage; si no está configurado, continuar sin storage externo
+        try:
+            from app.config import settings
+            if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_KEY:
+                await storage_service.upload(
+                    path=storage_path,
+                    content=file_bytes,
+                    content_type=file.content_type or "application/octet-stream",
+                )
+            else:
+                storage_path = f"local:{file.filename}"
+        except Exception as storage_err:
+            print(f"⚠️ Supabase Storage no disponible, continuando sin storage externo: {storage_err}")
+            storage_path = f"local:{file.filename}"
 
         file_size = len(file_bytes)
 
