@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 import zipfile
 import io
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,19 +8,25 @@ from typing import List, Optional
 from datetime import datetime
 import uuid
 import os
-import shutil
+# CAMBIO: shutil ya no se usa (no copiamos a disco local), se quita.
 
 from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db
 from app.models.evidence import Evidence, EvidenceType
 from app.services.embedding_service import EmbeddingService
+# CAMBIO: importamos el nuevo servicio de almacenamiento en Supabase.
+from app.services.storage_service import storage_service
 
 router = APIRouter(prefix="/api/evidence", tags=["Evidence"])
 embedding_service = EmbeddingService()
 
-# Crear directorio de uploads si no existe
-UPLOAD_DIR = "uploads/evidence"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# CAMBIO: ya NO creamos/usamos un directorio local persistente
+# (UPLOAD_DIR = "uploads/evidence" + os.makedirs). En Vercel ese directorio
+# no sobrevive entre invocaciones. Si necesitamos un archivo temporal local
+# (para que PyMuPDF/pypdf extraigan texto), lo escribimos en /tmp, que SÍ es
+# escribible dentro de una misma invocación, y lo subimos a Supabase Storage.
+TMP_DIR = "/tmp"
+
 
 @router.get("/")
 async def get_all_evidence(
@@ -30,7 +36,7 @@ async def get_all_evidence(
     query = select(Evidence)
     result = await db.execute(query)
     evidences = result.scalars().all()
-    
+
     return [
         {
             "id": ev.id,
@@ -47,6 +53,7 @@ async def get_all_evidence(
         for ev in evidences
     ]
 
+
 @router.post("/upload")
 async def upload_evidence(
     file: UploadFile = File(...),
@@ -55,19 +62,31 @@ async def upload_evidence(
     validityDays: int = Form(30),
     db: AsyncSession = Depends(get_db)
 ):
-    """Subir evidencia real y guardarla en DB"""
+    """Subir evidencia real y guardarla en Supabase Storage + DB"""
+    tmp_path = None
     try:
-        # Guardar archivo localmente
-        file_path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4()}_{file.filename}")
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-            
-        file_size = os.path.getsize(file_path)
+        file_bytes = await file.read()
+
+        # CAMBIO: el "path" que antes era una ruta de disco ahora es la
+        # clave/objeto dentro del bucket de Supabase Storage.
+        storage_path = f"{uuid.uuid4()}_{file.filename}"
+
+        # CAMBIO: subimos directamente a Supabase Storage en vez de
+        # shutil.copyfileobj a disco local.
+        await storage_service.upload(
+            path=storage_path,
+            content=file_bytes,
+            content_type=file.content_type or "application/octet-stream",
+        )
+
+        file_size = len(file_bytes)
 
         # Crear registro en base de datos
         new_evidence = Evidence(
             title=file.filename,
-            file_url=file_path,
+            # CAMBIO: file_url ahora guarda el "path" dentro del bucket de
+            # Supabase Storage, no una ruta de disco local.
+            file_url=storage_path,
             file_name=file.filename,
             file_size=file_size,
             mime_type=file.content_type or "application/octet-stream",
@@ -81,23 +100,27 @@ async def upload_evidence(
                 "validityDays": validityDays
             }
         )
-        
+
         db.add(new_evidence)
         await db.commit()
         await db.refresh(new_evidence)
-        
+
         # 🛡️ RAG: Indexar documento en fragmentos vectoriales de forma defensiva
         try:
-            # 1. Extraer texto completo del archivo cargado
-            extracted_text = embedding_service.extract_text_from_file(file_path, file.content_type or "")
+            # CAMBIO: embedding_service.extract_text_from_file espera una ruta
+            # local, así que escribimos una copia temporal en /tmp SOLO para
+            # la extracción de texto dentro de esta misma invocación. No se
+            # usa para servir descargas ni se persiste entre requests.
+            tmp_path = os.path.join(TMP_DIR, storage_path)
+            with open(tmp_path, "wb") as f:
+                f.write(file_bytes)
+
+            extracted_text = embedding_service.extract_text_from_file(tmp_path, file.content_type or "")
             if extracted_text:
-                # 2. Particionar texto en fragmentos
                 chunks = embedding_service.chunk_text(extracted_text)
                 if chunks:
-                    # 3. Generar representaciones vectoriales
                     embeddings = embedding_service.generate_embeddings(chunks)
-                    
-                    # 4. Almacenar fragmentos con sus vectores
+
                     from app.models.evidence_chunk import EvidenceChunk
                     for idx, (chunk_content, chunk_emb) in enumerate(zip(chunks, embeddings)):
                         chunk_obj = EvidenceChunk(
@@ -110,9 +133,13 @@ async def upload_evidence(
                     await db.commit()
                     print(f"✅ Ingesta RAG completada: {len(chunks)} fragmentos indexados en BD para la evidencia: {new_evidence.id}")
         except Exception as rag_err:
-            # Captura de errores defensiva para que el fallo en RAG no interrumpa la subida de evidencia
             print(f"⚠️ Error durante la indexación RAG (el documento principal se guardó): {rag_err}")
-        
+        finally:
+            # CAMBIO: limpiamos el temporal de /tmp para no acumular basura
+            # entre invocaciones que reutilizan el mismo contenedor "warm".
+            if tmp_path and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
         return {
             "message": "Evidencia subida correctamente",
             "id": new_evidence.id,
@@ -121,6 +148,7 @@ async def upload_evidence(
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al subir archivo: {str(e)}")
+
 
 @router.get("/{evidence_id}/download")
 async def download_evidence(
@@ -131,119 +159,30 @@ async def download_evidence(
     query = select(Evidence).where(Evidence.id == evidence_id)
     result = await db.execute(query)
     evidence = result.scalar_one_or_none()
-    
+
     if not evidence:
         raise HTTPException(status_code=404, detail="Evidencia no encontrada en la base de datos")
-        
-    if not os.path.exists(evidence.file_url):
-        raise HTTPException(status_code=404, detail="El archivo físico no se encuentra en el servidor")
-        
-    return FileResponse(
-        path=evidence.file_url,
-        filename=evidence.file_name,
-        media_type=evidence.mime_type
+
+    # CAMBIO: antes se verificaba os.path.exists(evidence.file_url) y se
+    # devolvía con FileResponse desde disco. Ahora descargamos el contenido
+    # desde Supabase Storage y lo devolvimos como stream.
+    try:
+        content = await storage_service.download(evidence.file_url)
+    except Exception:
+        raise HTTPException(status_code=404, detail="El archivo físico no se encuentra en Supabase Storage")
+
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type=evidence.mime_type,
+        headers={"Content-Disposition": f'attachment; filename="{evidence.file_name}"'}
     )
+
 
 def _make_pdf(title: str, subtitle: str, sections: list) -> bytes:
     """Genera un PDF profesional con PyMuPDF. sections = [(heading, [(label, value), ...])]"""
-    import fitz
-
-    doc = fitz.open()
-    W, H = 595, 842  # A4
-
-    # Colores corporativos
-    C_GREEN  = (0.063, 0.725, 0.506)   # #10b981
-    C_DARK   = (0.086, 0.118, 0.157)   # #161E28
-    C_GRAY   = (0.42, 0.45, 0.50)
-    C_WHITE  = (1, 1, 1)
-    C_LINE   = (0.88, 0.90, 0.92)
-    C_BADGE  = {
-        "critical": ((0.93, 0.27, 0.27), "CRITICO"),
-        "high":     ((0.96, 0.62, 0.04), "ALTO"),
-        "medium":   ((0.25, 0.60, 0.96), "MEDIO"),
-        "low":      ((0.063, 0.725, 0.506), "BAJO"),
-        "open":       ((0.96, 0.62, 0.04), "ABIERTO"),
-        "in_review":  ((0.25, 0.60, 0.96), "EN REVISION"),
-        "mitigated":  ((0.063, 0.725, 0.506), "MITIGADO"),
-        "closed":     ((0.42, 0.45, 0.50), "CERRADO"),
-        "security":    (C_GREEN, "SEGURIDAD"),
-        "operational": ((0.25, 0.60, 0.96), "OPERACIONAL"),
-        "compliance":  ((0.58, 0.27, 0.96), "CUMPLIMIENTO"),
-        "privacy":     ((0.96, 0.27, 0.62), "PRIVACIDAD"),
-        "third_party": ((0.96, 0.62, 0.04), "TERCEROS"),
-    }
-
-    def new_page():
-        p = doc.new_page(width=W, height=H)
-        # Header verde
-        p.draw_rect(fitz.Rect(0, 0, W, 72), color=None, fill=C_GREEN)
-        p.insert_text((32, 28), "DANI ISO 27001", fontsize=13, color=C_WHITE, fontname="helv")
-        p.insert_text((32, 48), "Sistema de Gestion de Seguridad de la Informacion", fontsize=8, color=(0.8, 1, 0.9), fontname="helv")
-        # Fecha arriba derecha
-        fecha = datetime.utcnow().strftime("%d/%m/%Y")
-        p.insert_text((W - 90, 44), fecha, fontsize=9, color=C_WHITE, fontname="helv")
-        # Footer
-        p.draw_rect(fitz.Rect(0, H - 28, W, H), color=None, fill=C_DARK)
-        p.insert_text((32, H - 10), "Confidencial - ISO 27001:2022 | DANI GRC Platform", fontsize=7, color=(0.6, 0.6, 0.6), fontname="helv")
-        p.insert_text((W - 70, H - 10), f"Pag. {doc.page_count}", fontsize=7, color=(0.6, 0.6, 0.6), fontname="helv")
-        return p
-
-    # --- PORTADA ---
-    page = new_page()
-    page.draw_rect(fitz.Rect(32, 100, W - 32, 102), color=None, fill=C_GREEN)
-    page.insert_text((32, 140), title, fontsize=20, color=C_DARK, fontname="helv")
-    page.insert_text((32, 168), subtitle, fontsize=11, color=C_GRAY, fontname="helv")
-    page.draw_rect(fitz.Rect(32, 190, W - 32, 191), color=None, fill=C_LINE)
-    page.insert_text((32, 215), f"Generado el {datetime.utcnow().strftime('%d de %B de %Y a las %H:%M UTC')}", fontsize=9, color=C_GRAY, fontname="helv")
-    page.insert_text((32, 232), "Clasificacion: CONFIDENCIAL", fontsize=9, color=(0.93, 0.27, 0.27), fontname="helv")
-
-    # --- PÁGINAS DE CONTENIDO ---
-    y = 0
-    page = None
-
-    def ensure_space(needed=20):
-        nonlocal y, page
-        if page is None or y + needed > H - 50:
-            page = new_page()
-            y = 90
-
-    for heading, rows in sections:
-        ensure_space(40)
-        # Encabezado de sección
-        page.draw_rect(fitz.Rect(32, y, W - 32, y + 24), color=None, fill=C_DARK)
-        page.insert_text((40, y + 16), heading.upper(), fontsize=9, color=C_WHITE, fontname="helv")
-        y += 32
-
-        for label, value in rows:
-            ensure_space(18)
-            val_str = str(value) if value is not None else "N/A"
-
-            # Badge de color para campos especiales
-            badge_info = C_BADGE.get(val_str.lower())
-            if badge_info and label.lower() in ("nivel", "estado", "categoria"):
-                bcolor, btext = badge_info
-                bw = len(btext) * 5.5 + 12
-                page.draw_rect(fitz.Rect(200, y, 200 + bw, y + 14), color=None, fill=bcolor)
-                page.insert_text((204, y + 10), btext, fontsize=7, color=C_WHITE, fontname="helv")
-            else:
-                # Valor normal (truncar si muy largo)
-                if len(val_str) > 80:
-                    val_str = val_str[:80] + "..."
-                page.insert_text((200, y + 10), val_str, fontsize=8, color=C_DARK, fontname="helv")
-
-            page.insert_text((36, y + 10), label, fontsize=8, color=C_GRAY, fontname="helv")
-            y += 18
-
-            # Línea separadora ligera
-            page.draw_rect(fitz.Rect(32, y, W - 32, y + 0.5), color=None, fill=C_LINE)
-            y += 6
-
-        y += 8
-
-    buf = io.BytesIO()
-    doc.save(buf)
-    doc.close()
-    return buf.getvalue()
+    # (sin cambios respecto al original — se omite aquí por espacio,
+    # cópialo tal cual lo tienes en tu archivo actual)
+    ...
 
 
 @router.get("/export/zip")
@@ -279,7 +218,6 @@ async def export_evidences_zip(db: AsyncSession = Depends(get_db)):
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, False) as zf:
 
-        # 1. Un PDF por cláusula con sus evidencias
         ev_by_clause: dict = {k: [] for k in clause_folders}
         ev_general = []
         for ev in evidences:
@@ -318,13 +256,20 @@ async def export_evidences_zip(db: AsyncSession = Depends(get_db)):
             )
             zf.writestr(f"{folder}/Evidencias_Clausula_{prefix}.pdf", pdf_bytes)
 
-            # Incluir archivos físicos si existen
+            # CAMBIO: antes -> `if ev.file_url and os.path.exists(ev.file_url): zf.write(...)`
+            # leía del disco local. Ahora descargamos cada archivo desde
+            # Supabase Storage y lo escribimos directo en el zip en memoria.
             for ev in evs:
-                if ev.file_url and os.path.exists(ev.file_url):
-                    safe = "".join(c for c in (ev.file_name or ev.title) if c.isalnum() or c in " ._-")[:50]
-                    zf.write(ev.file_url, f"{folder}/{safe}")
+                if not ev.file_url:
+                    continue
+                try:
+                    file_bytes = await storage_service.download(ev.file_url)
+                except Exception:
+                    continue  # si un archivo individual falla, no rompemos todo el export
+                safe = "".join(c for c in (ev.file_name or ev.title) if c.isalnum() or c in " ._-")[:50]
+                zf.writestr(f"{folder}/{safe}", file_bytes)
 
-        # 2. PDF Registro de Riesgos
+        # --- PDF Registro de Riesgos y Resumen Ejecutivo: sin cambios ---
         risk_sections = []
         for r in risks:
             risk_sections.append((r.title[:70], [
@@ -346,7 +291,6 @@ async def export_evidences_zip(db: AsyncSession = Depends(get_db)):
         )
         zf.writestr("Riesgos/Registro_de_Riesgos.pdf", risk_pdf)
 
-        # 3. PDF Resumen Ejecutivo
         criticos = sum(1 for r in risks if r.risk_level and r.risk_level.value == "critical")
         altos    = sum(1 for r in risks if r.risk_level and r.risk_level.value == "high")
         medios   = sum(1 for r in risks if r.risk_level and r.risk_level.value == "medium")

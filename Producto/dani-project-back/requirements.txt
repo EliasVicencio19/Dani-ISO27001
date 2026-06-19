@@ -5,15 +5,14 @@ uvicorn==0.27.0
 # Base de Datos
 sqlalchemy==2.0.25
 asyncpg==0.29.0
-#psycopg2-binary==2.9.9
 
-# Seguridad (Configuración para evitar el error de 72 bytes)
+# Seguridad
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-jose[cryptography]==3.3.0
 python-multipart==0.0.7
 
-# IA y RAG (Plan de Max)
+# IA y RAG
 openai==1.12.0
 weaviate-client==4.4.4
 pgvector==0.2.5
@@ -26,7 +25,13 @@ pymupdf==1.23.26
 python-dotenv==1.0.1
 pydantic-settings==2.1.0
 redis==5.0.3
-pgvector==0.2.5
 mangum==0.17.0
-flask
-flask-cors
+
+# CAMBIO: httpx agregado — lo usa app/services/storage_service.py para
+# hablar con la API REST de Supabase Storage.
+httpx==0.27.0
+
+# CAMBIO: flask y flask-cors ELIMINADAS. Eran solo para el index.py de
+# prueba que ahora reemplazamos por tu FastAPI real envuelta en Mangum.
+# flask
+# flask-cors

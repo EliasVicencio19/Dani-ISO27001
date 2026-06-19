@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 import uuid
+import os
 from datetime import datetime
 from app.routes import chat
 from app.routes import gap_analysis
@@ -22,25 +23,27 @@ from app.models.capa import CAPA
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# app/main.py - Corregido
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize DB tables
+    # CAMBIO: con Mangum usamos lifespan="off" (ver app/api/index.py), así
+    # que este bloque YA NO corre dentro de Vercel. Lo dejamos intacto para
+    # que tu entorno LOCAL (uvicorn) siga funcionando igual que hoy.
+    # El setup equivalente para producción está en scripts/setup_supabase.py,
+    # que corres UNA VEZ manualmente apuntando a la DATABASE_URL de Supabase.
     async with engine.begin() as conn:
         from sqlalchemy import text
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
         await conn.run_sync(Base.metadata.create_all)
     logger.info("✅ Database tables created/verified")
-    
-    # Crear usuario admin por defecto
+
     from app.services.auth_service import AuthService
     from app.models.user import User, UserRole
-    
+
     async with AsyncSessionLocal() as session:
         from sqlalchemy import select
         result = await session.execute(select(User).where(User.email == "admin@dani27001.com"))
         admin = result.scalar_one_or_none()
-        
+
         if not admin:
             admin_user = User(
                 id=str(uuid.uuid4()),
@@ -53,15 +56,13 @@ async def lifespan(app: FastAPI):
             session.add(admin_user)
             await session.commit()
             logger.info("✅ Admin user created: admin@dani27001.com / admin123")
-    
+
     logger.info("✅ Backend ready!")
     yield
-    
-    # Shutdown
+
     logger.info("👋 Shutting down...")
     await engine.dispose()
 
-# Crear la aplicación FastAPI
 app = FastAPI(
     title="DANI27001 API",
     description="Security Compliance Management System for ISO 27001",
@@ -69,8 +70,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-
-# CORS configuration
+# CAMBIO: agregamos también el origin sin regex, por si necesitas un dominio
+# fijo que no termine en *.vercel.app (ej. un dominio propio de la empresa).
+# Reemplaza la URL de ejemplo por la real cuando la tengas, o bórrala si solo
+# usarás el subdominio *.vercel.app (ya cubierto por allow_origin_regex).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -78,6 +81,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
+        "https://dani-iso-27001.vercel.app/",  # <- dominio propio de la empresa, si aplica
     ],
     allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
@@ -110,7 +114,6 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
-# 🔴 IMPORTANTE: Esto es lo que faltaba
 if __name__ == "__main__":
     import uvicorn
     print("=" * 50)
@@ -121,5 +124,5 @@ if __name__ == "__main__":
         host="127.0.0.1",
         port=8000,
         log_level="info",
-        reload=False  # Cambia a True solo en desarrollo
+        reload=False
     )

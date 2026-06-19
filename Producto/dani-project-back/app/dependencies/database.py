@@ -2,6 +2,11 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy import Column, String, DateTime
+# CAMBIO: importamos NullPool. En serverless (Vercel) cada invocación puede ser
+# una instancia nueva del proceso; mantener un pool propio de SQLAlchemy no
+# tiene sentido y agota las conexiones de Postgres muy rápido. Dejamos que el
+# Connection Pooler de Supabase (PgBouncer) sea quien poolee las conexiones.
+from sqlalchemy.pool import NullPool
 from datetime import datetime
 import uuid
 import os
@@ -12,18 +17,16 @@ load_dotenv()
 # ============================================
 # 📌 VECTOR SUPPORT (pgvector)
 # ============================================
-# Detectar si pgvector está soportado
-PGVECTOR_SUPPORTED = False  # Por defecto, deshabilitado para evitar errores
+PGVECTOR_SUPPORTED = False
 
-# Intentar importar pgvector si está disponible
 try:
     from pgvector.sqlalchemy import Vector
     PGVECTOR_SUPPORTED = True
     print("✅ pgvector soportado")
 except ImportError:
     print("⚠️ pgvector no disponible, usando fallback")
-    
-    
+
+
 # ============================================
 # 📌 TIMESTAMP MIXIN
 # ============================================
@@ -45,14 +48,36 @@ if "postgresql://" in DATABASE_URL and "+asyncpg" not in DATABASE_URL:
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
     print("✅ Convertida URL a formato asyncpg")
 
-# Agregar SSL requirement si no está (para Render)
-if "postgresql" in DATABASE_URL and "ssl" not in DATABASE_URL:
-    if "?" in DATABASE_URL:
-        DATABASE_URL += "&ssl=require"
-    else:
-        DATABASE_URL += "?ssl=require"
+# CAMBIO: el bloque original agregaba "?ssl=require" en la URL, pensado para
+# Render. Con asyncpg ese query param NO es válido (asyncpg no reconoce
+# "ssl=require" como parámetro de URL) y puede romper la conexión a Supabase.
+# El SSL hacia Supabase se exige vía el propio host del pooler, así que
+# simplemente lo quitamos. Si en el futuro necesitas forzar SSL explícito,
+# se hace por `connect_args={"ssl": "require"}` y no por la URL.
+#
+# ANTES:
+# if "postgresql" in DATABASE_URL and "ssl" not in DATABASE_URL:
+#     if "?" in DATABASE_URL:
+#         DATABASE_URL += "&ssl=require"
+#     else:
+#         DATABASE_URL += "?ssl=require"
 
 print(f"🔗 Conectando a BD: {DATABASE_URL[:60]}...")
+
+# CAMBIO: si usas el Connection Pooler de Supabase (puerto 6543, modo
+# "Transaction"), PgBouncer NO soporta prepared statements. asyncpg por
+# defecto cachea/usa prepared statements, así que hay que desactivarlos.
+# Detectamos automáticamente el puerto 6543 para aplicar esto solo cuando
+# corresponde (si usas el puerto directo 5432 no hace falta, pero no hace daño).
+USING_PGBOUNCER = ":6543" in DATABASE_URL
+
+connect_args = {}
+if USING_PGBOUNCER:
+    connect_args = {
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+    }
+    print("🔁 Detectado puerto 6543 (Supabase PgBouncer): prepared statements deshabilitados")
 
 # Crear engine asíncrono
 engine = create_async_engine(
@@ -60,8 +85,12 @@ engine = create_async_engine(
     echo=False,
     future=True,
     pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10
+    # CAMBIO: antes -> pool_size=5, max_overflow=10 (pool propio de SQLAlchemy).
+    # Ahora usamos NullPool: cada conexión se abre y cierra por request, y es
+    # PgBouncer/Supabase quien gestiona el pooling real entre todas las
+    # invocaciones serverless.
+    poolclass=NullPool,
+    connect_args=connect_args,
 )
 
 AsyncSessionLocal = sessionmaker(
