@@ -347,13 +347,15 @@ export const evidenceAPI = {
     return response.json();
   },
   
-  upload: async (file, token) => {
-    const formData = new FormData();
-    formData.append('file', file);
+  upload: async (fileOrFormData, token) => {
+    const resolvedToken = token || localStorage.getItem('token');
+    const body = fileOrFormData instanceof FormData
+      ? fileOrFormData
+      : (() => { const fd = new FormData(); fd.append('file', fileOrFormData); return fd; })();
     const response = await fetch(`${API_URL}/api/evidence/upload`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: formData
+      headers: { ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` }) },
+      body
     });
     return response.json();
   },
