@@ -109,7 +109,11 @@ async def upload_evidence(
     try:
         file_bytes = await file.read()
         file_size = len(file_bytes)
-        storage_path = f"{uuid.uuid4()}_{file.filename}"
+        # Sanitizar nombre: solo ASCII alfanumérico, puntos y guiones
+        import unicodedata
+        safe_filename = unicodedata.normalize('NFKD', file.filename).encode('ascii', 'ignore').decode('ascii')
+        safe_filename = "".join(c for c in safe_filename if c.isalnum() or c in "._-") or "file"
+        storage_path = f"{uuid.uuid4()}_{safe_filename}"
 
         try:
             from app.config import settings
@@ -128,6 +132,7 @@ async def upload_evidence(
             print(f"❌ Error Supabase Storage: {se}")
             storage_path = f"local:{file.filename}"
 
+        now = datetime.utcnow()
         new_evidence = Evidence(
             title=file.filename,
             file_url=storage_path,
@@ -135,7 +140,7 @@ async def upload_evidence(
             file_size=file_size,
             mime_type=file.content_type or "application/octet-stream",
             evidence_type=EvidenceType.DOCUMENT,
-            verified_at=datetime.utcnow(),
+            verified_at=now,
             indexing_status="pending",
             evidence_metadata={
                 "control": control,

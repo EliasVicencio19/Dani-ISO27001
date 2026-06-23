@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, ForeignKey, JSON, Enum, Integer, Boolean, DateTime
+from sqlalchemy import Column, String, Text, ForeignKey, JSON, Enum, Integer, Boolean, DateTime, func
 from sqlalchemy.orm import relationship
 import enum
 from app.dependencies.database import Base
@@ -28,6 +28,8 @@ class Evidence(Base):
     evidence_metadata = Column(JSON, default={})  
     
     indexing_status = Column(String(20), default="pending")  # pending | indexing | done | error
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
     is_verified = Column(Boolean, default=False)
     verified_by = Column(String(100), nullable=True)
