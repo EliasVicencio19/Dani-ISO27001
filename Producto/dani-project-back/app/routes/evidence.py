@@ -2,30 +2,72 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 import zipfile
 import io
+import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
 from datetime import datetime
 import uuid
 import os
-# CAMBIO: shutil ya no se usa (no copiamos a disco local), se quita.
 
 from app.dependencies.auth import get_current_user
-from app.dependencies.database import get_db
+from app.dependencies.database import get_db, AsyncSessionLocal
 from app.models.evidence import Evidence, EvidenceType
 from app.services.embedding_service import EmbeddingService
-# CAMBIO: importamos el nuevo servicio de almacenamiento en Supabase.
 from app.services.storage_service import storage_service
 
 router = APIRouter(prefix="/api/evidence", tags=["Evidence"])
 embedding_service = EmbeddingService()
 
-# CAMBIO: ya NO creamos/usamos un directorio local persistente
-# (UPLOAD_DIR = "uploads/evidence" + os.makedirs). En Vercel ese directorio
-# no sobrevive entre invocaciones. Si necesitamos un archivo temporal local
-# (para que PyMuPDF/pypdf extraigan texto), lo escribimos en /tmp, que SÍ es
-# escribible dentro de una misma invocación, y lo subimos a Supabase Storage.
 TMP_DIR = "/tmp"
+
+
+async def _index_evidence_background(evidence_id: str, file_bytes: bytes, mime_type: str, tmp_path: str):
+    """Procesa el RAG en background sin bloquear el request de upload."""
+    async with AsyncSessionLocal() as db:
+        try:
+            result = await db.execute(select(Evidence).where(Evidence.id == evidence_id))
+            evidence = result.scalar_one_or_none()
+            if not evidence:
+                return
+
+            evidence.indexing_status = "indexing"
+            await db.commit()
+
+            os.makedirs(os.path.dirname(tmp_path), exist_ok=True)
+            with open(tmp_path, "wb") as f:
+                f.write(file_bytes)
+
+            extracted_text = embedding_service.extract_text_from_file(tmp_path, mime_type)
+            if extracted_text:
+                chunks = embedding_service.chunk_text(extracted_text)
+                if chunks:
+                    embeddings = embedding_service.generate_embeddings(chunks)
+                    from app.models.evidence_chunk import EvidenceChunk
+                    for idx, (chunk_content, chunk_emb) in enumerate(zip(chunks, embeddings)):
+                        db.add(EvidenceChunk(
+                            evidence_id=evidence_id,
+                            content=chunk_content,
+                            embedding=chunk_emb,
+                            chunk_index=idx
+                        ))
+
+            evidence.indexing_status = "done"
+            await db.commit()
+            print(f"✅ RAG completado para evidencia {evidence_id}")
+        except Exception as e:
+            print(f"⚠️ Error RAG background para {evidence_id}: {e}")
+            try:
+                result = await db.execute(select(Evidence).where(Evidence.id == evidence_id))
+                ev = result.scalar_one_or_none()
+                if ev:
+                    ev.indexing_status = "error"
+                    await db.commit()
+            except Exception:
+                pass
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
 
 @router.get("/")
@@ -62,16 +104,12 @@ async def upload_evidence(
     validityDays: int = Form(30),
     db: AsyncSession = Depends(get_db)
 ):
-    """Subir evidencia real y guardarla en Supabase Storage + DB"""
-    tmp_path = None
+    """Sube la evidencia a BD y lanza la indexación RAG en background."""
     try:
         file_bytes = await file.read()
-
-        # CAMBIO: el "path" que antes era una ruta de disco ahora es la
-        # clave/objeto dentro del bucket de Supabase Storage.
+        file_size = len(file_bytes)
         storage_path = f"{uuid.uuid4()}_{file.filename}"
 
-        # Intentar subir a Supabase Storage; si no está configurado, continuar sin storage externo
         try:
             from app.config import settings
             if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_KEY:
@@ -82,23 +120,18 @@ async def upload_evidence(
                 )
             else:
                 storage_path = f"local:{file.filename}"
-        except Exception as storage_err:
-            print(f"⚠️ Supabase Storage no disponible, continuando sin storage externo: {storage_err}")
+        except Exception:
             storage_path = f"local:{file.filename}"
 
-        file_size = len(file_bytes)
-
-        # Crear registro en base de datos
         new_evidence = Evidence(
             title=file.filename,
-            # CAMBIO: file_url ahora guarda el "path" dentro del bucket de
-            # Supabase Storage, no una ruta de disco local.
             file_url=storage_path,
             file_name=file.filename,
             file_size=file_size,
             mime_type=file.content_type or "application/octet-stream",
             evidence_type=EvidenceType.DOCUMENT,
             verified_at=datetime.utcnow(),
+            indexing_status="pending",
             evidence_metadata={
                 "control": control,
                 "type": "manual",
@@ -112,49 +145,37 @@ async def upload_evidence(
         await db.commit()
         await db.refresh(new_evidence)
 
-        # 🛡️ RAG: Indexar documento en fragmentos vectoriales de forma defensiva
-        try:
-            # CAMBIO: embedding_service.extract_text_from_file espera una ruta
-            # local, así que escribimos una copia temporal en /tmp SOLO para
-            # la extracción de texto dentro de esta misma invocación. No se
-            # usa para servir descargas ni se persiste entre requests.
-            tmp_path = os.path.join(TMP_DIR, storage_path)
-            with open(tmp_path, "wb") as f:
-                f.write(file_bytes)
+        evidence_id = new_evidence.id
+        tmp_path = os.path.join(TMP_DIR, storage_path.replace("/", "_"))
+        mime = file.content_type or ""
 
-            extracted_text = embedding_service.extract_text_from_file(tmp_path, file.content_type or "")
-            if extracted_text:
-                chunks = embedding_service.chunk_text(extracted_text)
-                if chunks:
-                    embeddings = embedding_service.generate_embeddings(chunks)
-
-                    from app.models.evidence_chunk import EvidenceChunk
-                    for idx, (chunk_content, chunk_emb) in enumerate(zip(chunks, embeddings)):
-                        chunk_obj = EvidenceChunk(
-                            evidence_id=new_evidence.id,
-                            content=chunk_content,
-                            embedding=chunk_emb,
-                            chunk_index=idx
-                        )
-                        db.add(chunk_obj)
-                    await db.commit()
-                    print(f"✅ Ingesta RAG completada: {len(chunks)} fragmentos indexados en BD para la evidencia: {new_evidence.id}")
-        except Exception as rag_err:
-            print(f"⚠️ Error durante la indexación RAG (el documento principal se guardó): {rag_err}")
-        finally:
-            # CAMBIO: limpiamos el temporal de /tmp para no acumular basura
-            # entre invocaciones que reutilizan el mismo contenedor "warm".
-            if tmp_path and os.path.exists(tmp_path):
-                os.remove(tmp_path)
+        # Lanzar indexación RAG en background — el request responde inmediato
+        asyncio.create_task(
+            _index_evidence_background(evidence_id, file_bytes, mime, tmp_path)
+        )
 
         return {
-            "message": "Evidencia subida correctamente",
-            "id": new_evidence.id,
-            "filename": file.filename
+            "message": "Evidencia subida correctamente. Indexando en segundo plano...",
+            "id": evidence_id,
+            "filename": file.filename,
+            "indexing_status": "pending"
         }
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al subir archivo: {str(e)}")
+
+
+@router.get("/{evidence_id}/status")
+async def get_evidence_status(
+    evidence_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Consulta el estado de indexación RAG de una evidencia."""
+    result = await db.execute(select(Evidence).where(Evidence.id == evidence_id))
+    ev = result.scalar_one_or_none()
+    if not ev:
+        raise HTTPException(status_code=404, detail="Evidencia no encontrada")
+    return {"id": evidence_id, "indexing_status": ev.indexing_status or "done"}
 
 
 @router.get("/{evidence_id}/download")

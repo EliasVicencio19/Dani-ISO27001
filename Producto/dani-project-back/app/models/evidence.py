@@ -27,6 +27,8 @@ class Evidence(Base):
     # 🔴 SOLUCIÓN: Cambiamos "metadata" por "evidence_metadata" para evitar conflictos
     evidence_metadata = Column(JSON, default={})  
     
+    indexing_status = Column(String(20), default="pending")  # pending | indexing | done | error
+
     is_verified = Column(Boolean, default=False)
     verified_by = Column(String(100), nullable=True)
     verified_at = Column(DateTime, nullable=True)

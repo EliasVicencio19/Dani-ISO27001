@@ -84,8 +84,9 @@ function EvidenceCenterScreen() {
 
   const l = labels[language] || labels.en;
 
-  const [evidences, setEvidences] = useState([]); 
+  const [evidences, setEvidences] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [indexingIds, setIndexingIds] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState('');
 
   const demoEvidences = [
@@ -130,9 +131,27 @@ function EvidenceCenterScreen() {
       formData.append("source", "Portal");
       formData.append("validityDays", 90);
       
-      await evidenceAPI.upload(formData);
+      const result = await evidenceAPI.upload(formData);
       await loadEvidences();
       setActiveTab('evidences');
+
+      // Polling del estado de indexación RAG
+      if (result?.id) {
+        setIndexingIds(prev => new Set(prev).add(result.id));
+        const poll = setInterval(async () => {
+          try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${(await import('../services/api')).API_URL}/api/evidence/${result.id}/status`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const { indexing_status } = await res.json();
+            if (indexing_status === 'done' || indexing_status === 'error') {
+              clearInterval(poll);
+              setIndexingIds(prev => { const s = new Set(prev); s.delete(result.id); return s; });
+            }
+          } catch { clearInterval(poll); }
+        }, 3000);
+      }
     } catch (error) {
       alert("Error subiendo evidencia: " + error.message);
     } finally {
@@ -209,6 +228,7 @@ function EvidenceCenterScreen() {
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>{l.title}</h1>
@@ -304,7 +324,13 @@ function EvidenceCenterScreen() {
                           <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: evidence.type === 'automatic' ? '#3b82f620' : '#f59e0b20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>{evidence.sourceIcon}</div>
                           <div>
                             <div style={{ fontSize: '14px', fontWeight: 600, color: t.text }}>{evidence.name}</div>
-                            <div style={{ fontSize: '11px', color: t.textDim }}>{evidence.type === 'automatic' ? l.automatic : l.manual}</div>
+                            {indexingIds.has(evidence.id)
+                              ? <div style={{ fontSize: '11px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', border: '2px solid #f59e0b', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+                                  Indexando para IA...
+                                </div>
+                              : <div style={{ fontSize: '11px', color: t.textDim }}>{evidence.type === 'automatic' ? l.automatic : l.manual}</div>
+                            }
                           </div>
                         </div>
                       </td>
