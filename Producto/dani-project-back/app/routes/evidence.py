@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import StreamingResponse
 import zipfile
 import io
@@ -98,6 +98,7 @@ async def get_all_evidence(
 
 @router.post("/upload")
 async def upload_evidence(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     control: str = Form("General"),
     source: str = Form("Manual"),
@@ -155,9 +156,8 @@ async def upload_evidence(
         mime = file.content_type or ""
 
         # Lanzar indexación RAG en background — el request responde inmediato
-        loop = asyncio.get_event_loop()
-        loop.create_task(
-            _index_evidence_background(evidence_id, file_bytes, mime, tmp_path)
+        background_tasks.add_task(
+            _index_evidence_background, evidence_id, file_bytes, mime, tmp_path
         )
 
         return {
@@ -167,6 +167,8 @@ async def upload_evidence(
             "indexing_status": "pending"
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al subir archivo: {str(e)}")
 
