@@ -5,6 +5,7 @@ import { ThemeContext } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import CAPATracker from '../components/CAPATracker';
 import ComplianceIntegrityPanel from '../components/ComplianceIntegrityPanel';
+import PreAuditPanel from '../components/PreAuditPanel';
 import { getComplianceScore, riskAPI, capaAPI } from '../services/api';
 
 const DashboardScreen = ({ onNavigate }) => {
@@ -598,6 +599,9 @@ const DashboardScreen = ({ onNavigate }) => {
 
       {/* COMPLIANCE INTEGRITY ALERTS */}
       {canAccessGapAnalysis && <ComplianceIntegrityPanel onNavigate={onNavigate} />}
+
+      {/* PRE-AUDIT SELF-ASSESSMENT */}
+      {canAccessGapAnalysis && <PreAuditPanel onNavigate={onNavigate} darkMode={darkMode} />}
 
       {/* RASTREADOR CAPA MODULAR COMPLETO */}
       <CAPATracker />

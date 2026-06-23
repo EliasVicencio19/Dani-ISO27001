@@ -318,6 +318,127 @@ async def get_compliance_integrity(
     }
 
 
+@router.get("/pre-audit")
+async def get_pre_audit_assessment(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Calcula el readiness para auditoría y predice los hallazgos más probables."""
+    from app.models.evidence import Evidence
+    from app.models.capa import CAPA, CAPAStatus, CAPAPriority
+    from app.models.document import Document, DocumentStatus
+    from datetime import datetime, timedelta
+
+    # --- Datos base ---
+    ctrl_result = await db.execute(select(ISOCControl).where(ISOCControl.applies == True))
+    all_controls = ctrl_result.scalars().all()
+    total = len(all_controls) or 1
+
+    implemented = [c for c in all_controls if c.status == "Implementado"]
+    planned     = [c for c in all_controls if c.status == "Planificado"]
+    not_impl    = [c for c in all_controls if c.status not in ("Implementado", "Planificado")]
+
+    ev_result = await db.execute(select(Evidence))
+    evidences = ev_result.scalars().all()
+    controls_with_evidence = set()
+    for ev in evidences:
+        ctrl = (ev.evidence_metadata or {}).get("control", "")
+        if ctrl:
+            controls_with_evidence.add(ctrl.strip().upper())
+
+    capa_result = await db.execute(select(CAPA))
+    capas = capa_result.scalars().all()
+    open_capas   = [c for c in capas if c.status == CAPAStatus.OPEN]
+    overdue_capas = [
+        c for c in open_capas
+        if c.due_date and c.due_date < datetime.utcnow()
+    ]
+
+    doc_result = await db.execute(select(Document))
+    documents = doc_result.scalars().all()
+    approved_docs = [d for d in documents if d.status == DocumentStatus.APPROVED]
+    draft_docs    = [d for d in documents if d.status == DocumentStatus.DRAFT]
+
+    # --- Cálculo de readiness (ponderado) ---
+    impl_pct     = len(implemented) / total * 100
+    evidence_pct = len(controls_with_evidence) / total * 100
+    capa_penalty = min(len(overdue_capas) * 5, 25)
+    doc_pct      = (len(approved_docs) / (len(documents) or 1)) * 100
+
+    readiness = round(
+        (impl_pct * 0.40) +
+        (evidence_pct * 0.35) +
+        (doc_pct * 0.25) -
+        capa_penalty
+    )
+    readiness = max(0, min(100, readiness))
+
+    # --- Hallazgos predichos ---
+    findings = []
+
+    # Controles implementados sin evidencia
+    impl_ids = {c.control_id.strip().upper() for c in implemented if c.control_id}
+    without_evidence = impl_ids - controls_with_evidence
+    if without_evidence:
+        findings.append({
+            "severity": "high" if len(without_evidence) > 5 else "medium",
+            "title": f"{len(without_evidence)} controles sin evidencia de efectividad",
+            "detail": "Controles marcados como Implementado pero sin evidencia en el Centro de Evidencias.",
+            "controls": sorted(without_evidence)[:5],
+        })
+
+    # CAPAs vencidas
+    if overdue_capas:
+        findings.append({
+            "severity": "high",
+            "title": f"{len(overdue_capas)} CAPA(s) vencidas sin resolver",
+            "detail": f"Acciones correctivas abiertas y fuera de plazo. Un auditor las marcará como no conformidad.",
+            "controls": [c.control or "N/A" for c in overdue_capas[:5]],
+        })
+
+    # Controles no implementados
+    if not_impl:
+        findings.append({
+            "severity": "high" if len(not_impl) > 10 else "medium",
+            "title": f"{len(not_impl)} controles sin implementar",
+            "detail": "Controles aplicables que aún no han sido implementados ni planificados.",
+            "controls": [c.control_id for c in not_impl[:5]],
+        })
+
+    # Documentos en borrador
+    if draft_docs:
+        findings.append({
+            "severity": "medium",
+            "title": f"{len(draft_docs)} documento(s) en estado borrador",
+            "detail": "Políticas y procedimientos no aprobados que un auditor no considerará válidos.",
+            "controls": [d.title[:40] for d in draft_docs[:4]],
+        })
+
+    # Controles planificados (no ejecutados)
+    if planned:
+        findings.append({
+            "severity": "low",
+            "title": f"{len(planned)} controles en estado Planificado",
+            "detail": "Controles con plan definido pero aún no ejecutados. Riesgo bajo si tienen fecha comprometida.",
+            "controls": [c.control_id for c in planned[:5]],
+        })
+
+    findings.sort(key=lambda f: {"high": 0, "medium": 1, "low": 2}[f["severity"]])
+
+    return {
+        "readiness": readiness,
+        "target": 85,
+        "impl_pct": round(impl_pct),
+        "evidence_pct": round(evidence_pct),
+        "doc_pct": round(doc_pct),
+        "open_capas": len(open_capas),
+        "overdue_capas": len(overdue_capas),
+        "total_controls": total,
+        "implemented": len(implemented),
+        "findings": findings,
+    }
+
+
 @router.get("/soa/export")
 async def export_soa_pdf(
     db: AsyncSession = Depends(get_db),
