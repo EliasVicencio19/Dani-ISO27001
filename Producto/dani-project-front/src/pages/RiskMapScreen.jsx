@@ -9,20 +9,19 @@ import { ThemeContext } from '../contexts/ThemeContext';
 import { riskAPI } from '../services/api';
 
 const RiskMapScreen = () => {
-  const { theme: t, language, darkMode } = useContext(ThemeContext);
+  const { theme: t, language, darkMode, highContrast } = useContext(ThemeContext);
   
   // ==========================================
   // 1. ESTADOS LOCALES Y DE LA API
   // ==========================================
-  const [risks, setRisks] = useState([]); // <- Aquí guardaremos los riesgos reales de la BD
+  const [risks, setRisks] = useState([]);
   
   const [selectedRisk, setSelectedRisk] = useState(null);
   const [appliedControls, setAppliedControls] = useState([]);
   const [showAssetDiscovery, setShowAssetDiscovery] = useState(true);
   const [activeAssetSource, setActiveAssetSource] = useState('network');
-  const [isAnalyzing, setIsAnalyzing] = useState(false); // NUEVO ESTADO PARA IA
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Estados para el Modal de Agregar Riesgo
   const [showAddModal, setShowAddModal] = useState(false);
   const [newRisk, setNewRisk] = useState({ title: '', description: '', likelihood: 3, impact: 3, category: 'security', owner: 'admin@dani27001.com' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,7 +48,6 @@ const RiskMapScreen = () => {
         setSelectedRisk({ ...demoRisks[0], name: demoRisks[0].title, prob: demoRisks[0].likelihood });
       }
     };
-
     fetchRisks();
   }, []);
 
@@ -64,14 +62,55 @@ const RiskMapScreen = () => {
   ];
 
   // ==========================================
-  // 4. FUNCIONES DE CÁLCULO
+  // 4. FUNCIONES DE CÁLCULO Y COLOR
   // ==========================================
+
+  // CAMBIO 1: Colores adaptativos según el tema activo
   const getMatrixCellColor = (prob, impact) => {
     const score = prob * impact;
-    if (score >= 15) return 'rgba(153, 27, 27, 0.4)';  // Rojo oscuro
-    if (score >= 10) return 'rgba(154, 52, 18, 0.4)';  // Naranja oscuro
-    if (score >= 5) return 'rgba(133, 77, 14, 0.4)';   // Amarillo oscuro
-    return 'rgba(6, 78, 59, 0.4)';                     // Verde oscuro
+
+    if (highContrast) {
+      // Alto contraste: colores puros y brillantes sobre negro
+      if (score >= 15) return '#7f0000';  // Rojo profundo con suficiente contraste
+      if (score >= 10) return '#7f3b00';  // Naranja oscuro puro
+      if (score >= 5)  return '#5c4a00';  // Amarillo oscuro puro
+      return '#003d1f';                   // Verde oscuro puro
+    }
+
+    if (!darkMode) {
+      // Modo claro: colores sólidos con opacidad suficiente para que se distingan bien
+      if (score >= 15) return 'rgba(185, 28, 28, 0.25)';   // Rojo
+      if (score >= 10) return 'rgba(194, 65, 12, 0.25)';   // Naranja
+      if (score >= 5)  return 'rgba(161, 98, 7, 0.25)';    // Amarillo/ámbar
+      return 'rgba(4, 120, 87, 0.18)';                     // Verde
+    }
+
+    // Modo oscuro (original)
+    if (score >= 15) return 'rgba(153, 27, 27, 0.4)';
+    if (score >= 10) return 'rgba(154, 52, 18, 0.4)';
+    if (score >= 5)  return 'rgba(133, 77, 14, 0.4)';
+    return 'rgba(6, 78, 59, 0.4)';
+  };
+
+  // CAMBIO 2: Borde de celda adaptativo
+  const getMatrixCellBorder = (prob, impact) => {
+    const score = prob * impact;
+    if (highContrast) {
+      // Alto contraste: bordes brillantes que demarcan cada zona
+      if (score >= 15) return '2px solid #ff4444';
+      if (score >= 10) return '2px solid #ff8800';
+      if (score >= 5)  return '2px solid #ffdd00';
+      return '2px solid #00cc66';
+    }
+    if (!darkMode) return '1px solid rgba(0,0,0,0.08)';
+    return '1px solid rgba(255,255,255,0.06)';
+  };
+
+  // CAMBIO 3: Color de borde para la burbuja de riesgo (para que resalte sobre el cuadrante)
+  const getRiskBubbleBorder = () => {
+    if (highContrast) return '2px solid #ffffff';
+    if (!darkMode) return '2px solid #1e293b';
+    return '2px solid rgba(255,255,255,0.9)';
   };
 
   const getRiskBadgeColor = (score) => {
@@ -104,7 +143,6 @@ const RiskMapScreen = () => {
       if (response && response.controls) {
         setSelectedRisk(prev => ({ ...prev, controls: response.controls }));
       } else if (response && response.recommendations) {
-        // Adaptar si el backend devuelve recommendations
         const mappedControls = response.recommendations.map((rec, idx) => ({
           id: `ai_${idx}`,
           name: rec.title || rec,
@@ -149,6 +187,49 @@ const RiskMapScreen = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // ==========================================
+  // CAMBIO 4: Estilos del panel de simulación adaptativos al tema
+  // ==========================================
+  const getSimulationPanelStyle = () => {
+    if (highContrast) {
+      return {
+        background: '#000000',
+        borderRadius: '16px',
+        border: '2px solid #ffffff',
+        padding: '24px',
+      };
+    }
+    if (!darkMode) {
+      // Modo claro: fondo blanco con borde morado sutil
+      return {
+        background: 'rgba(255, 255, 255, 0.95)',
+        borderRadius: '16px',
+        border: '1px solid rgba(99, 102, 241, 0.25)',
+        padding: '24px',
+        boxShadow: '0 2px 12px rgba(99, 102, 241, 0.08)',
+      };
+    }
+    // Modo oscuro: original
+    return {
+      background: '#1e1b4b',
+      borderRadius: '16px',
+      border: '1px solid rgba(99, 102, 241, 0.2)',
+      padding: '24px',
+    };
+  };
+
+  const getSimulationTextColor = () => {
+    if (highContrast) return '#ffffff';
+    if (!darkMode) return '#4c1d95'; // Morado oscuro visible sobre blanco
+    return '#8b5cf6';
+  };
+
+  const getSimulationSubtextColor = () => {
+    if (highContrast) return '#cccccc';
+    if (!darkMode) return '#6b7280';
+    return 'rgba(255,255,255,0.5)';
   };
 
   // ==========================================
@@ -233,68 +314,179 @@ const RiskMapScreen = () => {
       {/* 2. SECCIÓN: MATRIZ Y SIMULADOR */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '24px' }}>
         
-        {/* LA MATRIZ 5x5 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gridTemplateRows: 'repeat(5, 1fr)', gap: '8px', background: 'transparent' }}>
-          {[5, 4, 3, 2, 1].map((prob) => (
-            [1, 2, 3, 4, 5].map((impact) => {
-              
-              // Lógica mixta: Usa datos de BD si existen, si no, usa el fallback visual
-              let riskCount = null;
-              let cellRisks = [];
-              
-              if (risks.length > 0) {
-                cellRisks = risks.filter(r => (r.likelihood || r.prob || 0) === prob && (r.impact || 0) === impact);
-                if (cellRisks.length > 0) riskCount = cellRisks.length;
-              }
+        {/* MATRIZ 5x5 CON EJES EXPLÍCITOS Y LEYENDA ARRIBA */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
-              const score = prob * impact;
-              const levelLabel = score >= 15 ? 'Crítico' : score >= 10 ? 'Alto' : score >= 5 ? 'Medio' : 'Bajo';
-
-              return (
-                <div
-                  key={`${prob}-${impact}`}
-                  title={`Probabilidad ${prob} · Impacto ${impact} · ${levelLabel}${riskCount ? ` · ${riskCount} riesgo(s)` : ' · Click para agregar'}`}
-                  onClick={() => {
-                    if (cellRisks.length > 0) {
-                      const r = cellRisks[0];
-                      setSelectedRisk({ ...r, name: r.title, prob: r.likelihood || r.prob, impact: r.impact });
-                      setAppliedControls([]);
-                    } else {
-                      // Celda vacía: abrir modal pre-rellenado con prob e impact de esta celda
-                      setNewRisk(prev => ({ ...prev, likelihood: prob, impact }));
-                      setShowAddModal(true);
-                    }
-                  }}
-                  style={{
-                    aspectRatio: '1',
-                    background: getMatrixCellColor(prob, impact),
-                    borderRadius: '12px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: `1px solid rgba(255,255,255,0.06)`,
-                    cursor: 'pointer',
-                    transition: 'transform 0.1s ease, filter 0.1s ease',
-                    position: 'relative',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.filter = 'brightness(1.3)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'brightness(1)'; }}
-                >
-                  {riskCount ? (
-                    <div style={{
-                      width: '36px', height: '36px', borderRadius: '8px',
-                      background: getRiskBadgeColor(score),
-                      color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '16px', fontWeight: 800, boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-                    }}>
-                      {riskCount}
-                    </div>
-                  ) : (
-                    <div style={{ opacity: 0, fontSize: '18px', color: 'white', fontWeight: 700, transition: 'opacity 0.15s' }}
-                      className="cell-plus">+</div>
-                  )}
+          {/* FILA 1: Leyenda de colores — encima del mapa, alineada a la derecha */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '56px', paddingBottom: '2px' }}>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {[
+                { label: 'Bajo',    color: '#10b981', range: '1\u20134' },
+                { label: 'Medio',   color: '#eab308', range: '5\u20139' },
+                { label: 'Alto',    color: '#f59e0b', range: '10\u201314' },
+                { label: 'Crítico', color: '#ef4444', range: '\u226515' },
+              ].map(({ label, color, range }) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <div style={{
+                    width: '12px', height: '12px', borderRadius: '3px',
+                    background: color, flexShrink: 0,
+                    border: highContrast ? '1px solid #fff' : 'none',
+                  }} />
+                  <span style={{ fontSize: '11px', color: t.textDim, fontWeight: 700 }}>{label}</span>
+                  <span style={{ fontSize: '10px', color: t.textDim, opacity: 0.55 }}>({range})</span>
                 </div>
-              );
-            })
-          ))}
+              ))}
+            </div>
+          </div>
+
+          {/* FILA 2: Etiqueta "Impacto" centrada sobre las columnas con líneas decorativas */}
+          <div style={{ display: 'flex', alignItems: 'center', paddingLeft: '56px' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <div style={{ flex: 1, height: '1px', background: t.border }} />
+              <span style={{ fontSize: '11px', fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '1.5px', whiteSpace: 'nowrap' }}>
+                Impacto
+              </span>
+              <div style={{ flex: 1, height: '1px', background: t.border }} />
+            </div>
+          </div>
+
+          {/* FILA 3: Números del eje X — gap 8px igual que la grid */}
+          <div style={{ display: 'flex', paddingLeft: '56px', gap: '8px' }}>
+            {[1, 2, 3, 4, 5].map(n => (
+              <div key={n} style={{ flex: 1, textAlign: 'center', fontSize: '11px', fontWeight: 700, color: t.textDim, paddingBottom: '2px' }}>
+                {n}
+              </div>
+            ))}
+          </div>
+
+          {/* Fila: etiqueta Y + números Y + celdas */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+
+            {/* Etiqueta del eje Y (Probabilidad) — rotada verticalmente */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '28px', flexShrink: 0 }}>
+              <span style={{
+                fontSize: '12px', fontWeight: 700, color: t.textMuted,
+                textTransform: 'uppercase', letterSpacing: '1.5px',
+                writingMode: 'vertical-rl',
+                transform: 'rotate(180deg)',
+                whiteSpace: 'nowrap',
+              }}>
+                ← Probabilidad
+              </span>
+            </div>
+
+            {/* Números del eje Y + celdas */}
+            <div style={{ display: 'flex', flex: 1, gap: '8px' }}>
+
+              {/* Números del eje Y (5 a 1, de arriba a abajo) — gap idéntico al de la grid */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {[5, 4, 3, 2, 1].map(n => (
+                  <div key={n} style={{
+                    // altura calculada igual que las celdas: aspect-ratio 1 + el gap interno
+                    // usamos minHeight para que sea proporcional al contenedor
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: '20px',
+                    // flex: 1 hace que cada número ocupe exactamente 1/5 del alto total
+                    flex: 1,
+                    fontSize: '11px', fontWeight: 700, color: t.textDim
+                  }}>
+                    {n}
+                  </div>
+                ))}
+              </div>
+
+              {/* La cuadrícula — gap 8px: respira sin fragmentarse ni solaparse en hover */}
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(5, 1fr)', 
+                gridTemplateRows: 'repeat(5, 1fr)', 
+                gap: '8px',
+                flex: 1,
+                // isolation: isolate es clave para que el z-index del hover funcione
+                // sin afectar elementos fuera del grid
+                isolation: 'isolate',
+                background: 'transparent'
+              }}>
+                {[5, 4, 3, 2, 1].map((prob) => (
+                  [1, 2, 3, 4, 5].map((impact) => {
+                    
+                    let riskCount = null;
+                    let cellRisks = [];
+                    
+                    if (risks.length > 0) {
+                      cellRisks = risks.filter(r => (r.likelihood || r.prob || 0) === prob && (r.impact || 0) === impact);
+                      if (cellRisks.length > 0) riskCount = cellRisks.length;
+                    }
+
+                    const score = prob * impact;
+                    const levelLabel = score >= 15 ? 'Crítico' : score >= 10 ? 'Alto' : score >= 5 ? 'Medio' : 'Bajo';
+
+                    return (
+                      <div
+                        key={`${prob}-${impact}`}
+                        title={`Probabilidad ${prob} · Impacto ${impact} · ${levelLabel}${riskCount ? ` · ${riskCount} riesgo(s)` : ' · Click para agregar'}`}
+                        onClick={() => {
+                          if (cellRisks.length > 0) {
+                            const r = cellRisks[0];
+                            setSelectedRisk({ ...r, name: r.title, prob: r.likelihood || r.prob, impact: r.impact });
+                            setAppliedControls([]);
+                          } else {
+                            setNewRisk(prev => ({ ...prev, likelihood: prob, impact }));
+                            setShowAddModal(true);
+                          }
+                        }}
+                        style={{
+                          aspectRatio: '1',
+                          background: getMatrixCellColor(prob, impact),
+                          borderRadius: '8px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          border: getMatrixCellBorder(prob, impact),
+                          cursor: 'pointer',
+                          // transition suave; z-index se actualiza instantáneo via onMouseEnter
+                          transition: 'transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease',
+                          position: 'relative',
+                          zIndex: 1,
+                        }}
+                        onMouseEnter={e => {
+                          // scale(1.04): hover visible pero sin invadir celdas vecinas
+                          // z-index 10 sube la celda sobre sus vecinas dentro del isolation context
+                          e.currentTarget.style.transform = 'scale(1.04)';
+                          e.currentTarget.style.filter = 'brightness(1.2)';
+                          e.currentTarget.style.zIndex = '10';
+                          e.currentTarget.style.boxShadow = highContrast
+                            ? '0 0 0 2px #ffffff, 0 8px 24px rgba(0,0,0,0.6)'
+                            : '0 8px 24px rgba(0,0,0,0.3)';
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.filter = 'brightness(1)';
+                          e.currentTarget.style.zIndex = '1';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      >
+                        {riskCount ? (
+                          <div style={{
+                            width: '36px', height: '36px', borderRadius: '8px',
+                            background: getRiskBadgeColor(score),
+                            color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '16px', fontWeight: 800,
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                            border: getRiskBubbleBorder(),
+                          }}>
+                            {riskCount}
+                          </div>
+                        ) : (
+                          <div style={{ opacity: 0, fontSize: '18px', color: 'white', fontWeight: 700, transition: 'opacity 0.15s' }}
+                            className="cell-plus">+</div>
+                        )}
+                      </div>
+                    );
+                  })
+                ))}
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* PANEL DE SIMULACIÓN */}
@@ -320,12 +512,12 @@ const RiskMapScreen = () => {
             </div>
           </div>
 
-          {/* Caja Oscura de Simulación */}
-          <div style={{ background: '#1e1b4b', borderRadius: '16px', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '24px' }}>
+          {/* CAMBIO 4: Caja de Simulación adaptativa al tema */}
+          <div style={getSimulationPanelStyle()}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={16} color="#8b5cf6" />
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '1px' }}>Modo Simulación</span>
+                <Sparkles size={16} color={getSimulationTextColor()} />
+                <span style={{ fontSize: '12px', fontWeight: 700, color: getSimulationTextColor(), textTransform: 'uppercase', letterSpacing: '1px' }}>Modo Simulación</span>
               </div>
               <button 
                 onClick={handleAnalyzeWithAI}
@@ -344,7 +536,7 @@ const RiskMapScreen = () => {
             
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Antes</div>
+                <div style={{ fontSize: '12px', color: getSimulationSubtextColor(), marginBottom: '4px' }}>Antes</div>
                 <div style={{ fontSize: '32px', fontWeight: 800, color: getRiskBadgeColor(selectedRisk.prob * selectedRisk.impact), lineHeight: '1' }}>
                   {selectedRisk.prob * selectedRisk.impact}
                 </div>
@@ -353,11 +545,11 @@ const RiskMapScreen = () => {
                 </div>
               </div>
               
-              <ArrowRight size={24} color="rgba(255,255,255,0.2)" />
+              <ArrowRight size={24} color={getSimulationSubtextColor()} />
               
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Después</div>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: appliedControls.length > 0 ? '#10b981' : 'rgba(255,255,255,0.2)', lineHeight: '1', transition: 'color 0.3s' }}>
+                <div style={{ fontSize: '12px', color: getSimulationSubtextColor(), marginBottom: '4px' }}>Después</div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: appliedControls.length > 0 ? '#10b981' : getSimulationSubtextColor(), lineHeight: '1', transition: 'color 0.3s' }}>
                   {appliedControls.length > 0 ? calculateMitigatedScore(selectedRisk) : '--'}
                 </div>
               </div>
@@ -455,4 +647,4 @@ const RiskMapScreen = () => {
   );
 };
 
-export default RiskMapScreen;
+export default RiskMapScreen; 

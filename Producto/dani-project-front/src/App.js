@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext'; // Importación vital
 import Login from './pages/Login';
-import DaniPlatform from './dani-platform-v3';
+import DaniPlatform from './dani-platform-respaldo';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import GapAnalysis from './pages/GapAnalysisScreen'; // o el nombre correcto de tu componente
 
