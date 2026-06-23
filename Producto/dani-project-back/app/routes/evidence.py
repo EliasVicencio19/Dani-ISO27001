@@ -112,15 +112,19 @@ async def upload_evidence(
 
         try:
             from app.config import settings
+            print(f"🔧 SUPABASE_URL={settings.SUPABASE_URL!r}  BUCKET={settings.SUPABASE_STORAGE_BUCKET!r}")
             if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_KEY:
                 await storage_service.upload(
                     path=storage_path,
                     content=file_bytes,
                     content_type=file.content_type or "application/octet-stream",
                 )
+                print(f"✅ Archivo subido a Supabase Storage: {storage_path}")
             else:
+                print("⚠️ Supabase no configurado, usando local")
                 storage_path = f"local:{file.filename}"
-        except Exception:
+        except Exception as se:
+            print(f"❌ Error Supabase Storage: {se}")
             storage_path = f"local:{file.filename}"
 
         new_evidence = Evidence(

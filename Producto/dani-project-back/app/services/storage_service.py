@@ -12,9 +12,19 @@ from app.config import settings
 
 class StorageService:
     def __init__(self):
-        self.base_url = settings.SUPABASE_URL.rstrip("/")
-        self.service_key = settings.SUPABASE_SERVICE_KEY
-        self.bucket = settings.SUPABASE_STORAGE_BUCKET
+        pass
+
+    @property
+    def base_url(self):
+        return settings.SUPABASE_URL.rstrip("/")
+
+    @property
+    def service_key(self):
+        return settings.SUPABASE_SERVICE_KEY
+
+    @property
+    def bucket(self):
+        return settings.SUPABASE_STORAGE_BUCKET
 
     def _headers(self, content_type: str = "application/octet-stream") -> dict:
         return {
