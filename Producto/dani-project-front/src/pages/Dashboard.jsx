@@ -5,6 +5,8 @@ import { ThemeContext } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import CAPATracker from '../components/CAPATracker';
 import ComplianceIntegrityPanel from '../components/ComplianceIntegrityPanel';
+import PreAuditPanel from '../components/PreAuditPanel';
+import PriorityActionsPanel from '../components/PriorityActionsPanel';
 import { getComplianceScore, riskAPI, capaAPI } from '../services/api';
 
 const DashboardScreen = ({ onNavigate }) => {
@@ -14,6 +16,7 @@ const DashboardScreen = ({ onNavigate }) => {
   const canAccessGapAnalysis = ['admin', 'manager', 'auditor'].includes(user?.role);
 
   const [healthScore, setHealthScore] = useState(null);
+  const [tripleScore, setTripleScore] = useState(null);
   const [riskStats, setRiskStats] = useState(null);
   const [controlStats, setControlStats] = useState(null);
   const [lastSync, setLastSync] = useState(null);
@@ -37,6 +40,11 @@ const DashboardScreen = ({ onNavigate }) => {
               certDate: scoreData.estimated_certification_date,
             });
           }
+          setTripleScore({
+            doc: scoreData.doc_score ?? 0,
+            impl: scoreData.impl_score ?? 0,
+            tested: scoreData.tested_score ?? 0,
+          });
         }
         if (statsData && !statsData.detail) setRiskStats(statsData);
         setLastSync(new Date());
@@ -509,6 +517,24 @@ const DashboardScreen = ({ onNavigate }) => {
               <div style={{ fontSize: '11px', color: t.textDim }}>{tr('ready')}</div>
             </div>
           </div>
+          {/* Triple Score */}
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+            {[
+              { label: 'Documentado', value: tripleScore?.doc ?? 0, color: '#10b981' },
+              { label: 'Implementado', value: tripleScore?.impl ?? 0, color: '#3b82f6' },
+              { label: 'Probado', value: tripleScore?.tested ?? 0, color: '#f59e0b' },
+            ].map(({ label, value, color }) => (
+              <div key={label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                  <span style={{ fontSize: '11px', color: t.textDim }}>{label}</span>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color }}>{isLoading ? '...' : `${value}%`}</span>
+                </div>
+                <div style={{ background: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', height: '4px', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ width: `${isLoading ? 0 : value}%`, height: '100%', background: color, borderRadius: '2px', transition: 'width 0.6s ease' }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Controles Implementados */}
@@ -573,7 +599,12 @@ const DashboardScreen = ({ onNavigate }) => {
       )}
 
       {/* COMPLIANCE INTEGRITY ALERTS */}
+      {canAccessGapAnalysis && <PriorityActionsPanel onNavigate={onNavigate} darkMode={darkMode} />}
+
       {canAccessGapAnalysis && <ComplianceIntegrityPanel onNavigate={onNavigate} />}
+
+      {/* PRE-AUDIT SELF-ASSESSMENT */}
+      {canAccessGapAnalysis && <PreAuditPanel onNavigate={onNavigate} darkMode={darkMode} />}
 
       {/* RASTREADOR CAPA MODULAR COMPLETO */}
       <CAPATracker />

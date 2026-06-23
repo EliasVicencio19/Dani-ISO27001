@@ -9,6 +9,7 @@ from app.config import settings
 
 from app.models.gap_analysis import GapAnalysis, RemediationAction, ControlImplementation, KPI, PriorityLevel, GapStatus
 from app.models.iso_controls import ISOCControl
+from app.models.evidence import Evidence
 
 class GapAnalyzer:
     """Analizador de brechas ISO 27001"""
@@ -253,16 +254,38 @@ class GapAnalyzer:
         """Calcular score general de cumplimiento"""
         clause_scores = await self._analyze_clauses()
         weighted_sum = sum(c["current_score"] * c["weight"] for c in clause_scores)
-        
+
         control_analysis = await self._analyze_controls()
         control_score = (control_analysis["implemented_controls"] / control_analysis["total_controls"]) * 100
-        
+
         # Score general
         overall = (weighted_sum + control_score) / 2
-        
+
         gap = max(0, 85 - overall)
         months_needed = max(1, gap / 10)
         estimated_date = datetime.utcnow() + timedelta(days=int(months_needed * 30))
+
+        # Triple Score: Documentado / Implementado / Probado
+        all_result = await self.db.execute(
+            select(ISOCControl).where(ISOCControl.applies == True)
+        )
+        all_controls = all_result.scalars().all()
+        total = len(all_controls) or 1
+
+        documented = sum(1 for c in all_controls if c.document_id)
+        implemented = sum(1 for c in all_controls if c.status == "Implementado")
+
+        ev_result = await self.db.execute(select(Evidence))
+        evidences = ev_result.scalars().all()
+        controls_with_evidence = set()
+        for ev in evidences:
+            ctrl = (ev.evidence_metadata or {}).get("control", "")
+            if ctrl:
+                controls_with_evidence.add(ctrl.strip().upper())
+
+        impl_controls_ids = {c.control_id.strip().upper() for c in all_controls if c.status == "Implementado" and c.control_id}
+        tested = len(impl_controls_ids & controls_with_evidence)
+        impl_total = len(impl_controls_ids) or 1
 
         return {
             "overall_score": round(overall, 1),
@@ -275,6 +298,9 @@ class GapAnalyzer:
             "trend": "up" if overall > 50 else "down",
             "estimated_certification_date": estimated_date.strftime("%b %d, %Y"),
             "days_to_certification": max(0, (estimated_date - datetime.utcnow()).days),
+            "doc_score": round(documented / total * 100),
+            "impl_score": round(implemented / total * 100),
+            "tested_score": round(tested / impl_total * 100),
         }
     
     def _get_priority(self, gap: float) -> str:

@@ -490,11 +490,50 @@ function EvidenceCenterScreen() {
                     {language === 'es' ? 'Control ISO' : 'ISO Control'}
                   </label>
                   <select name="control" style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none' }}>
-                    <option value="A.5.15">A.5.15 (Access Control)</option>
-                    <option value="A.8.24">A.8.24 (Cryptography)</option>
-                    <option value="A.6.2">A.6.2 (HR Security)</option>
-                    <option value="A.8.13">A.8.13 (Backups)</option>
-                    <option value="A.8.8">A.8.8 (Vulnerability Mgmt)</option>
+                    <optgroup label="Cláusulas SGSI">
+                      <option value="5.1">5.1 — Políticas de seguridad</option>
+                      <option value="6.1">6.1 — Evaluación de riesgos</option>
+                      <option value="7.2">7.2 — Competencia y formación</option>
+                      <option value="8.2">8.2 — Evaluación de riesgos SI</option>
+                      <option value="9.1">9.1 — Seguimiento y medición</option>
+                      <option value="9.3">9.3 — Revisión por la dirección</option>
+                      <option value="10.1">10.1 — No conformidades y acciones correctivas</option>
+                    </optgroup>
+                    <optgroup label="Anexo A — Controles Organizacionales">
+                      <option value="A.5.1">A.5.1 — Políticas de seguridad</option>
+                      <option value="A.5.9">A.5.9 — Inventario de activos</option>
+                      <option value="A.5.15">A.5.15 — Control de acceso</option>
+                      <option value="A.5.16">A.5.16 — Gestión de identidades</option>
+                      <option value="A.5.23">A.5.23 — Seguridad en servicios cloud</option>
+                      <option value="A.5.29">A.5.29 — Seguridad en incidentes</option>
+                      <option value="A.5.30">A.5.30 — Continuidad de negocio</option>
+                    </optgroup>
+                    <optgroup label="Anexo A — Controles de Personas">
+                      <option value="A.6.1">A.6.1 — Selección de personal</option>
+                      <option value="A.6.2">A.6.2 — Términos y condiciones</option>
+                      <option value="A.6.3">A.6.3 — Concienciación y formación</option>
+                      <option value="A.6.4">A.6.4 — Proceso disciplinario</option>
+                      <option value="A.6.5">A.6.5 — Cese o cambio de empleo</option>
+                    </optgroup>
+                    <optgroup label="Anexo A — Controles Físicos">
+                      <option value="A.7.1">A.7.1 — Perímetros de seguridad física</option>
+                      <option value="A.7.2">A.7.2 — Entrada física</option>
+                      <option value="A.7.4">A.7.4 — Monitorización física</option>
+                      <option value="A.7.8">A.7.8 — Ubicación de equipos</option>
+                    </optgroup>
+                    <optgroup label="Anexo A — Controles Tecnológicos">
+                      <option value="A.8.2">A.8.2 — Derechos de acceso privilegiado</option>
+                      <option value="A.8.5">A.8.5 — Autenticación segura</option>
+                      <option value="A.8.7">A.8.7 — Protección contra malware</option>
+                      <option value="A.8.8">A.8.8 — Gestión de vulnerabilidades</option>
+                      <option value="A.8.10">A.8.10 — Borrado de información</option>
+                      <option value="A.8.13">A.8.13 — Copias de seguridad</option>
+                      <option value="A.8.15">A.8.15 — Registros de actividad (logs)</option>
+                      <option value="A.8.16">A.8.16 — Monitorización de actividades</option>
+                      <option value="A.8.20">A.8.20 — Seguridad en redes</option>
+                      <option value="A.8.24">A.8.24 — Uso de criptografía</option>
+                      <option value="A.8.28">A.8.28 — Codificación segura</option>
+                    </optgroup>
                   </select>
                 </div>
                 <div>
