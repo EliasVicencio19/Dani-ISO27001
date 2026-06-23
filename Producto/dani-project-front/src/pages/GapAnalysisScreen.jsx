@@ -3,7 +3,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import {
   Building2, Target, Users, Lock, Sparkles, Eye,
   ChevronLeft, ChevronRight, Download, FolderUp, CheckCircle2,
-  AlertCircle, Activity, Shield, Edit3, FileCheck, Globe
+  AlertCircle, Activity, Shield, Edit3, FileCheck, Globe, Wand2
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { complianceAPI, documentsAPI, API_URL } from '../services/api';
@@ -636,6 +636,18 @@ function GapAnalysisScreen({ onNavigate }) {
                     <span style={{ fontSize: '12px', color: control.justification ? t.textMuted : '#ef4444', fontStyle: control.justification ? 'normal' : 'italic' }}>{control.justification || tText.required}</span>
                     <button onClick={() => setShowJustificationModal(control)} title="Editar manualmente" style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: t.textDim }}><Edit3 size={14} /></button>
                     <button onClick={() => setShowAIAuditModal(control)} title="Auditar con IA" style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: '#8b5cf6' }}><Sparkles size={14} /></button>
+                    {onNavigate && control.status !== 'implemented' && (
+                      <button 
+                        onClick={() => {
+                          const chapterNum = control.id.startsWith('A.') ? '8' : control.id.split('.')[0];
+                          onNavigate('doc-generator', { targetChapterNumber: chapterNum, targetControlId: control.id, targetControlTitle: control.title });
+                        }} 
+                        title="Generar Documento con IA" 
+                        style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: '#10b981' }}
+                      >
+                        <Wand2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -681,7 +693,7 @@ function GapAnalysisScreen({ onNavigate }) {
                     style={{ padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', textAlign: 'left', cursor: isAuditing ? 'wait' : 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                   >
                     <div>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: t.text }}>Capítulo {doc.chapter_id}</div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: t.text }}>Capítulo {String(doc.chapter_id).replace('chapter_', '')}</div>
                       <div style={{ fontSize: '12px', color: t.textDim }}>{doc.title}</div>
                     </div>
                     {isAuditing && <div style={{ fontSize: '12px', color: '#8b5cf6' }}>Evaluando...</div>}
@@ -827,8 +839,7 @@ function GapAnalysisScreen({ onNavigate }) {
               </div>
             </div>
             <div style={{ marginTop: '14px', fontSize: '13px', color: t.textDim }}>
-              {language === 'es' ? 'Costo estimado' : 'Estimated cost'}: <strong style={{ color: t.text }}>${sprints.estimated_cost_usd?.toLocaleString() ?? '—'} USD</strong>
-              {' · '}{sprints.total_hours}h {language === 'es' ? 'totales' : 'total'}
+              {sprints.total_hours}h {language === 'es' ? 'estimadas en total' : 'estimated total'}
             </div>
           </div>
         )}
@@ -993,7 +1004,21 @@ function GapAnalysisScreen({ onNavigate }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
                     <span style={{ fontSize: '13px', fontWeight: 600, color: t.text }}>{ctrl.id} — {ctrl.title}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: ctrl.compliant ? '#10b981' : '#ef4444' }}>{ctrl.score}%</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: ctrl.compliant ? '#10b981' : '#ef4444' }}>{ctrl.score}%</span>
+                      {!ctrl.compliant && onNavigate && (
+                        <button 
+                          onClick={() => {
+                            const chapterNum = ctrl.id.startsWith('A.') ? '8' : ctrl.id.split('.')[0];
+                            onNavigate('doc-generator', { targetChapterNumber: chapterNum, targetControlId: ctrl.id, targetControlTitle: ctrl.title });
+                          }}
+                          style={{ padding: '4px 10px', background: '#8b5cf6', border: 'none', borderRadius: '6px', color: 'white', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <Sparkles size={12} />
+                          {language === 'es' ? 'Remediar' : 'Remediate'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div style={{ fontSize: '12px', color: t.textDim }}>{ctrl.finding}</div>
                 </div>

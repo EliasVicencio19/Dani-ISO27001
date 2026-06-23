@@ -24,6 +24,8 @@ const DocGeneratorScreen = ({ navParams }) => {
   const [documentContent, setDocumentContent] = useState({});
   const [documentStatus, setDocumentStatus] = useState({});
   const [isLoadingDoc, setIsLoadingDoc] = useState(false);
+  const [targetControl, setTargetControl] = useState(null);
+  const [targetControlTitle, setTargetControlTitle] = useState(null);
 
   useEffect(() => {
     if (selectedChapter) {
@@ -66,6 +68,13 @@ const DocGeneratorScreen = ({ navParams }) => {
       const targetChapter = chapters.find(c => c.number === targetStr);
       if (targetChapter) {
         setSelectedChapter(targetChapter);
+        if (navParams.targetControlId) {
+          setTargetControl(navParams.targetControlId);
+          setTargetControlTitle(navParams.targetControlTitle || null);
+        } else {
+          setTargetControl(null);
+          setTargetControlTitle(null);
+        }
       }
     }
   }, [navParams]);
@@ -77,7 +86,9 @@ const DocGeneratorScreen = ({ navParams }) => {
     try {
       const promptData = { 
         title: selectedChapter.title,
-        chapter_number: selectedChapter.number 
+        chapter_number: selectedChapter.number,
+        target_control: targetControl || null,
+        target_control_title: targetControlTitle || null
       };
       
       const response = await documentsAPI.generate(`chapter_${selectedChapter.id}`, promptData);
@@ -227,7 +238,7 @@ const DocGeneratorScreen = ({ navParams }) => {
               return (
                 <button 
                   key={chapter.id} 
-                  onClick={() => setSelectedChapter(chapter)}
+                  onClick={() => { setSelectedChapter(chapter); setTargetControl(null); setTargetControlTitle(null); }}
                   style={{ 
                     display: 'flex', alignItems: 'center', gap: '14px', padding: '12px 16px', 
                     background: isSelected ? `${chapter.color}15` : 'transparent', 
@@ -274,10 +285,22 @@ const DocGeneratorScreen = ({ navParams }) => {
                     <p style={{ fontSize: '13px', color: t.textDim }}>{selectedChapter.sections}</p>
                   </div>
                 </div>
-                <button onClick={handleGenerate} disabled={isGenerating} style={{ padding: '10px 20px', background: selectedChapter.color, border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, cursor: isGenerating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', opacity: isGenerating ? 0.7 : 1 }}>
-                  {isGenerating ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />} 
-                  {isGenerating ? 'Generando...' : 'Generar Borrador'}
-                </button>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  {documentStatus[selectedChapter.id] === 'published' ? (
+                    <div style={{ padding: '10px 20px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: '#10b981', fontWeight: 500, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <CheckCircle2 size={16} /> Documento Publicado (Bloqueado)
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={handleGenerate} 
+                      disabled={isGenerating}
+                      style={{ padding: '10px 20px', background: isGenerating ? 'rgba(139,92,246,0.3)' : '#8b5cf6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, fontSize: '13px', cursor: isGenerating ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
+                    >
+                      {isGenerating ? <div style={{ width: '16px', height: '16px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} /> : <Sparkles size={16} />}
+                      {isGenerating ? 'Generando Borrador...' : (generatedContent[selectedChapter.id] ? 'Regenerar con IA' : 'Generar Borrador')}
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', textAlign: 'center' }}>

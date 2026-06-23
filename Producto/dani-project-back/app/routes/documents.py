@@ -55,10 +55,16 @@ async def generate_document(
     """Generar un documento usando IA"""
     title = prompt_data.get("title", "")
     chapter_number = prompt_data.get("chapter_number", "")
+    target_control = prompt_data.get("target_control", None)
+    target_control_title = prompt_data.get("target_control_title", "")
     
+    control_context = ""
+    if target_control:
+        control_context = f"\n\nATENCIÓN ESPECIAL: El usuario necesita explícitamente que este documento cierre la brecha del Control ISO 27001: '{target_control} - {target_control_title}'. Debes hacer un énfasis detallado y exhaustivo en dar cumplimiento total y absoluto a las directrices de este control específico dentro del capítulo, diseñando procedimientos y políticas precisas para solucionarlo."
+        
     prompt = f"""Actúa como un Consultor Lead Implementer y Auditor Líder de ISO 27001 con 20 años de experiencia.
 Se te ha asignado redactar un borrador extenso, exhaustivo y listo para producción del 'Capítulo {chapter_number}: {title}' para el Manual del Sistema de Gestión de Seguridad de la Información (SGSI).
-
+{control_context}
 Tu objetivo es generar un documento que sea TAN COMPLETO que el cliente solo tenga que rellenar los datos de su empresa. No hagas un resumen corto; redacta políticas, directrices, flujos y responsabilidades reales. Usa marcadores como [NOMBRE_EMPRESA] para los datos personalizables.
 
 Estructura obligatoria (en Markdown):
