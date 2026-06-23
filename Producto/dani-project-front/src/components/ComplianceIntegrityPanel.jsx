@@ -47,6 +47,8 @@ const ComplianceIntegrityPanel = ({ onNavigate }) => {
 
   if (!data || data.total_implemented === 0) return null;
 
+  const alerts = data.alerts ?? [];
+
   return (
     <div style={{ background: cardBg, border: `1px solid ${border}`, borderLeft: '3px solid #ef4444', borderRadius: '12px', marginBottom: '24px', overflow: 'hidden' }}>
       {/* Header */}
@@ -54,9 +56,9 @@ const ComplianceIntegrityPanel = ({ onNavigate }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <ShieldAlert size={18} color="#ef4444" />
           <span style={{ fontWeight: 700, fontSize: '14px', color: '#ef4444' }}>Compliance Integrity</span>
-          {data.alerts.length > 0 && (
+          {alerts.length > 0 && (
             <span style={{ background: '#ef4444', color: '#fff', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px' }}>
-              {data.alerts.length} alerta{data.alerts.length > 1 ? 's' : ''}
+              {alerts.length} alerta{alerts.length > 1 ? 's' : ''}
             </span>
           )}
         </div>
@@ -89,13 +91,13 @@ const ComplianceIntegrityPanel = ({ onNavigate }) => {
       </div>
 
       {/* Alerts */}
-      {data.alerts.length === 0 ? (
+      {alerts.length === 0 ? (
         <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#10b981' }}>
           <ShieldCheck size={16} /> Todos los controles implementados tienen evidencia asociada.
         </div>
       ) : (
         <div style={{ padding: '12px 16px' }}>
-          {data.alerts.map((alert) => {
+          {alerts.map((alert) => {
             const isExpanded = expandedAlert === alert.id;
             const bg = alert.severity === 'high' ? redBg : yellowBg;
             const color = alert.severity === 'high' ? '#ef4444' : '#f59e0b';
