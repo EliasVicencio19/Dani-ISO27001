@@ -256,6 +256,68 @@ async def bulk_audit(
         "results": results
     }
 
+@router.get("/integrity")
+async def get_compliance_integrity(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Detecta señales de compliance washing cruzando controles con evidencias."""
+    from app.models.evidence import Evidence
+    from sqlalchemy import func
+
+    # Controles marcados como Implementado
+    ctrl_result = await db.execute(
+        select(ISOCControl).where(ISOCControl.status == "Implementado", ISOCControl.applies == True)
+    )
+    implemented = ctrl_result.scalars().all()
+
+    # Todas las evidencias con su metadata
+    ev_result = await db.execute(select(Evidence))
+    evidences = ev_result.scalars().all()
+
+    # Construir set de controles con evidencia
+    controls_with_evidence = set()
+    for ev in evidences:
+        ctrl = (ev.evidence_metadata or {}).get("control", "")
+        if ctrl:
+            controls_with_evidence.add(ctrl.strip().upper())
+
+    alerts = []
+    controls_no_evidence = []
+
+    for ctrl in implemented:
+        cid = (ctrl.control_id or "").strip().upper()
+        if cid not in controls_with_evidence:
+            controls_no_evidence.append({
+                "control_id": ctrl.control_id,
+                "title": ctrl.title,
+                "category": ctrl.category,
+            })
+
+    if controls_no_evidence:
+        alerts.append({
+            "id": "no-evidence",
+            "severity": "high" if len(controls_no_evidence) > 5 else "medium",
+            "title": f"{len(controls_no_evidence)} controles implementados sin evidencia",
+            "description": f"Estos controles están marcados como 'Implementado' pero no tienen ninguna evidencia asociada en el Centro de Evidencias.",
+            "controls": controls_no_evidence,
+            "recommendation": "Sube evidencias para cada control o ajusta su estado a 'Planificado'."
+        })
+
+    # Score de integridad
+    total_implemented = len(implemented)
+    with_evidence = total_implemented - len(controls_no_evidence)
+    integrity_score = round((with_evidence / total_implemented * 100) if total_implemented > 0 else 100)
+
+    return {
+        "integrity_score": integrity_score,
+        "total_implemented": total_implemented,
+        "with_evidence": with_evidence,
+        "without_evidence": len(controls_no_evidence),
+        "alerts": alerts
+    }
+
+
 @router.get("/soa/export")
 async def export_soa_pdf(
     db: AsyncSession = Depends(get_db),

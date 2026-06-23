@@ -4,6 +4,7 @@ import { Shield, Search, Download, RefreshCw, Clock, ArrowRight, FileCheck, Aler
 import { ThemeContext } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import CAPATracker from '../components/CAPATracker';
+import ComplianceIntegrityPanel from '../components/ComplianceIntegrityPanel';
 import { getComplianceScore, riskAPI, capaAPI } from '../services/api';
 
 const DashboardScreen = ({ onNavigate }) => {
@@ -570,6 +571,9 @@ const DashboardScreen = ({ onNavigate }) => {
           </div>
         </div>
       )}
+
+      {/* COMPLIANCE INTEGRITY ALERTS */}
+      {canAccessGapAnalysis && <ComplianceIntegrityPanel onNavigate={onNavigate} />}
 
       {/* RASTREADOR CAPA MODULAR COMPLETO */}
       <CAPATracker />
