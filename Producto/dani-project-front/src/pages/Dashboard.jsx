@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import CAPATracker from '../components/CAPATracker';
 import ComplianceIntegrityPanel from '../components/ComplianceIntegrityPanel';
 import PreAuditPanel from '../components/PreAuditPanel';
+import PriorityActionsPanel from '../components/PriorityActionsPanel';
 import { getComplianceScore, riskAPI, capaAPI } from '../services/api';
 
 const DashboardScreen = ({ onNavigate }) => {
@@ -598,6 +599,8 @@ const DashboardScreen = ({ onNavigate }) => {
       )}
 
       {/* COMPLIANCE INTEGRITY ALERTS */}
+      {canAccessGapAnalysis && <PriorityActionsPanel onNavigate={onNavigate} darkMode={darkMode} />}
+
       {canAccessGapAnalysis && <ComplianceIntegrityPanel onNavigate={onNavigate} />}
 
       {/* PRE-AUDIT SELF-ASSESSMENT */}

@@ -439,6 +439,121 @@ async def get_pre_audit_assessment(
     }
 
 
+@router.get("/priority-actions")
+async def get_priority_actions(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Genera lista priorizada de acciones basada en datos reales del SGSI."""
+    from app.models.evidence import Evidence
+    from app.models.capa import CAPA, CAPAStatus, CAPAPriority
+    from app.models.document import Document, DocumentStatus
+    from datetime import datetime
+
+    ctrl_result = await db.execute(select(ISOCControl).where(ISOCControl.applies == True))
+    all_controls = ctrl_result.scalars().all()
+
+    ev_result = await db.execute(select(Evidence))
+    evidences = ev_result.scalars().all()
+    controls_with_evidence = set()
+    for ev in evidences:
+        ctrl = (ev.evidence_metadata or {}).get("control", "")
+        if ctrl:
+            controls_with_evidence.add(ctrl.strip().upper())
+
+    capa_result = await db.execute(select(CAPA))
+    capas = capa_result.scalars().all()
+    open_capas = [c for c in capas if c.status == CAPAStatus.OPEN]
+    overdue_capas = [c for c in open_capas if c.due_date and c.due_date < datetime.utcnow()]
+    high_capas = [c for c in open_capas if c.priority == CAPAPriority.HIGH]
+
+    doc_result = await db.execute(select(Document))
+    documents = doc_result.scalars().all()
+    draft_docs = [d for d in documents if d.status == DocumentStatus.DRAFT]
+
+    implemented = [c for c in all_controls if c.status == "Implementado"]
+    impl_ids = {c.control_id.strip().upper() for c in implemented if c.control_id}
+    without_evidence = impl_ids - controls_with_evidence
+    not_impl = [c for c in all_controls if c.status == "No Implementado"]
+
+    actions = []
+
+    if overdue_capas:
+        days_overdue = max(
+            (datetime.utcnow() - c.due_date).days for c in overdue_capas if c.due_date
+        )
+        actions.append({
+            "id": "overdue-capas",
+            "priority": "high",
+            "title": f"Resolver {len(overdue_capas)} CAPA{'s' if len(overdue_capas) > 1 else ''} vencida{'s' if len(overdue_capas) > 1 else ''}",
+            "detail": f"Llevan hasta {days_overdue} días sin resolverse. Un auditor las marcará como no conformidad mayor.",
+            "navigate": "findings",
+            "action_label": "Ver CAPAs",
+            "decision_level": "human",
+        })
+
+    if without_evidence:
+        actions.append({
+            "id": "no-evidence",
+            "priority": "high" if len(without_evidence) > 5 else "medium",
+            "title": f"Subir evidencia para {len(without_evidence)} controles implementados",
+            "detail": f"Sin evidencia no hay prueba de efectividad. Afectados: {', '.join(sorted(without_evidence)[:4])}{'...' if len(without_evidence) > 4 else ''}.",
+            "navigate": "evidence",
+            "action_label": "Centro de Evidencias",
+            "decision_level": "human",
+        })
+
+    if draft_docs:
+        actions.append({
+            "id": "draft-docs",
+            "priority": "medium",
+            "title": f"Aprobar {len(draft_docs)} documento{'s' if len(draft_docs) > 1 else ''} en borrador",
+            "detail": f"Políticas sin aprobar no son válidas en auditoría: {', '.join(d.title[:30] for d in draft_docs[:3])}.",
+            "navigate": "documents",
+            "action_label": "Ir a Documentos",
+            "decision_level": "review",
+        })
+
+    pending_high = [c for c in high_capas if c not in overdue_capas]
+    if pending_high:
+        actions.append({
+            "id": "high-capas",
+            "priority": "medium",
+            "title": f"{len(pending_high)} CAPA{'s' if len(pending_high) > 1 else ''} de alta prioridad en progreso",
+            "detail": "Acciones correctivas críticas que requieren seguimiento activo.",
+            "navigate": "findings",
+            "action_label": "Ver CAPAs",
+            "decision_level": "review",
+        })
+
+    if not_impl:
+        actions.append({
+            "id": "not-implemented",
+            "priority": "medium" if len(not_impl) < 20 else "high",
+            "title": f"Implementar {len(not_impl)} controles pendientes",
+            "detail": "Controles aplicables sin implementar. Impactan directamente el score de cumplimiento.",
+            "navigate": "gap-analysis",
+            "action_label": "Ver Gap Analysis",
+            "decision_level": "human",
+        })
+
+    if not evidences:
+        actions.append({
+            "id": "no-evidence-at-all",
+            "priority": "high",
+            "title": "No hay evidencias registradas en el sistema",
+            "detail": "El Centro de Evidencias está vacío. Comienza subiendo documentos que respalden tus controles.",
+            "navigate": "evidence",
+            "action_label": "Subir primera evidencia",
+            "decision_level": "human",
+        })
+
+    order = {"high": 0, "medium": 1, "low": 2}
+    actions.sort(key=lambda a: order.get(a["priority"], 2))
+
+    return {"actions": actions[:6], "total": len(actions)}
+
+
 @router.get("/soa/export")
 async def export_soa_pdf(
     db: AsyncSession = Depends(get_db),
