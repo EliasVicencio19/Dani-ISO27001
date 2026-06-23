@@ -189,33 +189,57 @@ async def evaluate_control(
 async def bulk_audit(
     current_user: dict = Depends(get_current_user)
 ):
-    """Audita los controles aplicables contra el repositorio documental mediante IA/RAG"""
+    """Audita todos los controles aplicables usando evidencias indexadas + documentos aprobados."""
     import asyncio
     from app.models.evidence_chunk import EvidenceChunk
+    from app.models.document import Document, DocumentStatus
     from app.services.embedding_service import EmbeddingService
 
-    DEMO_LIMIT = 10  # Limitar para evitar timeout en Render.com (plan gratuito = 30s)
     embedder = EmbeddingService()
     results = []
 
     async with AsyncSessionLocal() as session:
-        stmt = select(ISOCControl).where(ISOCControl.applies == True).limit(DEMO_LIMIT)
-        result = await session.execute(stmt)
-        controls = result.scalars().all()
+        # Cargar todos los controles aplicables (sin límite)
+        ctrl_stmt = select(ISOCControl).where(ISOCControl.applies == True)
+        ctrl_result = await session.execute(ctrl_stmt)
+        controls = ctrl_result.scalars().all()
+
+        # Cargar documentos aprobados como contexto base
+        doc_stmt = select(Document).where(Document.status == DocumentStatus.APPROVED)
+        doc_result = await session.execute(doc_stmt)
+        approved_docs = doc_result.scalars().all()
+        doc_context_base = "\n\n".join(
+            f"[{d.title}]: {(d.content or '')[:600]}"
+            for d in approved_docs if d.content
+        )
+
+        # Verificar si hay chunks de evidencia disponibles
+        chunk_count_result = await session.execute(select(EvidenceChunk))
+        has_chunks = bool(chunk_count_result.scalars().first())
 
         for control in controls:
+            context_parts = []
             try:
-                query_vector = embedder.generate_single_embedding(
-                    f"{control.title}. {control.description}"
-                )
-                chunk_stmt = (
-                    select(EvidenceChunk)
-                    .order_by(EvidenceChunk.embedding.cosine_distance(query_vector))
-                    .limit(4)
-                )
-                chunk_res = await session.execute(chunk_stmt)
-                top_chunks = chunk_res.scalars().all()
-                context = "\n\n".join([f"- {c.content}" for c in top_chunks]) if top_chunks else ""
+                # 1. Buscar chunks de evidencia relevantes (RAG)
+                if has_chunks:
+                    query_vector = embedder.generate_single_embedding(
+                        f"{control.title}. {control.description}"
+                    )
+                    chunk_stmt = (
+                        select(EvidenceChunk)
+                        .order_by(EvidenceChunk.embedding.cosine_distance(query_vector))
+                        .limit(4)
+                    )
+                    chunk_res = await session.execute(chunk_stmt)
+                    top_chunks = chunk_res.scalars().all()
+                    if top_chunks:
+                        context_parts.append("EVIDENCIAS:\n" + "\n".join(f"- {c.content}" for c in top_chunks))
+
+                # 2. Agregar documentos aprobados como contexto adicional
+                if doc_context_base:
+                    context_parts.append("DOCUMENTOS APROBADOS:\n" + doc_context_base[:1200])
+
+                context = "\n\n".join(context_parts)
 
                 evaluation = await asyncio.wait_for(
                     analyzer.ai_service.mass_evaluate_control(
@@ -223,13 +247,13 @@ async def bulk_audit(
                         control_desc=control.description,
                         context_chunks=context
                     ),
-                    timeout=8.0
+                    timeout=15.0
                 )
             except (asyncio.TimeoutError, Exception):
                 evaluation = {
                     "score": 0,
                     "status": "notImplemented",
-                    "justification": "Evaluación no disponible en este momento."
+                    "justification": "Tiempo de evaluación agotado. Reintenta o evalúa este control individualmente."
                 }
 
             control.score = evaluation.get("score", 0)
