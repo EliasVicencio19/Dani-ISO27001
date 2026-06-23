@@ -34,7 +34,7 @@ async def _index_evidence_background(evidence_id: str, file_bytes: bytes, mime_t
             evidence.indexing_status = "indexing"
             await db.commit()
 
-            os.makedirs(os.path.dirname(tmp_path), exist_ok=True)
+            os.makedirs(TMP_DIR, exist_ok=True)
             with open(tmp_path, "wb") as f:
                 f.write(file_bytes)
 
@@ -150,11 +150,13 @@ async def upload_evidence(
         await db.refresh(new_evidence)
 
         evidence_id = new_evidence.id
-        tmp_path = os.path.join(TMP_DIR, storage_path.replace("/", "_"))
+        safe_name = "".join(c for c in file.filename if c.isalnum() or c in "._-")[:60]
+        tmp_path = os.path.join(TMP_DIR, f"{evidence_id}_{safe_name}")
         mime = file.content_type or ""
 
         # Lanzar indexación RAG en background — el request responde inmediato
-        asyncio.create_task(
+        loop = asyncio.get_event_loop()
+        loop.create_task(
             _index_evidence_background(evidence_id, file_bytes, mime, tmp_path)
         )
 
