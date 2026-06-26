@@ -90,7 +90,8 @@ IMPORTANTE: Escribe al menos 800 palabras. El tono debe ser altamente corporativ
     try:
         content = await ai_service.generate_document(prompt)
     except Exception as e:
-        content = f"Error conectando con la IA: {str(e)}"
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"Error conectando con la IA: {str(e)}")
         
     return {
         "message": f"Documento {doc_type} generado",

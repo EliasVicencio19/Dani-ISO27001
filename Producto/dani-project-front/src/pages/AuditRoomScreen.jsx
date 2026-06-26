@@ -181,6 +181,7 @@ function AuditRoomScreen() {
         trail.push({
           id: trailId++,
           timestamp: doc.updated || 'Reciente',
+          rawDate: doc.updated || new Date().toISOString(),
           user: 'Equipo SGSI',
           role: 'Manager',
           action,
@@ -197,6 +198,7 @@ function AuditRoomScreen() {
         trail.push({
           id: trailId++,
           timestamp: ts,
+          rawDate: ev.lastUpdated || new Date().toISOString(),
           user: 'Centro Evidencias',
           role: 'Sistema',
           action: 'created',
@@ -258,8 +260,8 @@ function AuditRoomScreen() {
       if (timeFilter === '24h') cutoff.setHours(cutoff.getHours() - 24);
       else if (timeFilter === '7d') cutoff.setDate(cutoff.getDate() - 7);
       else if (timeFilter === '30d') cutoff.setDate(cutoff.getDate() - 30);
-      const entryDate = new Date(entry.timestamp || entry.date || 0);
-      if (entryDate < cutoff) return false;
+      const entryDate = new Date(entry.rawDate);
+      if (isNaN(entryDate.getTime()) || entryDate < cutoff) return false;
     }
     return true;
   });
@@ -497,7 +499,7 @@ function AuditRoomScreen() {
           <div style={{ marginTop: '24px', padding: '16px 20px', background: t.inputBg, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: '32px' }}>
               <div><div style={{ fontSize: '11px', color: t.textDim }}>{l.evidenceCount}</div><div style={{ fontSize: '20px', fontWeight: 700, color: t.text }}>{folders.filter(f => selectedClauses.includes(f.id)).reduce((sum, f) => sum + f.items, 0)}</div></div>
-              <div><div style={{ fontSize: '11px', color: t.textDim }}>{l.estimatedSize}</div><div style={{ fontSize: '20px', fontWeight: 700, color: t.text }}>~48 MB</div></div>
+              <div><div style={{ fontSize: '11px', color: t.textDim }}>{l.estimatedSize}</div><div style={{ fontSize: '20px', fontWeight: 700, color: t.text }}>{`~${selectedClauses.length * 12} MB`}</div></div>
             </div>
             <button onClick={handleExport} style={{ padding: '14px 32px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '12px', color: 'white', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}><Download size={20} /> {l.generatePackage}</button>
           </div>
