@@ -53,17 +53,19 @@ async def lifespan(app: FastAPI):
         admin = result.scalar_one_or_none()
 
         if not admin:
+            admin_email = os.environ.get("ADMIN_EMAIL", "admin@dani27001.com")
+            admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
             admin_user = User(
                 id=str(uuid.uuid4()),
                 full_name="Admin User",
-                email="admin@dani27001.com",
-                hashed_password=AuthService.get_password_hash("admin123"),
+                email=admin_email,
+                hashed_password=AuthService.get_password_hash(admin_password),
                 role=UserRole.ADMIN,
                 is_active=True
             )
             session.add(admin_user)
             await session.commit()
-            logger.info("✅ Admin user created: admin@dani27001.com / admin123")
+            logger.info(f"✅ Admin user created: {admin_email}")
 
     logger.info("✅ Backend ready!")
     yield

@@ -102,7 +102,7 @@ function EvidenceCenterScreen() {
       const { evidenceAPI } = await import('../services/api');
       const data = await evidenceAPI.getAll();
       if (Array.isArray(data) && data.length > 0) {
-        const mapped = data.map(e => ({ ...e, lastUpdated: new Date(e.lastUpdated) }));
+        const mapped = data.map(e => ({ ...e, lastUpdated: e.lastUpdated ? new Date(e.lastUpdated) : new Date() }));
         setEvidences(mapped);
       } else {
         setEvidences(demoEvidences);

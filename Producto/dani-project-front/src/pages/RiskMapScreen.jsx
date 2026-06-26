@@ -41,7 +41,7 @@ const RiskMapScreen = () => {
         const risksToUse = (data && data.length > 0) ? data : demoRisks;
         setRisks(risksToUse);
         const first = risksToUse[0];
-        setSelectedRisk({ ...first, name: first.title, prob: first.likelihood || first.prob });
+        setSelectedRisk({ ...first, name: first.title, prob: Math.max(1, first.likelihood || first.prob || 1) });
       } catch (error) {
         console.error("Error conectando con la API de Riesgos. Usando datos demo.", error);
         setRisks(demoRisks);
@@ -414,7 +414,7 @@ const RiskMapScreen = () => {
                     let cellRisks = [];
                     
                     if (risks.length > 0) {
-                      cellRisks = risks.filter(r => (r.likelihood || r.prob || 0) === prob && (r.impact || 0) === impact);
+                      cellRisks = risks.filter(r => Math.max(1, r.likelihood || r.prob || 1) === prob && Math.max(1, r.impact || 1) === impact);
                       if (cellRisks.length > 0) riskCount = cellRisks.length;
                     }
 
