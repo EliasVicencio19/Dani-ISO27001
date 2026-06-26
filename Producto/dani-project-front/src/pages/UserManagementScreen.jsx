@@ -126,12 +126,10 @@ const UserManagementScreen = () => {
 
   // Configuración visual de Roles
   const rolesConfig = {
-    admin: { label: 'Administrador', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)', icon: Shield },
-    ciso: { label: 'CISO', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', icon: ShieldCheck },
-    security_manager: { label: 'Gerente de Seguridad', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)', icon: Key },
-    compliance_officer: { label: 'Oficial de Cumplimiento', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: Building2 },
-    auditor: { label: 'Auditor', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: Search },
-    employee: { label: 'Empleado', color: t.textDim, bg: t.inputBg, icon: Users }
+    admin:    { label: 'Administrador', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)', icon: Shield },
+    manager:  { label: 'Manager',       color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)', icon: Key },
+    auditor:  { label: 'Auditor',       color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: Search },
+    employee: { label: 'Empleado',      color: t.textDim, bg: t.inputBg,                  icon: Users },
   };
 
   // Filtrado
@@ -168,7 +166,7 @@ const UserManagementScreen = () => {
           { label: 'Total Usuarios', value: users.length, color: '#3b82f6', icon: Users },
           { label: 'Usuarios Activos', value: users.filter(u => u.status === 'active').length, color: '#10b981', icon: CheckCircle2 },
           { label: 'Inactivos / Pendientes', value: users.filter(u => u.status !== 'active').length, color: '#f59e0b', icon: Mail },
-          { label: 'Equipo de Seguridad', value: users.filter(u => ['ciso', 'security_manager', 'admin'].includes(u.role)).length, color: '#8b5cf6', icon: Shield }
+          { label: 'Equipo de Seguridad', value: users.filter(u => ['admin', 'manager', 'auditor'].includes(u.role)).length, color: '#8b5cf6', icon: Shield }
         ].map((stat, idx) => (
           <div key={idx} style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -203,9 +201,9 @@ const UserManagementScreen = () => {
               <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} style={{ padding: '10px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', fontWeight: 500, cursor: 'pointer', outline: 'none' }}>
                 <option value="all">Todos los Roles</option>
                 <option value="admin">Administrador</option>
-                <option value="ciso">CISO</option>
-                <option value="security_manager">Gerente de Seguridad</option>
+                <option value="manager">Manager</option>
                 <option value="auditor">Auditor</option>
+                <option value="employee">Empleado</option>
               </select>
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '10px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', fontWeight: 500, cursor: 'pointer', outline: 'none' }}>
                 <option value="all">Todos los Estados</option>
@@ -343,11 +341,9 @@ const UserManagementScreen = () => {
                   <div style={{ padding: '16px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '10px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
                     <div style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 700, marginBottom: '8px' }}>NIVEL DE ACCESO</div>
                     <p style={{ fontSize: '13px', color: t.textDim, lineHeight: '1.5' }}>
-                      {selectedUser.role === 'admin' && 'Acceso total al sistema, gestión de usuarios, configuración y todos los módulos ISO 27001.'}
-                      {selectedUser.role === 'ciso' && 'Dashboard ejecutivo, reportes, supervisión de riesgos y acceso total a auditoría.'}
-                      {selectedUser.role === 'security_manager' && 'Control operativo: Mapa de riesgos, centro de evidencias y análisis de brechas.'}
-                      {selectedUser.role === 'compliance_officer' && 'Gestión documental, sala de auditoría y revisión de evidencias.'}
-                      {selectedUser.role === 'auditor' && 'Vista de solo lectura a la sala de auditoría y visualización de evidencias aprobadas.'}
+                      {selectedUser.role === 'admin'    && 'Acceso total al sistema, gestión de usuarios, configuración y todos los módulos ISO 27001.'}
+                      {selectedUser.role === 'manager'  && 'Acceso a Dashboard, Gap Analysis, Mapa de Riesgos, Evidencias, Documentos y Sala de Auditoría.'}
+                      {selectedUser.role === 'auditor'  && 'Vista a la sala de auditoría, evidencias aprobadas y Gap Analysis en modo consulta.'}
                       {selectedUser.role === 'employee' && 'Acceso exclusivo al portal de empleados para aceptación de políticas.'}
                     </p>
                   </div>
@@ -439,8 +435,7 @@ const UserManagementScreen = () => {
                 <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Rol en el Sistema</label>
                 <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }}>
                   <option value="admin">Administrador</option>
-                  <option value="ciso">CISO</option>
-                  <option value="security_manager">Gerente de Seguridad</option>
+                  <option value="manager">Manager</option>
                   <option value="auditor">Auditor</option>
                   <option value="employee">Empleado</option>
                 </select>

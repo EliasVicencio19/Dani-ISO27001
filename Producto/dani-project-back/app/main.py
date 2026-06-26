@@ -8,6 +8,7 @@ import os
 from datetime import datetime
 from app.routes import chat
 from app.routes import gap_analysis
+from app.routes import ai_routes
 
 from app.config import settings
 from app.dependencies.database import engine, Base, AsyncSessionLocal
@@ -108,6 +109,7 @@ app.include_router(gap_analysis.router)
 app.include_router(capa.router)
 app.include_router(notifications.router)
 app.include_router(report.router)
+app.include_router(ai_routes.router)
 
 @app.get("/")
 async def root():

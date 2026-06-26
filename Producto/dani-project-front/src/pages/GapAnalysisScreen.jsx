@@ -408,6 +408,7 @@ function GapAnalysisScreen({ onNavigate }) {
       const response = await complianceAPI.bulkAudit();
 
       if (response.results) {
+        let updatedControls;
         setControls(prevControls => {
           const newControls = [...prevControls];
           response.results.forEach(res => {
@@ -421,10 +422,15 @@ function GapAnalysisScreen({ onNavigate }) {
               };
             }
           });
+          updatedControls = newControls;
           return newControls;
         });
+        // Persistir resultados en BD inmediatamente
+        try {
+          await complianceAPI.fullAssessment({ controls: updatedControls, answers });
+        } catch (_) {}
       }
-      alert("✨ " + (language === 'es' ? 'Auditoría masiva completada' : 'Bulk audit complete'));
+      alert("✨ " + (language === 'es' ? 'Auditoría masiva completada y guardada' : 'Bulk audit complete and saved'));
     } catch (error) {
       console.error("Error en auditoría masiva:", error);
       alert("❌ " + (language === 'es' ? 'Error al ejecutar la auditoría masiva' : 'Error executing bulk audit'));

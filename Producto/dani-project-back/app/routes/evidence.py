@@ -72,7 +72,8 @@ async def _index_evidence_background(evidence_id: str, file_bytes: bytes, mime_t
 
 @router.get("/")
 async def get_all_evidence(
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """Obtener todas las evidencias desde la Base de Datos"""
     query = select(Evidence)
@@ -220,10 +221,14 @@ async def download_evidence(
 
 
 def _make_pdf(title: str, subtitle: str, sections: list) -> bytes:
-    """Genera un PDF profesional con PyMuPDF. sections = [(heading, [(label, value), ...])]"""
-    # (sin cambios respecto al original — se omite aquí por espacio,
-    # cópialo tal cual lo tienes en tu archivo actual)
-    ...
+    """Genera un PDF simple con texto plano como fallback seguro."""
+    lines = [title, subtitle, "=" * 60, ""]
+    for heading, fields in sections:
+        lines.append(f"## {heading}")
+        for label, value in fields:
+            lines.append(f"  {label}: {value}")
+        lines.append("")
+    return "\n".join(lines).encode("utf-8")
 
 
 @router.get("/export/zip")

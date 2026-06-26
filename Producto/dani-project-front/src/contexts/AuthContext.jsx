@@ -2,37 +2,29 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { API_URL } from '../services/api';
 
-console.log('🔍 API_URL GLOBAL:', API_URL);
-
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
 
   const login = useCallback(async (email, password, isRegistering, name) => {
     setIsLoading(true);
     setError(null);
 
-    const endpoint = isRegistering 
+    const endpoint = isRegistering
       ? `${API_URL}/api/auth/register`
       : `${API_URL}/api/auth/login`;
 
-    console.log('🔍 Endpoint:', endpoint);
-
-    const payload = isRegistering 
-      ? { name, email, password } 
+    const payload = isRegistering
+      ? { name, email, password }
       : { email, password };
 
     try {
@@ -84,7 +76,7 @@ export function AuthProvider({ children }) {
     error,
     login,
     logout,
-    isAuthenticated: !!user || !!localStorage.getItem('token')
+    isAuthenticated: !!user,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

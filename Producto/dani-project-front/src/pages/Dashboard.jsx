@@ -606,8 +606,8 @@ const DashboardScreen = ({ onNavigate }) => {
       {/* PRE-AUDIT SELF-ASSESSMENT */}
       {canAccessGapAnalysis && <PreAuditPanel onNavigate={onNavigate} darkMode={darkMode} />}
 
-      {/* RASTREADOR CAPA MODULAR COMPLETO */}
-      <CAPATracker />
+      {/* RASTREADOR CAPA MODULAR COMPLETO — solo roles con acceso */}
+      {canAccessGapAnalysis && <CAPATracker />}
     </div>
   );
 };
