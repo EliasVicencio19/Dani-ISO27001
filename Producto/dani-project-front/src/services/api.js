@@ -341,8 +341,9 @@ export const authAPI = {
 // ============================================
 export const evidenceAPI = {
   getAll: async (token) => {
+    const resolvedToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/evidence`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 'Authorization': `Bearer ${resolvedToken}` }
     });
     return response.json();
   },
