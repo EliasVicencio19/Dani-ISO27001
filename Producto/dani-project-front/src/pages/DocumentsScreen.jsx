@@ -154,7 +154,7 @@ function DocumentsScreen({ setActiveScreen }) {
     });
   };
 
-  const getStatusColor = (s) => s === 'approved' ? '#10b981' : s === 'review' ? '#f59e0b' : '#64748b';
+  const getStatusColor = (s) => (s === 'approved' || s === 'published') ? '#10b981' : s === 'review' ? '#f59e0b' : '#64748b';
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>

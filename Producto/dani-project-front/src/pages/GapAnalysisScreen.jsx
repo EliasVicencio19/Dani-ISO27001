@@ -613,7 +613,7 @@ function GapAnalysisScreen({ onNavigate }) {
               <th style={{ padding: '14px 20px', textAlign: 'center', fontSize: '12px', fontWeight: 600, color: t.textDim, width: '120px' }}>{tText.applicable}?</th>
               <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim, width: '140px' }}>{tText.status}</th>
               <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim }}>{tText.justification}</th>
-              /</tr>
+            </tr>
           </thead>
           <tbody>
             {filteredControls.map((control) => (
@@ -645,7 +645,7 @@ function GapAnalysisScreen({ onNavigate }) {
                     {onNavigate && control.status !== 'implemented' && (
                       <button 
                         onClick={() => {
-                          const chapterNum = control.id.startsWith('A.') ? '8' : control.id.split('.')[0];
+                          const chapterNum = control.id.startsWith('A.') ? 'annex-a' : control.id.split('.')[0];
                           onNavigate('doc-generator', { targetChapterNumber: chapterNum, targetControlId: control.id, targetControlTitle: control.title });
                         }} 
                         title="Generar Documento con IA" 
@@ -1015,7 +1015,7 @@ function GapAnalysisScreen({ onNavigate }) {
                       {!ctrl.compliant && onNavigate && (
                         <button 
                           onClick={() => {
-                            const chapterNum = ctrl.id.startsWith('A.') ? '8' : ctrl.id.split('.')[0];
+                            const chapterNum = ctrl.id.startsWith('A.') ? 'annex-a' : ctrl.id.split('.')[0];
                             onNavigate('doc-generator', { targetChapterNumber: chapterNum, targetControlId: ctrl.id, targetControlTitle: ctrl.title });
                           }}
                           style={{ padding: '4px 10px', background: '#8b5cf6', border: 'none', borderRadius: '6px', color: 'white', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}

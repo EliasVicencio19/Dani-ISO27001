@@ -55,9 +55,13 @@ const UserManagementScreen = () => {
           };
         });
         setUsers(mappedUsers);
+      } else if (data?.detail) {
+        console.error("Error de autenticación al cargar usuarios:", data.detail);
+        alert("No se pudo cargar la lista de usuarios. Verifica que tu sesión esté activa.");
       }
     } catch (error) {
       console.error("Error conectando con la API de Usuarios:", error);
+      alert("Error de conexión al cargar usuarios.");
     }
   };
 

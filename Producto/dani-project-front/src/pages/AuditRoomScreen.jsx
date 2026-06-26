@@ -251,7 +251,18 @@ function AuditRoomScreen() {
     });
   };
 
-  const filteredTrail = auditTrailEntries.filter(entry => trailFilter === 'all' || entry.action === trailFilter);
+  const filteredTrail = auditTrailEntries.filter(entry => {
+    if (trailFilter !== 'all' && entry.action !== trailFilter) return false;
+    if (timeFilter !== 'all') {
+      const cutoff = new Date();
+      if (timeFilter === '24h') cutoff.setHours(cutoff.getHours() - 24);
+      else if (timeFilter === '7d') cutoff.setDate(cutoff.getDate() - 7);
+      else if (timeFilter === '30d') cutoff.setDate(cutoff.getDate() - 30);
+      const entryDate = new Date(entry.timestamp || entry.date || 0);
+      if (entryDate < cutoff) return false;
+    }
+    return true;
+  });
 
   const handleAISearch = () => {
     if (!searchQuery.trim()) {
@@ -522,7 +533,7 @@ function AuditRoomScreen() {
                   if (downloadUrl) {
                     const a = document.createElement('a');
                     a.href = downloadUrl;
-                    a.download = 'ISO27001_Audit_Package.zip';
+                    a.download = `ISO27001_Audit_Package.${selectedExportFormat}`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
