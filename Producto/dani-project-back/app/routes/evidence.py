@@ -221,14 +221,39 @@ async def download_evidence(
 
 
 def _make_pdf(title: str, subtitle: str, sections: list) -> bytes:
-    """Genera un PDF simple con texto plano como fallback seguro."""
-    lines = [title, subtitle, "=" * 60, ""]
+    """Genera un PDF real usando PyMuPDF."""
+    import fitz
+    doc = fitz.open()
+    page = doc.new_page()
+    
+    y = 50
+    page.insert_text((50, y), title, fontsize=16, fontname="hebo")
+    y += 20
+    page.insert_text((50, y), subtitle, fontsize=12, fontname="helv", color=(0.5, 0.5, 0.5))
+    y += 30
+    
     for heading, fields in sections:
-        lines.append(f"## {heading}")
+        if y > 750:  
+            page = doc.new_page()
+            y = 50
+            
+        page.insert_text((50, y), heading, fontsize=12, fontname="hebo")
+        y += 20
+        
         for label, value in fields:
-            lines.append(f"  {label}: {value}")
-        lines.append("")
-    return "\n".join(lines).encode("utf-8")
+            if y > 780:
+                page = doc.new_page()
+                y = 50
+            
+            val_str = str(value).replace("\n", " ")
+            val_str = val_str[:90] + ("..." if len(val_str) > 90 else "")
+            
+            page.insert_text((70, y), f"{label}: {val_str}", fontsize=10, fontname="helv")
+            y += 15
+            
+        y += 15
+        
+    return doc.tobytes()
 
 
 @router.get("/export/zip")

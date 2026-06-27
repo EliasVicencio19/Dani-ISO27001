@@ -787,8 +787,8 @@ function GapAnalysisScreen({ onNavigate }) {
                       {language === 'es' ? 'Cláusula' : 'Clause'} {c.clause_id}: {c.clause_name}
                     </span>
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                      <span style={{ fontSize: '11px', color: t.textDim }}>{language === 'es' ? 'Brecha' : 'Gap'}: {c.gap}%</span>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: getScoreColor(c.current_score) }}>{c.current_score}%</span>
+                      <span style={{ fontSize: '11px', color: t.textDim }}>{language === 'es' ? 'Brecha' : 'Gap'}: {Number(c.gap).toFixed(1)}%</span>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: getScoreColor(c.current_score) }}>{Number(c.current_score).toFixed(1)}%</span>
                       {c.gap > 0 && onNavigate && (
                         <button 
                           onClick={() => onNavigate('doc-generator', { targetChapterNumber: c.clause_id })}
