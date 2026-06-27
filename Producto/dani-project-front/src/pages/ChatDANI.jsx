@@ -5,14 +5,46 @@ import { ThemeContext } from '../contexts/ThemeContext';
 import { chatAPI } from '../services/api';
 
 const ChatDANI = ({ isOpen, onClose }) => {
-  const { theme: t, darkMode } = useContext(ThemeContext);
+  const { theme: t, darkMode, language } = useContext(ThemeContext);
   
+  const chatLabels = {
+    es: {
+      title: 'DANI Asistente RAG',
+      online: '● En línea',
+      thinking: 'DANI está recuperando evidencias y analizando...',
+      placeholderThinking: 'DANI está escribiendo...',
+      placeholder: 'Pregunta sobre tus evidencias e ISO 27001...',
+      initialMessage: '👋 ¡Hola! Soy DANI, tu asistente de cumplimiento ISO 27001 potenciado con RAG (Generación Aumentada por Recuperación).\n\nPuedes hacerme cualquier consulta abierta. Analizaré automáticamente los documentos y políticas que hayas subido en el Evidence Center para darte una evaluación de brechas (Gap Analysis) en tiempo real.',
+      errorNetwork: 'Hubo un error al procesar el prompt en el motor de IA.'
+    },
+    en: {
+      title: 'DANI RAG Assistant',
+      online: '● Online',
+      thinking: 'DANI is retrieving evidence and analyzing...',
+      placeholderThinking: 'DANI is typing...',
+      placeholder: 'Ask about your evidence and ISO 27001...',
+      initialMessage: '👋 Hello! I am DANI, your ISO 27001 compliance assistant powered by RAG (Retrieval-Augmented Generation).\n\nYou can ask me any open question. I will automatically analyze the documents and policies you have uploaded in the Evidence Center to give you a real-time Gap Analysis.',
+      errorNetwork: 'There was an error processing the prompt in the AI engine.'
+    },
+    pt: {
+      title: 'DANI Assistente RAG',
+      online: '● Online',
+      thinking: 'DANI está recuperando evidências e analisando...',
+      placeholderThinking: 'DANI está digitando...',
+      placeholder: 'Pergunte sobre suas evidências e ISO 27001...',
+      initialMessage: '👋 Olá! Sou DANI, seu assistente de conformidade ISO 27001 desenvolvido com RAG (Geração Aumentada por Recuperação).\n\nVocê pode me fazer qualquer pergunta aberta. Analisarei automaticamente os documentos e políticas que você enviou no Evidence Center para lhe dar uma Análise de Lacunas em tempo real.',
+      errorNetwork: 'Ocorreu um erro ao processar o prompt no mecanismo de IA.'
+    }
+  };
+  
+  const l = chatLabels[language] || chatLabels.es;
+
   // ==========================================
   // 1. ESTADOS LOCALES
   // ==========================================
   const [chatQuery, setChatQuery] = useState('');
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: '👋 ¡Hola! Soy DANI, tu asistente de cumplimiento ISO 27001 potenciado con RAG (Generación Aumentada por Recuperación).\n\nPuedes hacerme cualquier consulta abierta. Analizaré automáticamente los documentos y políticas que hayas subido en el Evidence Center para darte una evaluación de brechas (Gap Analysis) en tiempo real.' }
+    { role: 'assistant', content: 'INITIAL_MSG' }
   ]);
   const [isThinking, setIsThinking] = useState(false);
 
@@ -32,7 +64,7 @@ const ChatDANI = ({ isOpen, onClose }) => {
     setIsThinking(true);
 
     try {
-      const data = await chatAPI.sendMessage(textToSend);
+      const data = await chatAPI.sendMessage(textToSend, language);
       if (data.error) {
         setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${data.error}` }]);
       } else {
@@ -45,7 +77,7 @@ const ChatDANI = ({ isOpen, onClose }) => {
       console.error("Error en Chat DANI:", error);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: 'Hubo un error al procesar el prompt en el motor de IA.' 
+        content: l.errorNetwork 
       }]);
     } finally {
       setIsThinking(false);
@@ -72,8 +104,8 @@ const ChatDANI = ({ isOpen, onClose }) => {
             <Sparkles size={18} color="white" />
           </div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '14px', color: t.text }}>DANI Asistente RAG</div>
-            <div style={{ fontSize: '11px', color: '#10b981' }}>● En línea</div>
+            <div style={{ fontWeight: 600, fontSize: '14px', color: t.text }}>{l.title}</div>
+            <div style={{ fontSize: '11px', color: '#10b981' }}>{l.online}</div>
           </div>
         </div>
         <button onClose={onClose} onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: t.textDim }}>
@@ -91,14 +123,14 @@ const ChatDANI = ({ isOpen, onClose }) => {
               padding: '12px 16px', borderRadius: msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px', 
               maxWidth: '85%', fontSize: '13px', lineHeight: '1.5', whiteSpace: 'pre-line'
             }}>
-              {msg.content}
+              {msg.content === 'INITIAL_MSG' ? l.initialMessage : msg.content}
             </div>
           </div>
         ))}
         {isThinking && (
           <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
             <div style={{ background: t.inputBg, padding: '12px 16px', borderRadius: '12px 12px 12px 4px', fontSize: '13px', color: t.textDim }}>
-              DANI está recuperando evidencias y analizando...
+              {l.thinking}
             </div>
           </div>
         )}
@@ -128,7 +160,7 @@ const ChatDANI = ({ isOpen, onClose }) => {
             value={chatQuery} 
             onChange={(e) => setChatQuery(e.target.value)} 
             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder={isThinking ? "DANI está escribiendo..." : "Pregunta sobre tus evidencias e ISO 27001..."} 
+            placeholder={isThinking ? l.placeholderThinking : l.placeholder} 
             disabled={isThinking}
             style={{ 
               flex: 1, padding: '12px 16px', background: isThinking ? t.background : t.inputBg, border: `1px solid ${t.border}`, 

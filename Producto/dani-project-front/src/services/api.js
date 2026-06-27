@@ -87,7 +87,7 @@ export const userAPI = {
 // 📌 CHAT API
 // ============================================
 export const chatAPI = {
-  sendMessage: async (message, token = null, signal = null) => {
+  sendMessage: async (message, language = 'es', token = null, signal = null) => {
     try {
       const resolvedToken = token || localStorage.getItem('token');
       
@@ -105,7 +105,7 @@ export const chatAPI = {
           'Content-Type': 'application/json',
           ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, language }),
         signal: effectiveSignal
       });
       
