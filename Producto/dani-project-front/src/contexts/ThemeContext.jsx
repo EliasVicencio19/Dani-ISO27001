@@ -76,13 +76,17 @@ export const translations = {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [darkMode, setDarkMode] = useState(true);
-  const [language, setLanguage] = useState('es');
-  const [highContrast, setHighContrast] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('dani-darkMode') !== 'false');
+  const [language, setLanguage] = useState(() => localStorage.getItem('dani-language') || 'es');
+  const [highContrast, setHighContrast] = useState(() => localStorage.getItem('dani-highContrast') === 'true');
   const t = highContrast ? themes.highContrast : (darkMode ? themes.dark : themes.light);
 
+  const persistedSetDarkMode = (val) => { localStorage.setItem('dani-darkMode', val); setDarkMode(val); };
+  const persistedSetLanguage = (val) => { localStorage.setItem('dani-language', val); setLanguage(val); };
+  const persistedSetHighContrast = (val) => { localStorage.setItem('dani-highContrast', val); setHighContrast(val); };
+
   return (
-    <ThemeContext.Provider value={{ darkMode, setDarkMode, language, setLanguage, highContrast, setHighContrast, theme: t, translations }}>
+    <ThemeContext.Provider value={{ darkMode, setDarkMode: persistedSetDarkMode, language, setLanguage: persistedSetLanguage, highContrast, setHighContrast: persistedSetHighContrast, theme: t, translations }}>
       {children}
     </ThemeContext.Provider>
   );
