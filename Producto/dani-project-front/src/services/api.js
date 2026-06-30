@@ -346,7 +346,9 @@ export const evidenceAPI = {
     const response = await fetch(`${API_URL}/api/evidence`, {
       headers: { 'Authorization': `Bearer ${resolvedToken}` }
     });
-    return response.json();
+    if (!response.ok) throw new Error(`Error ${response.status}`);
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
   },
   
   upload: async (fileOrFormData, token) => {
@@ -359,6 +361,7 @@ export const evidenceAPI = {
       headers: { ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` }) },
       body
     });
+    if (!response.ok) throw new Error(await response.text());
     return response.json();
   },
 
