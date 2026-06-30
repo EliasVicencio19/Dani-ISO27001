@@ -449,27 +449,31 @@ function GapAnalysisScreen({ onNavigate }) {
 
   const handleBulkSelectionAudit = async (documentId) => {
     const ids = [...selectedControls];
+    if (ids.length === 0) return;
     setBulkAuditProgress({ done: 0, total: ids.length });
     setIsBulkSelectionAuditing(true);
     let successCount = 0;
-    for (const controlId of ids) {
-      try {
-        const response = await complianceAPI.evaluateControl(controlId, documentId);
-        setControls(prev => prev.map(c => c.id === controlId ? {
-          ...c,
-          status: response.status === 'implemented' ? 'implemented' : (response.status === 'planned' ? 'planned' : 'notImplemented'),
-          justification: response.justification
-        } : c));
-        successCount++;
-      } catch (err) {
-        console.error(`Error auditando ${controlId}:`, err);
+    try {
+      for (const controlId of ids) {
+        try {
+          const response = await complianceAPI.evaluateControl(controlId, documentId);
+          setControls(prev => prev.map(c => c.id === controlId ? {
+            ...c,
+            status: response.status === 'implemented' ? 'implemented' : (response.status === 'planned' ? 'planned' : 'notImplemented'),
+            justification: response.justification
+          } : c));
+          successCount++;
+        } catch (err) {
+          console.error(`Error auditando ${controlId}:`, err);
+        }
+        setBulkAuditProgress(p => ({ ...p, done: p.done + 1 }));
       }
-      setBulkAuditProgress(p => ({ ...p, done: p.done + 1 }));
+      alert(`✨ ${successCount}/${ids.length} ${language === 'es' ? 'controles auditados' : 'controls audited'}`);
+    } finally {
+      setIsBulkSelectionAuditing(false);
+      setShowBulkDocModal(false);
+      setSelectedControls(new Set());
     }
-    setIsBulkSelectionAuditing(false);
-    setShowBulkDocModal(false);
-    setSelectedControls(new Set());
-    alert(`✨ ${successCount}/${ids.length} ${language === 'es' ? 'controles auditados' : 'controls audited'}`);
   };
 
   // Funciones del wizard

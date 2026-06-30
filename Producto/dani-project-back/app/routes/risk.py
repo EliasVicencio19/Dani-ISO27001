@@ -101,6 +101,7 @@ async def get_risk_statistics(
 
 @router.get("/high-priority")
 async def get_high_priority_risks(
+    current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Obtener riesgos de alta prioridad"""

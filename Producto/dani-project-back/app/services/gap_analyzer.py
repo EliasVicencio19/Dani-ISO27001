@@ -256,7 +256,7 @@ class GapAnalyzer:
         weighted_sum = sum(c["current_score"] * c["weight"] for c in clause_scores)
 
         control_analysis = await self._analyze_controls()
-        control_score = (control_analysis["implemented_controls"] / control_analysis["total_controls"]) * 100
+        control_score = (control_analysis["implemented_controls"] / (control_analysis["total_controls"] or 1)) * 100
 
         # Score general
         overall = (weighted_sum + control_score) / 2
