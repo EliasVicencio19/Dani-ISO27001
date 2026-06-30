@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export const ThemeContext = createContext();
 
@@ -84,6 +84,55 @@ export const ThemeProvider = ({ children }) => {
   const persistedSetDarkMode = (val) => { localStorage.setItem('dani-darkMode', val); setDarkMode(val); };
   const persistedSetLanguage = (val) => { localStorage.setItem('dani-language', val); setLanguage(val); };
   const persistedSetHighContrast = (val) => { localStorage.setItem('dani-highContrast', val); setHighContrast(val); };
+
+  // Inyecta estilos globales para <select> según el tema activo.
+  // Los <option> no admiten rgba, así que necesitan fondos opacos explícitos.
+  useEffect(() => {
+    let styleEl = document.getElementById('dani-theme-vars');
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'dani-theme-vars';
+      document.head.appendChild(styleEl);
+    }
+
+    // Fondos sólidos para el popup de opciones (los rgba no funcionan en <option>)
+    const optBg   = highContrast ? '#000000' : darkMode ? '#0f172a' : '#f8fafc';
+    const optText  = highContrast ? '#ffffff' : darkMode ? '#e2e8f0' : '#1e293b';
+    const optBgHov = highContrast ? '#1a1a1a' : darkMode ? '#1e293b' : '#e2e8f0';
+
+    // Flecha SVG codificada en URL, coloreada según el tema
+    const arrowHex = highContrast ? 'ffffff' : darkMode ? '94a3b8' : '64748b';
+    const arrowSvg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23${arrowHex}' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E")`;
+
+    styleEl.textContent = `
+      /* ── Selects globales DANI – se regeneran con cada cambio de tema ── */
+      select {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        border-color: transparent !important;
+        outline: none !important;
+        background-image: ${arrowSvg} !important;
+        background-repeat: no-repeat !important;
+        background-position: right 10px center !important;
+        padding-right: 28px !important;
+      }
+      select:focus {
+        outline: none !important;
+        box-shadow: 0 0 0 1.5px rgba(139,92,246,0.45) !important;
+      }
+      select option {
+        background-color: ${optBg};
+        color: ${optText};
+      }
+      select option:hover,
+      select option:focus,
+      select option:checked {
+        background-color: ${optBgHov};
+        color: ${optText};
+      }
+    `;
+  }, [darkMode, highContrast]);
 
   return (
     <ThemeContext.Provider value={{ darkMode, setDarkMode: persistedSetDarkMode, language, setLanguage: persistedSetLanguage, highContrast, setHighContrast: persistedSetHighContrast, theme: t, translations }}>

@@ -224,6 +224,14 @@ function GapAnalysisScreen({ onNavigate }) {
   const [showAIAuditModal, setShowAIAuditModal] = useState(null);
   const [isAuditing, setIsAuditing] = useState(false);
   const [isBulkAuditing, setIsBulkAuditing] = useState(false);
+  const [selectedControls, setSelectedControls] = useState(new Set());
+  const [sortBy, setSortBy] = useState('id');
+  const [sortDir, setSortDir] = useState('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [showBulkDocModal, setShowBulkDocModal] = useState(false);
+  const [bulkAuditProgress, setBulkAuditProgress] = useState({ done: 0, total: 0 });
+  const [isBulkSelectionAuditing, setIsBulkSelectionAuditing] = useState(false);
   const [fullAnalysis, setFullAnalysis] = useState(null);
 
   useEffect(() => {
@@ -439,6 +447,31 @@ function GapAnalysisScreen({ onNavigate }) {
     }
   };
 
+  const handleBulkSelectionAudit = async (documentId) => {
+    const ids = [...selectedControls];
+    setBulkAuditProgress({ done: 0, total: ids.length });
+    setIsBulkSelectionAuditing(true);
+    let successCount = 0;
+    for (const controlId of ids) {
+      try {
+        const response = await complianceAPI.evaluateControl(controlId, documentId);
+        setControls(prev => prev.map(c => c.id === controlId ? {
+          ...c,
+          status: response.status === 'implemented' ? 'implemented' : (response.status === 'planned' ? 'planned' : 'notImplemented'),
+          justification: response.justification
+        } : c));
+        successCount++;
+      } catch (err) {
+        console.error(`Error auditando ${controlId}:`, err);
+      }
+      setBulkAuditProgress(p => ({ ...p, done: p.done + 1 }));
+    }
+    setIsBulkSelectionAuditing(false);
+    setShowBulkDocModal(false);
+    setSelectedControls(new Set());
+    alert(`✨ ${successCount}/${ids.length} ${language === 'es' ? 'controles auditados' : 'controls audited'}`);
+  };
+
   // Funciones del wizard
   const currentPhaseData = phases[currentPhase];
   const currentQuestionData = currentPhaseData?.questions[currentQuestion];
@@ -522,6 +555,17 @@ function GapAnalysisScreen({ onNavigate }) {
     return true;
   }) : [];
 
+  const sortedFilteredControls = [...filteredControls].sort((a, b) => {
+    let cmp = 0;
+    if (sortBy === 'id') cmp = a.id.localeCompare(b.id, undefined, { numeric: true });
+    else if (sortBy === 'name') cmp = getControlName(a.id, language).localeCompare(getControlName(b.id, language));
+    else if (sortBy === 'applicable') cmp = (a.applicable === b.applicable) ? 0 : a.applicable ? -1 : 1;
+    else if (sortBy === 'audited') cmp = (!!a.justification === !!b.justification) ? 0 : a.justification ? -1 : 1;
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+  const totalPages = Math.ceil(sortedFilteredControls.length / pageSize) || 1;
+  const pagedControls = sortedFilteredControls.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   const appliesCount = Array.isArray(controls) ? controls.filter(c => c.applicable).length : 0;
   const implementedCount = Array.isArray(controls) ? controls.filter(c => c.applicable && c.status === 'implemented').length : 0;
 
@@ -561,6 +605,72 @@ function GapAnalysisScreen({ onNavigate }) {
       </div>
     );
   }
+  const chapterDescriptions = {
+    es: {
+      '4':  'Contexto de la organización — cuestiones internas/externas y partes interesadas.',
+      '5':  'Liderazgo — política de seguridad, roles y responsabilidades de la dirección.',
+      '6':  'Planificación — evaluación de riesgos, tratamiento y objetivos de seguridad.',
+      '7':  'Soporte — recursos, competencia, concienciación y control de documentos.',
+      '8':  'Operación — implementación y control de los procesos de seguridad.',
+      '9':  'Evaluación del desempeño — auditorías internas y revisión por la dirección.',
+      '10': 'Mejora continua — no conformidades, acciones correctivas y mejora del SGSI.',
+      'a':  'Anexo A — controles técnicos, organizacionales, físicos y de personas.',
+    },
+    en: {
+      '4':  'Context of the organization — internal/external issues and interested parties.',
+      '5':  'Leadership — security policy, roles and management responsibilities.',
+      '6':  'Planning — risk assessment, treatment and security objectives.',
+      '7':  'Support — resources, competence, awareness and document control.',
+      '8':  'Operation — implementation and control of security processes.',
+      '9':  'Performance evaluation — internal audits and management review.',
+      '10': 'Improvement — nonconformities, corrective actions and ISMS improvement.',
+      'a':  'Annex A — technical, organizational, physical and people controls.',
+    },
+    pt: {
+      '4':  'Contexto da organização — questões internas/externas e partes interessadas.',
+      '5':  'Liderança — política de segurança, funções e responsabilidades da direção.',
+      '6':  'Planejamento — avaliação de riscos, tratamento e objetivos de segurança.',
+      '7':  'Suporte — recursos, competência, conscientização e controle de documentos.',
+      '8':  'Operação — implementação e controle dos processos de segurança.',
+      '9':  'Avaliação de desempenho — auditorias internas e análise crítica pela direção.',
+      '10': 'Melhoria contínua — não conformidades, ações corretivas e melhoria do SGSI.',
+      'a':  'Anexo A — controles técnicos, organizacionais, físicos e de pessoas.',
+    },
+  };
+
+  const getChapterDesc = (chapterId) => {
+    const key = String(chapterId).replace('chapter_', '').toLowerCase().replace('annex-', '');
+    const map = chapterDescriptions[language] || chapterDescriptions.es;
+    return map[key] || '';
+  };
+
+  const CustomCheckbox = ({ checked, onChange }) => (
+    <div
+      role="checkbox"
+      aria-checked={checked}
+      onClick={onChange}
+      style={{
+        width: '12px', height: '12px', borderRadius: '3px', flexShrink: 0,
+        border: `1.5px solid ${checked ? '#8b5cf6' : t.textDim}`,
+        background: checked ? '#8b5cf6' : 'transparent',
+        cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'border-color 0.15s, background 0.15s',
+      }}
+    >
+      {checked && (
+        <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+          <path d="M1 3L3 5L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )}
+    </div>
+  );
+
+  const handleSort = (col) => {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir('asc'); }
+    setCurrentPage(1);
+  };
+
   // ==========================================
   // COMPONENTE INTERACTIVE SOA
   // ==========================================
@@ -593,65 +703,166 @@ function GapAnalysisScreen({ onNavigate }) {
           }} style={{ padding: '8px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '8px', color: 'white', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Download size={14} /> Exportar SOA PDF
           </button>
+          <button
+            onClick={handleBulkAudit}
+            disabled={isBulkAuditing}
+            style={{ padding: '8px 16px', background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', border: 'none', borderRadius: '8px', color: 'white', fontSize: '12px', fontWeight: 600, cursor: isBulkAuditing ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', opacity: isBulkAuditing ? 0.7 : 1 }}
+          >
+            <Sparkles size={14} /> {isBulkAuditing ? (language === 'es' ? 'Auditando...' : 'Auditing...') : (language === 'es' ? 'Auditar todos' : 'Audit all')}
+          </button>
+          {selectedControls.size > 0 && (
+            <button
+              onClick={() => setShowBulkDocModal(true)}
+              style={{ padding: '8px 16px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', border: 'none', borderRadius: '8px', color: 'white', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Sparkles size={14} /> {language === 'es' ? `Auditar seleccionados (${selectedControls.size})` : `Audit selected (${selectedControls.size})`}
+            </button>
+          )}
           {[
             { id: 'all', label: tText.showAll },
             { id: 'applicable', label: tText.showApplicable },
             { id: 'notApplicable', label: tText.showNotApplicable }
           ].map((filter) => (
-            <button key={filter.id} onClick={() => setFilterApplicable(filter.id)} style={{ padding: '6px 14px', background: filterApplicable === filter.id ? '#10b98120' : 'transparent', border: `1px solid ${filterApplicable === filter.id ? '#10b981' : t.border}`, borderRadius: '20px', color: filterApplicable === filter.id ? '#10b981' : t.textMuted, fontSize: '12px', cursor: 'pointer' }}>
+            <button key={filter.id} onClick={() => { setFilterApplicable(filter.id); setCurrentPage(1); }} style={{ padding: '6px 14px', background: filterApplicable === filter.id ? '#10b98120' : 'transparent', border: `1px solid ${filterApplicable === filter.id ? '#10b981' : t.border}`, borderRadius: '20px', color: filterApplicable === filter.id ? '#10b981' : t.textMuted, fontSize: '12px', cursor: 'pointer' }}>
               {filter.label}
             </button>
           ))}
         </div>
       </div>
-      <div style={{ overflowX: 'auto' }}>
+
+      {/* Scrollbar temática */}
+      <style>{`
+        .soa-table-scroll { scrollbar-width: thin; scrollbar-color: rgba(139,92,246,0.28) transparent; }
+        .soa-table-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+        .soa-table-scroll::-webkit-scrollbar-track { background: transparent; }
+        .soa-table-scroll::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.28); border-radius: 4px; }
+        .soa-table-scroll::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,0.55); }
+        .soa-table-scroll::-webkit-scrollbar-corner { background: transparent; }
+      `}</style>
+
+      {/* Barra de paginación superior */}
+      <div style={{ padding: '10px 20px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+        {/* Tamaño de página */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <span style={{ fontSize: '11px', color: t.textDim, whiteSpace: 'nowrap' }}>
+            {language === 'es' ? 'Por página:' : 'Per page:'}
+          </span>
+          {[10, 30, 50].map(n => (
+            <button key={n} onClick={() => { setPageSize(n); setCurrentPage(1); }}
+              style={{ padding: '4px 13px', background: pageSize === n ? '#8b5cf6' : 'transparent', border: `1px solid ${pageSize === n ? '#8b5cf6' : t.border}`, borderRadius: '20px', color: pageSize === n ? 'white' : t.textDim, fontSize: '12px', cursor: 'pointer', fontWeight: pageSize === n ? 600 : 400, transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+              {n}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ width: '1px', height: '18px', background: t.border, flexShrink: 0 }} />
+
+        {/* Tabs de páginas */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+          <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+            style={{ padding: '4px 9px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '6px', color: t.textDim, cursor: currentPage === 1 ? 'default' : 'pointer', opacity: currentPage === 1 ? 0.3 : 1, fontSize: '13px', lineHeight: 1 }}>‹</button>
+          {(() => {
+            const pages = totalPages <= 7
+              ? Array.from({ length: totalPages }, (_, i) => i + 1)
+              : currentPage <= 4
+                ? [1, 2, 3, 4, 5, '…', totalPages]
+                : currentPage >= totalPages - 3
+                  ? [1, '…', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
+                  : [1, '…', currentPage - 1, currentPage, currentPage + 1, '…', totalPages];
+            return pages.map((pg, i) => pg === '…'
+              ? <span key={`e${i}`} style={{ padding: '0 4px', color: t.textDim, fontSize: '12px', userSelect: 'none' }}>…</span>
+              : <button key={pg} onClick={() => setCurrentPage(pg)}
+                  style={{ minWidth: '30px', padding: '4px 8px', background: currentPage === pg ? '#8b5cf6' : 'transparent', border: `1px solid ${currentPage === pg ? '#8b5cf6' : t.border}`, borderRadius: '6px', color: currentPage === pg ? 'white' : t.textDim, fontSize: '12px', cursor: 'pointer', fontWeight: currentPage === pg ? 600 : 400, transition: 'all 0.15s' }}>
+                  {pg}
+                </button>
+            );
+          })()}
+          <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+            style={{ padding: '4px 9px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '6px', color: t.textDim, cursor: currentPage === totalPages ? 'default' : 'pointer', opacity: currentPage === totalPages ? 0.3 : 1, fontSize: '13px', lineHeight: 1 }}>›</button>
+        </div>
+
+        <div style={{ width: '1px', height: '18px', background: t.border, flexShrink: 0 }} />
+
+        <span style={{ fontSize: '11px', color: t.textDim, whiteSpace: 'nowrap', flexShrink: 0 }}>
+          {sortedFilteredControls.length} {language === 'es' ? 'controles' : 'controls'}
+        </span>
+      </div>
+
+      <div className="soa-table-scroll" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '520px' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: t.inputBg }}>
-              <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim, width: '100px' }}>{tText.control}</th>
-              <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim }}>{tText.description}</th>
-              <th style={{ padding: '14px 20px', textAlign: 'center', fontSize: '12px', fontWeight: 600, color: t.textDim, width: '120px' }}>{tText.applicable}?</th>
-              <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim, width: '140px' }}>{tText.status}</th>
-              <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim }}>{tText.justification}</th>
+              <th style={{ padding: '12px 12px', width: '36px', textAlign: 'center' }}>
+                <CustomCheckbox
+                  checked={pagedControls.length > 0 && pagedControls.every(c => selectedControls.has(c.id))}
+                  onChange={() => {
+                    const allChecked = pagedControls.length > 0 && pagedControls.every(c => selectedControls.has(c.id));
+                    const newSel = new Set(selectedControls);
+                    pagedControls.forEach(c => allChecked ? newSel.delete(c.id) : newSel.add(c.id));
+                    setSelectedControls(newSel);
+                  }}
+                />
+              </th>
+              <th onClick={() => handleSort('id')} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim, width: '62px', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                {tText.control} <span style={{ opacity: sortBy === 'id' ? 1 : 0.3 }}>{sortBy === 'id' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+              </th>
+              <th onClick={() => handleSort('name')} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                {tText.description} <span style={{ opacity: sortBy === 'name' ? 1 : 0.3 }}>{sortBy === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+              </th>
+              <th onClick={() => handleSort('applicable')} style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: 600, color: t.textDim, width: '130px', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                {tText.applicable}? <span style={{ opacity: sortBy === 'applicable' ? 1 : 0.3 }}>{sortBy === 'applicable' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+              </th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim, width: '135px' }}>{tText.status}</th>
+              <th onClick={() => handleSort('audited')} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                {tText.justification} <span style={{ opacity: sortBy === 'audited' ? 1 : 0.3 }}>{sortBy === 'audited' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {filteredControls.map((control) => (
-              <tr key={control.id} style={{ borderBottom: `1px solid ${t.border}` }}>
-                <td style={{ padding: '16px 20px' }}><span style={{ fontSize: '13px', fontWeight: 600, color: '#8b5cf6' }}>{control.id}</span></td>
-                {/* 🔽🔽🔽 ESTA ES LA LÍNEA QUE CAMBIA 🔽🔽🔽 */}
-                <td style={{ padding: '16px 20px' }}><div style={{ fontSize: '13px', color: t.text }}>{getControlName(control.id, language)}</div><span style={{ fontSize: '11px', color: t.textDim }}>{control.category}</span></td>
-                {/* 🔼🔼🔼 ESTA ES LA LÍNEA QUE CAMBIA 🔼🔼🔼 */}
-                <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                  <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                    <button onClick={() => toggleApplicable(control.id)} style={{ padding: '6px 12px', background: control.applicable ? '#10b98120' : 'transparent', border: `1px solid ${control.applicable ? '#10b981' : t.border}`, borderRadius: '6px 0 0 6px', color: control.applicable ? '#10b981' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>{tText.applicable}</button>
-                    <button onClick={() => toggleApplicable(control.id)} style={{ padding: '6px 12px', background: !control.applicable ? '#ef444420' : 'transparent', border: `1px solid ${!control.applicable ? '#ef4444' : t.border}`, borderRadius: '0 6px 6px 0', color: !control.applicable ? '#ef4444' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>{tText.notApplicable}</button>
+            {pagedControls.map((control) => (
+              <tr key={control.id} style={{ borderBottom: `1px solid ${t.border}`, background: selectedControls.has(control.id) ? `${t.inputBg}` : 'transparent' }}>
+                <td style={{ padding: '11px 12px', textAlign: 'center' }}>
+                  <CustomCheckbox
+                    checked={selectedControls.has(control.id)}
+                    onChange={() => {
+                      const newSel = new Set(selectedControls);
+                      selectedControls.has(control.id) ? newSel.delete(control.id) : newSel.add(control.id);
+                      setSelectedControls(newSel);
+                    }}
+                  />
+                </td>
+                <td style={{ padding: '11px 16px' }}><span style={{ fontSize: '13px', fontWeight: 700, color: '#8b5cf6' }}>{control.id}</span></td>
+                <td style={{ padding: '11px 16px' }}><div style={{ fontSize: '13px', color: t.text, lineHeight: 1.35 }}>{getControlName(control.id, language)}</div><span style={{ fontSize: '11px', color: t.textDim }}>{control.category}</span></td>
+                <td style={{ padding: '11px 16px', textAlign: 'center' }}>
+                  <div style={{ display: 'flex', gap: '3px', justifyContent: 'center' }}>
+                    <button onClick={() => toggleApplicable(control.id)} style={{ padding: '5px 10px', background: control.applicable ? '#10b98120' : 'transparent', border: `1px solid ${control.applicable ? '#10b981' : t.border}`, borderRadius: '5px 0 0 5px', color: control.applicable ? '#10b981' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>{tText.applicable}</button>
+                    <button onClick={() => toggleApplicable(control.id)} style={{ padding: '5px 10px', background: !control.applicable ? '#ef444420' : 'transparent', border: `1px solid ${!control.applicable ? '#ef4444' : t.border}`, borderRadius: '0 5px 5px 0', color: !control.applicable ? '#ef4444' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>{tText.notApplicable}</button>
                   </div>
                 </td>
-                <td style={{ padding: '16px 20px' }}>
+                <td style={{ padding: '11px 16px' }}>
                   {control.applicable && (
-                    <select value={control.status} onChange={(e) => updateStatus(control.id, e.target.value)} style={{ padding: '6px 10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '6px', color: t.text, fontSize: '12px', cursor: 'pointer' }}>
+                    <select value={control.status} onChange={(e) => updateStatus(control.id, e.target.value)} style={{ padding: '5px 10px', background: 'transparent', borderRadius: '6px', color: t.text, fontSize: '12px', cursor: 'pointer', width: '100%' }}>
                       <option value="implemented">{tText.implemented}</option>
                       <option value="planned">{tText.planned}</option>
                       <option value="notImplemented">{tText.notImplemented}</option>
                     </select>
                   )}
                 </td>
-                <td style={{ padding: '16px 20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <td style={{ padding: '11px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontSize: '12px', color: control.justification ? t.textMuted : '#ef4444', fontStyle: control.justification ? 'normal' : 'italic' }}>{control.justification || tText.required}</span>
-                    <button onClick={() => setShowJustificationModal(control)} title="Editar manualmente" style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: t.textDim }}><Edit3 size={14} /></button>
-                    <button onClick={() => setShowAIAuditModal(control)} title="Auditar con IA" style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: '#8b5cf6' }}><Sparkles size={14} /></button>
+                    <button onClick={() => setShowJustificationModal(control)} title="Editar manualmente" style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: t.textDim }}><Edit3 size={13} /></button>
+                    <button onClick={() => setShowAIAuditModal(control)} title="Auditar" style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: '#8b5cf6' }}><Sparkles size={13} /></button>
                     {onNavigate && control.status !== 'implemented' && (
                       <button 
                         onClick={() => {
                           const chapterNum = control.id.startsWith('A.') ? 'annex-a' : control.id.split('.')[0];
                           onNavigate('doc-generator', { targetChapterNumber: chapterNum, targetControlId: control.id, targetControlTitle: control.title });
                         }} 
-                        title="Generar Documento con IA" 
+                        title="Generar Documento con IA"
                         style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: '#10b981' }}
                       >
-                        <Wand2 size={14} />
+                        <Wand2 size={13} />
                       </button>
                     )}
                   </div>
@@ -661,7 +872,7 @@ function GapAnalysisScreen({ onNavigate }) {
           </tbody>
         </table>
       </div>
-      <div style={{ padding: '12px 20px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#10b981' }}>
+      <div style={{ padding: '10px 20px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#10b981' }}>
         <CheckCircle2 size={14} /><span>{tText.autoSaved}</span>
       </div>
 
@@ -682,7 +893,7 @@ function GapAnalysisScreen({ onNavigate }) {
       {showAIAuditModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: t.cardBg, borderRadius: '16px', padding: '24px', width: '500px', maxWidth: '90%' }}>
-            <h3 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', color: t.text }}><Sparkles size={20} color="#8b5cf6" /> Auditar con Inteligencia Artificial</h3>
+            <h3 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', color: t.text }}><Sparkles size={20} color="#8b5cf6" /> Auditar</h3>
             <p style={{ fontSize: '13px', color: t.textDim, marginBottom: '20px' }}>Selecciona el documento de evidencia que DANI debe evaluar contra el control <strong>{showAIAuditModal.id}</strong>.</p>
 
             <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
@@ -714,6 +925,106 @@ function GapAnalysisScreen({ onNavigate }) {
           </div>
         </div>
       )}
+
+      {showBulkDocModal && (() => {
+        const selectedIds = [...selectedControls];
+        const visibleIds = selectedIds.slice(0, 24);
+        const remaining = selectedIds.length - visibleIds.length;
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ background: t.cardBg, borderRadius: '16px', padding: '24px', width: '560px', maxWidth: '92%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+
+              {/* Encabezado */}
+              <h3 style={{ marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px', color: t.text, flexShrink: 0 }}>
+                <Sparkles size={20} color="#f59e0b" />
+                {language === 'es' ? `Auditar ${selectedIds.length} controles seleccionados` : `Audit ${selectedIds.length} selected controls`}
+              </h3>
+              <p style={{ fontSize: '12px', color: t.textDim, marginBottom: '14px', flexShrink: 0 }}>
+                {language === 'es'
+                  ? 'Elige el capítulo de evidencia. DANI evaluará cada control seleccionado contra ese documento.'
+                  : 'Choose the evidence chapter. DANI will evaluate each selected control against that document.'}
+              </p>
+
+              {/* Chips de controles seleccionados */}
+              <div style={{ marginBottom: '16px', padding: '10px 12px', background: t.inputBg, borderRadius: '10px', border: `1px solid ${t.border}`, flexShrink: 0 }}>
+                <p style={{ fontSize: '11px', color: t.textDim, marginBottom: '8px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  {language === 'es' ? 'Controles a auditar' : 'Controls to audit'}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                  {visibleIds.map(id => (
+                    <span key={id} style={{ padding: '2px 8px', background: '#8b5cf618', border: '1px solid #8b5cf640', borderRadius: '20px', fontSize: '11px', color: '#8b5cf6', fontWeight: 600 }}>
+                      {id}
+                    </span>
+                  ))}
+                  {remaining > 0 && (
+                    <span style={{ padding: '2px 8px', background: t.border, borderRadius: '20px', fontSize: '11px', color: t.textDim }}>
+                      +{remaining} {language === 'es' ? 'más' : 'more'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Barra de progreso */}
+              {isBulkSelectionAuditing && (
+                <div style={{ marginBottom: '14px', padding: '12px', background: 'rgba(245,158,11,0.08)', borderRadius: '8px', fontSize: '13px', color: '#f59e0b', flexShrink: 0 }}>
+                  {language === 'es' ? `Auditando ${bulkAuditProgress.done} / ${bulkAuditProgress.total} controles...` : `Auditing ${bulkAuditProgress.done} / ${bulkAuditProgress.total} controls...`}
+                  <div style={{ marginTop: '8px', height: '4px', background: t.border, borderRadius: '2px', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', background: '#f59e0b', borderRadius: '2px', width: `${bulkAuditProgress.total > 0 ? (bulkAuditProgress.done / bulkAuditProgress.total) * 100 : 0}%`, transition: 'width 0.3s ease' }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Lista de capítulos */}
+              <p style={{ fontSize: '11px', color: t.textDim, marginBottom: '8px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>
+                {language === 'es' ? 'Capítulos disponibles' : 'Available chapters'}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, paddingRight: '2px' }}>
+                {availableDocs.length === 0 ? (
+                  <div style={{ padding: '12px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '8px', fontSize: '13px' }}>
+                    {language === 'es' ? 'No hay documentos publicados disponibles. Ve al Generador de Documentos y aprueba uno primero.' : 'No published documents available. Go to Document Generator and approve one first.'}
+                  </div>
+                ) : (
+                  availableDocs.map(doc => {
+                    const chNum = String(doc.chapter_id).replace('chapter_', '');
+                    const desc = getChapterDesc(doc.chapter_id);
+                    return (
+                      <button
+                        key={doc.id}
+                        onClick={() => handleBulkSelectionAudit(doc.id)}
+                        disabled={isBulkSelectionAuditing}
+                        style={{ padding: '12px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', textAlign: 'left', cursor: isBulkSelectionAuditing ? 'wait' : 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', transition: 'border-color 0.15s' }}
+                        onMouseEnter={e => { if (!isBulkSelectionAuditing) e.currentTarget.style.borderColor = '#f59e0b'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: desc ? '4px' : 0 }}>
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', padding: '2px 7px', borderRadius: '6px' }}>
+                              {language === 'es' ? 'Cap.' : 'Ch.'} {chNum}
+                            </span>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: t.text }}>{doc.title}</span>
+                          </div>
+                          {desc && <p style={{ fontSize: '11px', color: t.textDim, margin: 0, lineHeight: 1.4 }}>{desc}</p>}
+                        </div>
+                        {isBulkSelectionAuditing
+                          ? <span style={{ fontSize: '11px', color: '#f59e0b', flexShrink: 0, marginTop: '2px' }}>{language === 'es' ? 'Procesando...' : 'Processing...'}</span>
+                          : <ChevronRight size={16} color={t.textDim} style={{ flexShrink: 0, marginTop: '2px' }} />
+                        }
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', flexShrink: 0 }}>
+                <button onClick={() => setShowBulkDocModal(false)} disabled={isBulkSelectionAuditing} style={{ padding: '8px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', cursor: 'pointer', color: t.text, fontSize: '13px' }}>
+                  {language === 'es' ? 'Cancelar' : 'Cancel'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 

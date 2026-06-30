@@ -97,6 +97,15 @@ const ChatDANI = ({ isOpen, onClose, activeScreen = 'dashboard' }) => {
 
   const messagesEndRef = useRef(null);
 
+  // Reset conversation when language changes so all UI text stays consistent
+  useEffect(() => {
+    setMessages([{ role: 'assistant', content: 'INITIAL_MSG' }]);
+    setChatQuery('');
+    setTypingText('');
+    setTypingChars(0);
+    setIsThinking(false);
+  }, [language]);
+
   // ── Thinking steps cycling ──
   useEffect(() => {
     if (!isThinking) { setThinkingStep(0); return; }
