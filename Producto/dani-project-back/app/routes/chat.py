@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -16,9 +16,14 @@ router = APIRouter(prefix="/api/chat", tags=["Chat IA"])
 ai_service = AIService()
 embedding_service = EmbeddingService()
 
+class HistoryItem(BaseModel):
+    role: str
+    content: str
+
 class ChatRequest(BaseModel):
     message: str
     language: Optional[str] = "es"
+    history: Optional[List[HistoryItem]] = []
 
 @router.post("/")
 async def chat_endpoint(
@@ -94,17 +99,13 @@ async def chat_endpoint(
         print(f"⚠️ Error general al recuperar contexto RAG: {rag_err}")
         raise HTTPException(status_code=503, detail="Servicio Analítico Degradado: Fallo general en el motor RAG.")
 
-    # Inyectar instrucción de idioma
-    lang_map = {"es": "Español", "en": "Inglés (English)", "pt": "Portugués (Português)"}
-    target_lang = lang_map.get(request.language, "Español")
-    lang_instruction = f"INSTRUCCIÓN CRÍTICA DEL SISTEMA: El usuario ha seleccionado el idioma '{target_lang}'. Por lo tanto, tu respuesta FINAL debe estar EXCLUSIVAMENTE en {target_lang}, independientemente del idioma del contexto o de la pregunta."
-    
-    if context:
-        context = f"{context}\n\n{lang_instruction}"
-    else:
-        context = lang_instruction
-
     # 4. Enviar a la IA (DeepSeek) enriqueciendo el prompt con todo el contexto recuperado
-    reply = await ai_service.chat(request.message, context=context)
+    conversation_history = [{"role": h.role, "content": h.content} for h in request.history]
+    reply = await ai_service.chat(
+        request.message,
+        context=context,
+        language=request.language,
+        history=conversation_history,
+    )
     
     return {"reply": reply}

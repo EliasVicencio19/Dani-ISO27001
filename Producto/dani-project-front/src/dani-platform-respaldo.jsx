@@ -161,14 +161,16 @@ export default function DaniPlatform() {
       </main>
 
       {/* Componentes Flotantes y Modales */}
-      <button 
-        onClick={() => setChatOpen(!chatOpen)} 
-        style={{ position: 'fixed', bottom: '32px', right: '32px', width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 32px rgba(16, 185, 129, 0.4)', zIndex: 100 }}
-      >
-        <Bot size={28} color="white" />
-      </button>
+      {!chatOpen && (
+        <button
+          onClick={() => setChatOpen(true)}
+          style={{ position: 'fixed', bottom: '32px', right: '32px', width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 32px rgba(16, 185, 129, 0.4)', zIndex: 100 }}
+        >
+          <Bot size={28} color="white" />
+        </button>
+      )}
 
-      <ChatDANI isOpen={chatOpen} onClose={() => setChatOpen(false)} />
+      <ChatDANI isOpen={chatOpen} onClose={() => setChatOpen(false)} activeScreen={activeScreen} />
       
       {commandPaletteOpen && <CommandPalette isOpen={commandPaletteOpen} darkMode={darkMode} onClose={() => setCommandPaletteOpen(false)} onNavigate={handleNavigate} />}
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
