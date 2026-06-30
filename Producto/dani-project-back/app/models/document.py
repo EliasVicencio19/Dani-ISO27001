@@ -1,6 +1,7 @@
 import uuid
 import enum
-from sqlalchemy import Column, String, Text, DateTime, Enum, Integer, ForeignKey
+from sqlalchemy import Column, String, Text, DateTime, Enum, Integer, ForeignKey, Boolean
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.dependencies.database import Base
 
@@ -19,9 +20,16 @@ class Document(Base):
     content = Column(Text, nullable=True)
     status = Column(Enum(DocumentStatus), default=DocumentStatus.DRAFT, nullable=False)
     version = Column(String(20), default="v1.0", nullable=False)
-    
+
+    # Campos requeridos por la diapositiva de arquitectura
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=True, index=True)
+    generated_by_ai = Column(Boolean, default=False, nullable=False)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relaciones
+    creator = relationship("User", foreign_keys=[user_id])
 
 class DocumentAcknowledgement(Base):
     __tablename__ = "document_acknowledgements"

@@ -20,7 +20,11 @@ class PriorityLevel(str, enum.Enum):
 class GapAnalysis(Base, TimestampMixin):
     """Modelo para análisis de brechas"""
     __tablename__ = "gap_analysis"
-    
+
+    # FKs requeridas por la diapositiva de arquitectura
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=True, index=True)
+    control_id = Column(String(50), nullable=True, index=True)  # Ej: "A.5.1" — referencia lógica a iso_controls.control_id
+
     clause_id = Column(String(20), nullable=False)  # 4,5,6,7,8,9,10
     clause_name = Column(String(200), nullable=False)
     requirement = Column(Text, nullable=False)
@@ -33,8 +37,14 @@ class GapAnalysis(Base, TimestampMixin):
     target_date = Column(DateTime)
     completed_date = Column(DateTime)
     notes = Column(Text)
-    
+
+    # Campos AI requeridos por la diapositiva
+    score = Column(Float, nullable=True)           # Score 0-100 asignado por IA
+    ai_response = Column(Text, nullable=True)      # Respuesta textual del LLM
+    evidence_text = Column(Text, nullable=True)    # Texto de evidencia adjunta al gap
+
     # Relaciones
+    user = relationship("User", foreign_keys=[user_id])
     actions = relationship("RemediationAction", back_populates="gap")
 
 class RemediationAction(Base, TimestampMixin):

@@ -165,7 +165,6 @@ export const documentsAPI = {
     });
     return response.json();
   },
-  
   saveDocument: async (chapterId, title, content, token = null) => {
     const resolvedToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/documents/`, {
@@ -176,6 +175,7 @@ export const documentsAPI = {
       },
       body: JSON.stringify({ chapter_id: chapterId, title, content })
     });
+    if (!response.ok) throw new Error(await response.text());
     return response.json();
   },
   
@@ -189,6 +189,7 @@ export const documentsAPI = {
       },
       body: JSON.stringify({ status })
     });
+    if (!response.ok) throw new Error(await response.text());
     return response.json();
   },
 

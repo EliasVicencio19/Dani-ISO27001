@@ -10,6 +10,8 @@ class ISOCControl(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)
     category = Column(String(100), nullable=False) # Ej: "Organizacional"
+    domain = Column(String(100), nullable=True)    # Alias de category para compatibilidad con diapositiva: "Organizacional","Personas","Físico","Tecnológico"
+    annex = Column(String(10), nullable=True)      # "A" para controles del Anexo A, null para cláusulas 4-10
     clause_reference = Column(String(100), nullable=True)
     implementation_guide = Column(Text, nullable=True)
     related_controls = Column(JSON, default=[])
